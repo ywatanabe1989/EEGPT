@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-07 12:35:31 (ywatanabe)"
+# Time-stamp: "2023-08-07 12:54:06 (ywatanabe)"
 
 import os
 import random
@@ -16,15 +16,17 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+
 class BidsDataset(Dataset):
     def __init__(self, bids_roots, t_segment=10, sampling_rate=128):
         self.bids_roots = bids_roots
         self.t_segment = t_segment
         self.sampling_rate = sampling_rate
         montage = mne.channels.make_standard_montage("standard_1020")
-        montage.rename_channels(lambda x: x.upper())  # Convert channel names to uppercase
+        montage.rename_channels(
+            lambda x: x.upper()
+        )  # Convert channel names to uppercase
         self.montage = montage
-
 
         self.common_channels = [
             "FP1",
@@ -50,33 +52,37 @@ class BidsDataset(Dataset):
 
         self.layouts = [BIDSLayout(root) for root in bids_roots]
 
-        self.files = np.hstack([layout.get(extension=[".edf", ".bdf", ".set"]) for layout in self.layouts])
-        self.files = [str(f.path) for f in self.files]  # Convert file paths to strings        
-                    
+        self.files = np.hstack(
+            [layout.get(extension=[".edf", ".bdf", ".set"]) for layout in self.layouts]
+        )
+        self.files = [str(f.path) for f in self.files]  # Convert file paths to strings
 
     def __len__(self):
         return len(self.files)  # Return the length of self.files
 
     def __getitem__(self, index):
-        f = self.files[index]  # Get the file at the given index        
+        f = self.files[index]  # Get the file at the given index
         channel_mapping = {
             "T3": "T7",
             "T4": "T8",
             "T5": "P7",
             "T6": "P8",
         }
-        
 
         try:
             raw = mne.io.read_raw(f, preload=True, verbose=False)
-            raw.rename_channels(lambda x: x.upper())  # Convert channel names to uppercase
-            channel_mapping = {old: new for old, new in channel_mapping.items() if old in raw.ch_names}
+            raw.rename_channels(
+                lambda x: x.upper()
+            )  # Convert channel names to uppercase
+            channel_mapping = {
+                old: new for old, new in channel_mapping.items() if old in raw.ch_names
+            }
             raw.rename_channels(channel_mapping)
             raw.set_montage(self.montage, on_missing="ignore")
             # Pick the channels that are present in both the raw data and the montage
             raw = raw.pick(self.common_channels)
-            raw.resample(self.sampling_rate)        
-            
+            raw.resample(self.sampling_rate)
+
             # Randomly select a time segment
             total_time = raw.times[-1]
             start_time = random.uniform(0, total_time - self.t_segment)
@@ -102,7 +108,7 @@ class BidsDataset(Dataset):
 
 # List of BIDS dataset roots
 bids_roots = glob("./data/EEGPT_datasets/ds*")
-bids_roots = np.array(bids_roots)[[0,1,2,3]] #1,2,3
+bids_roots = np.array(bids_roots)[[0, 1, 2, 3]]  # 1,2,3
 
 # Create BidsDataset
 bids_dataset = BidsDataset(bids_roots)
@@ -122,3 +128,4 @@ for epoch in range(10):
 batch = next(iter(data_loader))
 print(batch.shape)
 
+I have 10 seconds of EEG segments (19, 1280). I want to predict the last 0.1 second, which would be the same strategy for learning GPT.
