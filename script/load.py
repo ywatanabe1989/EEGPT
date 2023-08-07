@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-07 12:54:06 (ywatanabe)"
+# Time-stamp: "2023-08-07 15:34:12 (ywatanabe)"
 
 import os
 import random
@@ -99,33 +99,31 @@ class BidsDataset(Dataset):
             # Normalize the data
             segment = (segment - np.mean(segment)) / np.std(segment)
 
-            return torch.from_numpy(np.array(segment))
+            return torch.from_numpy(np.array(segment)).float()
 
         except Exception as e:
             print(f"Error processing file {f}: {e}")
             return None
 
+if __name__ == "__main__":
+    # List of BIDS dataset roots
+    bids_roots = glob("./data/EEGPT_datasets/ds*")
+    bids_roots = np.array(bids_roots)[[0, 1, 2, 3]]  # 1,2,3
 
-# List of BIDS dataset roots
-bids_roots = glob("./data/EEGPT_datasets/ds*")
-bids_roots = np.array(bids_roots)[[0, 1, 2, 3]]  # 1,2,3
+    # Create BidsDataset
+    bids_dataset = BidsDataset(bids_roots)
 
-# Create BidsDataset
-bids_dataset = BidsDataset(bids_roots)
-
-# Create DataLoader
-batch_size = 64
+    # Create DataLoader
+    batch_size = 64
 
 
-# Load a batch of data
-for epoch in range(10):
-    data_loader = DataLoader(
-        bids_dataset, batch_size=batch_size, shuffle=True, num_workers=32
-    )
+    # Load a batch of data
+    for epoch in range(10):
+        data_loader = DataLoader(
+            bids_dataset, batch_size=batch_size, shuffle=True, num_workers=32
+        )
 
-    for i_batch, batch in enumerate(data_loader):
-        print(epoch, i_batch)
-batch = next(iter(data_loader))
-print(batch.shape)
-
-I have 10 seconds of EEG segments (19, 1280). I want to predict the last 0.1 second, which would be the same strategy for learning GPT.
+        for i_batch, batch in enumerate(data_loader):
+            print(epoch, i_batch)
+    batch = next(iter(data_loader))
+    print(batch.shape)
