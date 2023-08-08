@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-07 15:34:12 (ywatanabe)"
+# Time-stamp: "2023-08-08 11:01:29 (ywatanabe)"
 
 import os
 import random
@@ -96,6 +96,9 @@ class BidsDataset(Dataset):
                 ),
             ]
 
+            # Common average
+            segment -= segment.mean(axis=0, keepdims=True)
+
             # Normalize the data
             segment = (segment - np.mean(segment)) / np.std(segment)
 
@@ -105,17 +108,17 @@ class BidsDataset(Dataset):
             print(f"Error processing file {f}: {e}")
             return None
 
+
 if __name__ == "__main__":
     # List of BIDS dataset roots
     bids_roots = glob("./data/EEGPT_datasets/ds*")
-    bids_roots = np.array(bids_roots)[[0, 1, 2, 3]]  # 1,2,3
+    bids_roots = np.array(bids_roots)[[0, 1, 2, 3]]
 
     # Create BidsDataset
     bids_dataset = BidsDataset(bids_roots)
 
     # Create DataLoader
     batch_size = 64
-
 
     # Load a batch of data
     for epoch in range(10):
