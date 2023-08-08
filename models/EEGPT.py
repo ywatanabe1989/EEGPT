@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-08 10:53:27 (ywatanabe)"
+# Time-stamp: "2023-08-08 11:21:45 (ywatanabe)"
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class Conv2DNet(nn.Module):
+    """68 time steps of receptive field (= 531.25 ms at 128 Hz)"""
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
@@ -32,12 +33,7 @@ class Conv2DNet(nn.Module):
         self.conv8 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
         self.bn8 = nn.BatchNorm2d(128)                                                
         self.pool4 = nn.MaxPool2d(2, 2)
-        self.downsample4 = nn.Conv2d(128, 256, kernel_size=1)
-        self.conv9 = nn.Conv2d(128, 256, kernel_size=(1,3), stride=1, padding=1)
-        self.bn9 = nn.BatchNorm2d(256)   
-        self.conv10 = nn.Conv2d(256, 256, kernel_size=(1,3), stride=1, padding=1)
-        self.bn10 = nn.BatchNorm2d(256)           
-        self.fc = nn.Linear(256, 16)
+        self.fc = nn.Linear(128, 16)
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x))) # (16, 16, 19, 128)
@@ -51,7 +47,6 @@ class Conv2DNet(nn.Module):
         out = F.relu(self.bn4(self.conv4(out)))
         out = self.pool2(out)
         residual = self.pool2(residual).mean(dim=1, keepdims=True)
-        
         out = out + residual
 
         residual = out
@@ -61,112 +56,19 @@ class Conv2DNet(nn.Module):
         residual = self.pool3(residual).mean(dim=1, keepdims=True)
         out = out + residual
 
-
-
         residual = out # (16, 64, 2, 16)
         out = F.relu(self.bn7(self.conv7(out)))
         out = F.relu(self.bn8(self.conv8(out)))
-        out = self.pool4(out)
-        residual = self.pool4(residual).mean(dim=1, keepdims=True)
+        residual = residual.mean(dim=1, keepdims=True)
         out = out + residual
 
 
-        residual = out
-        out = F.relu(self.bn9(self.conv9(out)))
-        out = F.relu(self.bn10(self.conv10(out)))
         out = F.avg_pool2d(out, out.size()[2:])  # Global average pooling
         out = out.view(out.size(0), -1)  # Flatten the tensor
-        out = self.fc(out)  # Fully connected layer
 
+        out = self.fc(out)  # Fully connected layer
         return out
         
-    # def forward(self, x):
-    #     out = F.relu(self.conv1(x))
-    #     out = F.relu(self.conv2(out))
-    #     out = self.pool1(out)  # Apply the pooling layer
-    #     residual = out
-    #     out = out + residual  # Add the residual connection
-
-    #     residual = self.downsample1(residual)
-    #     out = F.relu(self.conv3(out))
-    #     out = F.relu(self.conv4(out))
-    #     out = self.pool2(out)  # Apply the pooling layer
-    #     out = out + residual  # Add the residual connection
-
-    #     residual = self.downsample2(residual)
-    #     out = F.relu(self.conv5(out))
-    #     out = F.relu(self.conv6(out))
-    #     out = self.pool3(out)  # Apply the pooling layer
-    #     out = out + residual  # Add the residual connection
-
-    #     residual = self.downsample3(residual)
-    #     out = F.relu(self.conv7(out))
-    #     out = F.relu(self.conv8(out))
-    #     out = self.pool4(out)  # Apply the pooling layer
-    #     out = out + residual  # Add the residual connection
-
-    #     residual = self.downsample4(residual)
-    #     out = F.relu(self.conv9(out))
-    #     out = F.relu(self.conv10(out))
-    #     out = out + residual  # Add the residual connection
-
-    #     out = F.avg_pool2d(out, out.size()[2:])  # Global average pooling
-    #     out = out.view(out.size(0), -1)  # Flatten the tensor
-    #     out = self.fc(out)  # Fully connected layer
-
-    #     return out
-
-
-# class Conv2DNet(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
-#         self.conv2 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
-#         self.downsample1 = nn.Conv2d(16, 32, kernel_size=1)  # 1x1 conv
-#         self.conv3 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
-#         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
-#         self.downsample2 = nn.Conv2d(32, 64, kernel_size=1)  # 1x1 conv
-#         self.conv5 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-#         self.conv6 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-#         self.downsample3 = nn.Conv2d(64, 128, kernel_size=1)  # 1x1 conv
-#         self.conv7 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-#         self.conv8 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
-#         self.downsample4 = nn.Conv2d(128, 256, kernel_size=1)  # 1x1 conv
-#         self.conv9 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-#         self.conv10 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-#         self.fc = nn.Linear(256, 16)
-
-#     def forward(self, x):
-#         out = F.relu(self.conv1(x))
-#         out = F.relu(self.conv2(out))
-#         residual = out
-#         out = out + residual  # Add the residual connection
-
-#         residual = self.downsample1(residual)
-#         out = F.relu(self.conv3(out))
-#         out = F.relu(self.conv4(out))
-#         out = out + residual  # Add the residual connection
-
-#         residual = self.downsample2(residual)
-#         out = F.relu(self.conv5(out))
-#         out = F.relu(self.conv6(out))
-#         out = out + residual  # Add the residual connection
-
-#         residual = self.downsample3(residual)
-#         out = F.relu(self.conv7(out))
-#         out = F.relu(self.conv8(out))
-#         out = out + residual  # Add the residual connection
-
-#         residual = self.downsample4(residual)
-#         out = F.relu(self.conv9(out))
-#         out = F.relu(self.conv10(out))
-#         out = out + residual  # Add the residual connection
-
-#         out = F.avg_pool2d(out, out.size()[2:])  # Global average pooling
-#         out = out.view(out.size(0), -1)  # Flatten the tensor
-#         out = self.fc(out)  # Fully connected layer
-
-#         return out
 
 
 class EEGPT(nn.Module):
