@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-08 10:51:02 (ywatanabe)"
+# Time-stamp: "2023-08-08 10:53:27 (ywatanabe)"
 
 import torch
 import torch.nn as nn
@@ -174,7 +174,8 @@ class EEGPT(nn.Module):
         super().__init__()
         self.conv = Conv2DNet()
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=9, nhead=9)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=6)        
+        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=6)
+        self.fc = nn.Linear(9, 1)
 
     def forward(self, x):
         # x: (batch_size, 19, 1280)
@@ -190,7 +191,8 @@ class EEGPT(nn.Module):
         x1 = self.transformer_encoder(x1)
         x1 = x1.permute(1, 0, 2)
 
-        x1 = x1.mean(dim=-1)
+        # x1 = x1.mean(dim=-1)
+        x1 = self.fc(x1).squeeze()
 
         return x1, x2
 
