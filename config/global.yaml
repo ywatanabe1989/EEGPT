@@ -1,0 +1,48 @@
+TGT_MONTAGE:
+    [
+    "FP1",
+    "F3",
+    "C3",
+    "P3",
+    "O1",
+    "FP2",
+    "F4",
+    "C4",
+    "P4",
+    "O2",
+    "F7",
+    "T7",
+    "P7",
+    "F8",
+    "T8",
+    "P8",
+    "FZ",
+    "CZ",
+    "PZ",
+    ]
+
+TGT_TRANVERSE_BIPOLAR_MONTAGE:
+    [
+    # Frontal
+    'FP1-FP2', 'F7-F3', 'F3-FZ', 'FZ-F4', 'F4-F8',
+    # Central
+    'T3-C3', 'C3-Cz', 'Cz-C4', 'C4-T4',
+    # Parietal  
+    'T5-P3', 'P3-PZ', 'PZ-P4', 'P4-T6',
+    # Occipital
+    'O1-O2',
+    ]
+
+CHANNEL_MAPPING:
+  {
+  "T3": "T7",
+  "T5": "P7",
+  "T4": "T8",
+  "T6": "P8",
+  }
+
+TGT_FS:
+  128
+    
+DATA_DIR:
+    "./data/"

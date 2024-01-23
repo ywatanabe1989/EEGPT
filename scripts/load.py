@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-08 11:01:29 (ywatanabe)"
+# Time-stamp: "2024-01-23 13:19:55 (ywatanabe)"
 
 import os
 import random
@@ -53,9 +53,14 @@ class BidsDataset(Dataset):
         self.layouts = [BIDSLayout(root) for root in bids_roots]
 
         self.files = np.hstack(
-            [layout.get(extension=[".edf", ".bdf", ".set"]) for layout in self.layouts]
+            [
+                layout.get(extension=[".edf", ".bdf", ".set"])
+                for layout in self.layouts
+            ]
         )
-        self.files = [str(f.path) for f in self.files]  # Convert file paths to strings
+        self.files = [
+            str(f.path) for f in self.files
+        ]  # Convert file paths to strings
 
     def __len__(self):
         return len(self.files)  # Return the length of self.files
@@ -75,7 +80,9 @@ class BidsDataset(Dataset):
                 lambda x: x.upper()
             )  # Convert channel names to uppercase
             channel_mapping = {
-                old: new for old, new in channel_mapping.items() if old in raw.ch_names
+                old: new
+                for old, new in channel_mapping.items()
+                if old in raw.ch_names
             }
             raw.rename_channels(channel_mapping)
             raw.set_montage(self.montage, on_missing="ignore")
@@ -130,3 +137,5 @@ if __name__ == "__main__":
             print(epoch, i_batch)
     batch = next(iter(data_loader))
     print(batch.shape)
+
+    np.array(data_loader.dataset)
