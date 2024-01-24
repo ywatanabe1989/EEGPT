@@ -1,6 +1,8 @@
 import mngs
+import numpy as np
 
 CONFIG = mngs.io.load("./config/global.yaml")
+
 
 def get_unique_channels():
     LPATHS_CHANNELS = mngs.io.find(CONFIG["DATA_DIR"], "*channels*.tsv")
@@ -22,19 +24,6 @@ def get_unique_channels():
     # To upper cases
     chs_all = [np.char.upper(chs) for chs in chs_all]
     return chs_all
-
-
-# def print_missing_and_extra_channels():
-#     for dataset_channels in chs_uq:
-#         # Identify missing channels
-#         missing_channels = set(CONFIG["TGT_MONTAGE"]) - set(dataset_channels)
-#         print(f"Missing channels: {missing_channels}")
-
-#         # Identify extra channels
-#         print()
-#         extra_channels = set(dataset_channels) - set(CONFIG["TGT_MONTAGE"])
-#         print(f"Extra channels: {extra_channels}")
-#         print()
 
 
 def map_channels(dataset_channels, channel_mapping):
@@ -64,35 +53,9 @@ def print_missing_and_extra_channels(chs_uq, channel_mapping):
 
 
 if __name__ == "__main__":
-
-    from natsort import natsorted
-
     chs_uq = get_unique_channels()
 
     # print(CONFIG["TGT_MONTAGE"])
-    # [
-    #     "FP1",
-    #     "F3",
-    #     "C3",
-    #     "P3",
-    #     "O1",
-    #     "FP2",
-    #     "F4",
-    #     "C4",
-    #     "P4",
-    #     "O2",
-    #     "F7",
-    #     "T7",
-    #     "P7",
-    #     "F8",
-    #     "T8",
-    #     "P8",
-    #     "Fz",
-    #     "Cz",
-    #     "Pz",
-    #     "A1",
-    #     "A2",
-    # ]
 
     # Example channel mapping (you would need to define this based on your datasets)
     channel_mapping = {
