@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-24 09:25:43 (ywatanabe)"
+# Time-stamp: "2024-01-25 16:07:43 (ywatanabe)"
 
 import re
 import sqlite3
@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 CONFIG = mngs.io.load("./config/global.yaml")
 
 
-class BidsDatasetSQLite(Dataset):
+class SQLiteDataset(Dataset):
     def __init__(self, db_path):
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
@@ -35,10 +35,10 @@ class BidsDatasetSQLite(Dataset):
 
         # Converts the segment from bytes to a NumPy array and then to a PyTorch tensor
         segment_tensor = torch.from_numpy(
-            np.frombuffer(segment, dtype=np.float32)
+            np.frombuffer(segment, dtype=np.float64)
             .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
             .copy()
-        )
+        ).float()
         return dataset_id, subject_id, segment_tensor
 
     def close(self):
@@ -46,15 +46,17 @@ class BidsDatasetSQLite(Dataset):
 
 
 if __name__ == "__main__":
+    import random
     from datetime import datetime
 
+    WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
     # Starts timer
     start_time = datetime.now()
 
     # Loads the database iteratively using pytorch dataloader
-    bids_dataset_sqlite = BidsDatasetSQLite(db_path=CONFIG["DB_PATH"])
+    sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"])
     data_loader = DataLoader(
-        bids_dataset_sqlite,
+        sqlite_dataset,
         batch_size=CONFIG["BATCH_SIZE"],
         shuffle=True,
         num_workers=4,
@@ -64,7 +66,14 @@ if __name__ == "__main__":
     batch_counter = 0
     for batch in data_loader:
         dataset_ids, subject_ids, X = batch
-        print(X.shape)
+
+        start = random.randint(0, X.shape[-1] - WINDOW_SIZE_PTS)
+        end = start + WINDOW_SIZE_PTS
+        X = X[..., start:end]  # (64, 14, 256)
+
+        if torch.isnan(X).any():
+            raise ValueError
+
         ds_all.append(dataset_ids)
         batch_counter += 1
 
@@ -76,13 +85,4 @@ if __name__ == "__main__":
     print(f"\nTime taken: {diff_time}")
 
     # Don't forget to close the database connection when done
-    bids_dataset_sqlite.close()
-
-    n_samples, _, seq_len = X.shape
-    loaded_sec = batch_counter * n_samples * seq_len / CONFIG["TGT_FS"]
-
-    print(f"\n{loaded_sec} sec of EEG data was loaded in {diff_time}")
-
-    # 148224.0 sec of EEG data was loaded in 0:00:00.294323
-
-    next(iter(data_loader))
+    sqlite_dataset.close()

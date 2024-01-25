@@ -1,1 +1,3 @@
 scikit-image
+vector-quantize-pytorch
+torchinfo

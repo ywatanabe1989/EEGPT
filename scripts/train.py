@@ -1,45 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-07 15:44:17 (ywatanabe)"
+# Time-stamp: "2024-01-24 14:33:05 (ywatanabe)"
 
-import torch
-from torch.utils.data import DataLoader
-from torch import nn, optim
-from glob import glob
-import numpy as np
-import sys
-sys.path.append(".")
-from models.EEGPT import EEGPT
-from script.load import BidsDataset
+import random
 
-if __name__ == "__main__":
-    bids_roots = glob("./data/EEGPT_datasets/ds*")
-    bids_roots = np.array(bids_roots)[[0, 1, 2, 3]]  # 1,2,3
+import mngs
+from scripts.utils.SQLiteDataset import SQLiteDataset
+from torch.utils.data import DataLoader, Dataset
 
-    # Create BidsDataset
-    bids_dataset = BidsDataset(bids_roots)
+CONFIG = mngs.io.load("./config/global.yaml")
 
-    # Create DataLoader
-    batch_size = 128
-    data_loader = DataLoader(bids_dataset, batch_size=batch_size, shuffle=True, num_workers=32)
+WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
+sqlite_dataset = SQLiteDataset(CONFIG["DB_PATH"])
 
-    # Create the model
-    model = EEGPT().cuda()
-    # Define the loss function
-    loss_fn = nn.MSELoss()
+data_loader = DataLoader(
+    sqlite_dataset,
+    batch_size=CONFIG["BATCH_SIZE"],
+    shuffle=True,
+    num_workers=16,
+    drop_last=True,
+)
 
-    # Define the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    # Training loop
-    for epoch in range(10000):
-        for i_batch, batch in enumerate(data_loader):
-            batch = batch.cuda()
-            optimizer.zero_grad()
-
-            y1, y2 = model(batch)
-            loss = loss_fn(y1, y2)
-            loss.backward()
-            optimizer.step()
-
-            print(f"Epoch: {epoch}, Batch: {i_batch}, Loss: {loss.item()}")
+for batch in data_loader:
+    dataset_ids, subject_ids, X = batch
+    X = mngs.ml.utils.sliding_window_data_augmentation(
+        X, WINDOW_SIZE_PTS
+    )  # torch.Size([64, 14, 256])

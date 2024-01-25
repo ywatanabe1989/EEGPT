@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-24 09:07:03 (ywatanabe)"
+# Time-stamp: "2024-01-25 16:06:53 (ywatanabe)"
 
 import re
 import sqlite3
@@ -115,7 +115,11 @@ def create_and_populate_db(files_list, db_path):
         eeg_segments = load_eeg_file(filepath)
         if eeg_segments is None:
             continue
-        for i, segment in enumerate(eeg_segments):
+        eeg_segments_z = mngs.gen.to_z(eeg_segments, axis=-1)
+        # print(np.isnan(eeg_segments_z).any())
+        # print(eeg_segments_z.max(), eeg_segments_z.min())
+
+        for i, segment in enumerate(eeg_segments_z):
             segment_bytes = segment.tobytes()
             cursor.execute(
                 "INSERT INTO eeg_data (dataset_id, subject_id, segment_number, segment) VALUES (?, ?, ?, ?)",
@@ -169,6 +173,7 @@ class BidsDatasetSQLite(Dataset):
 if __name__ == "__main__":
     # Usage
     import os
+    from datetime import datetime
 
     import mngs
 
@@ -178,11 +183,9 @@ if __name__ == "__main__":
     EXTS = [".edf", ".bdf", ".set"]  # ".fdt",
     LPATHS = np.hstack(
         [mngs.gen.find(CONFIG["DATA_DIR"], "*" + ext) for ext in EXTS]
-    )
+    )[:10]
 
     create_and_populate_db(LPATHS, CONFIG["DB_PATH"])
-
-    from datetime import datetime
 
     start_time = datetime.now()
 

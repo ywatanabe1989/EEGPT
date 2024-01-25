@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 15:26:26 (ywatanabe)"
+# Time-stamp: "2024-01-25 15:50:43 (ywatanabe)"
 
 """"To tokenize EEG signals and process them in a manner similar to GPT (Generative Pre-trained Transformer) used in Natural Language Processing (NLP)"""
 
@@ -109,9 +109,13 @@ class EEGPT(nn.Module):
 
 
 if __name__ == "__main__":
-    x = torch.randn(64, 14, 256).cuda()
     m = EEGPT().cuda()
-    loss = m(x)
+    for _ in range(10):
+        x = torch.randn(64, 14, 256).cuda()
+        loss = m(x)
+        loss.backward()
+        print(loss)
+
     print(summary(m, x.shape))
 
     # =========================================================================================================
