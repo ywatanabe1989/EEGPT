@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 09:20:58 (ywatanabe)"
+# Time-stamp: "2024-01-25 11:00:20 (ywatanabe)"
 
 """"To tokenize EEG signals and process them in a manner similar to GPT (Generative Pre-trained Transformer) used in Natural Language Processing (NLP)"""
 
@@ -8,8 +8,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# from vector_quantize_pytorch import VectorQuantize
+from torchinfo import summary
 
 
 class CNNFeatureExtractor(nn.Module):
@@ -28,45 +27,59 @@ class CNNFeatureExtractor(nn.Module):
 
 
 class VectorQuantizer(nn.Module):
-
     """
-    A module that quantizes input vectors to a finite set of embeddings.
+    Converts input vectors into combinations of finite number of embeddings,
+    which are learnable parameters of the model.
 
-    # Example usage:
-    num_embeddings = 4  # For 2-bit quantization
-    embedding_dim = 64  # Dimensionality of the embedding space
-    vector_quantizer = VectorQuantizer(num_embeddings, embedding_dim)
-    x = torch.randn(16, 19, 1024)  # Example input
-    quantized_x = vector_quantizer(x) # (16, 19, 1024)
+    Arguments:
+        num_embeddings (int): The number of distinct embeddings.
+        embedding_dim (int): The dimensionality of each embedding vector.
+
+    Attributes:
+        num_embeddings (int): The number of embeddings.
+        embedding_dim (int): The dimensionality of embeddings.
+        embedding (nn.Embedding): The embedding layer containing the embeddings.
+
+    Returns:
+        Tensor: The quantized output tensor with shape (batch_size, embedding_dim).
+
+    Example usage:
+        # Demo input vector data
+        BATCH_SIZE, VEC_LEN = 16, 4096
+        x = torch.randn(BATCH_SIZE, VEC_LEN)
+        NUM_EMBEDDINGS = 64  # Each vector will be represented in one of these patterns.
+
+        m = VectorQuantizer(NUM_EMBEDDINGS, VEC_LEN)
+        out = m(x)  # (BATCH_SIZE, VEC_LEN)
+
+        # Differentiability check
+        out.sum().backward()
+
+    Note:
+        This implementation is specific to PyTorch tensors and leverages soft quantization,
+        making it suitable for gradient-based optimization.
     """
 
     def __init__(self, num_embeddings, embedding_dim):
         super(VectorQuantizer, self).__init__()
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
-        self.embedding = nn.Embedding(num_embeddings, embedding_dim)  # 4, 64
-        self.embedding.weight.data.uniform_(-1, 1)  # (4, 64)
+        self.embedding = nn.Embedding(num_embeddings, embedding_dim)
+        self.embedding.weight.data.uniform_(-1, 1)
 
     def forward(self, x):
-        # Flatten the input tensor to shape (batch_size * n_chs * seq_len, embedding_dim)
-        batch_size, n_chs, seq_len = x.size()
-        flat_x = x.view(-1, self.embedding_dim)  # (4864, 64)
-
-        # Calculate distances between input and embedding weights
-        distances = (
-            torch.sum(flat_x**2, dim=1, keepdim=True)  # (4864, 1)
-            + torch.sum(self.embedding.weight**2, dim=1)  # (4)
-            - 2 * torch.matmul(flat_x, self.embedding.weight.t())  # (4864, 4)
-        )
-
-        # Find the closest embeddings
-        closest_idxs = torch.argmin(distances, dim=1)
-
-        # Quantize the input to the closest embeddings
-        x_quantized = self.embedding(closest_idxs).view(
-            batch_size, n_chs, seq_len
-        )
+        distances = self.calc_distances(x, self.embedding.weight)
+        softmax_distances = F.softmax(-distances, dim=1)
+        x_quantized = torch.matmul(softmax_distances, self.embedding.weight)
         return x_quantized
+
+    @staticmethod
+    def calc_distances(x, y):
+        norm_x = torch.sum(x**2, dim=1, keepdim=True)
+        norm_embedding = torch.sum(y**2, dim=1)
+        dot_product = torch.matmul(x, y.t())
+        distances = norm_x + norm_embedding - 2 * dot_product
+        return distances
 
 
 class TransformerModel(nn.Module):
@@ -110,14 +123,14 @@ class EEGEndToEndModel(nn.Module):
 
 
 if __name__ == "__main__":
-    # Example usage:
-    num_embeddings = 4  # For 2-bit quantization
-    embedding_dim = 64  # Dimensionality of the embedding space
-    vector_quantizer = VectorQuantizer(num_embeddings, embedding_dim)
 
-    # Dummy input tensor (batch_size, n_chs, seq_len)
-    x = torch.randn(16, 19, 1024)  # Example input
+    # Dummy input tensor (batch_size, vec_len)
+    x = torch.randn(16, 4096)  # Example input
+    # o = m(x)
+
     quantized_x = vector_quantizer(x)
+    print(summary(vector_quantizer, [x.shape]))
+    torch.unique(quantized_x)
 
     # model = EEGEndToEndModel()
     # eeg_data = torch.randn(64, 14, 256)  # Example EEG data
@@ -129,6 +142,3 @@ if __name__ == "__main__":
     #     decay=0.8,  # the exponential moving average decay, lower means the dictionary will change faster
     #     commitment_weight=1.0,  # the weight on the commitment loss
     # )
-
-    # x = torch.randn(1, 1024, 256)
-    # quantized, indices, commit_loss = vq(x)  # (1, 1024, 256), (1, 1024), (1)
