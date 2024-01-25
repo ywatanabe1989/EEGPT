@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 16:06:53 (ywatanabe)"
+# Time-stamp: "2024-01-25 16:23:08 (ywatanabe)"
 
 import re
 import sqlite3
@@ -111,6 +111,7 @@ def create_and_populate_db(files_list, db_path):
         """
     )
     for filepath in files_list:
+        print(f"\nPopulating: {filepath}")
         dataset_id, subject_id = extract_ids(filepath)
         eeg_segments = load_eeg_file(filepath)
         if eeg_segments is None:
@@ -183,7 +184,7 @@ if __name__ == "__main__":
     EXTS = [".edf", ".bdf", ".set"]  # ".fdt",
     LPATHS = np.hstack(
         [mngs.gen.find(CONFIG["DATA_DIR"], "*" + ext) for ext in EXTS]
-    )[:10]
+    )
 
     create_and_populate_db(LPATHS, CONFIG["DB_PATH"])
 
@@ -215,3 +216,7 @@ if __name__ == "__main__":
 
     # download.sh*        ds003478-download/  ds004504-download/  eeg_data.db
     # ds002778-download/  ds003775-download/  du_out.txt
+
+    """
+    python ./scripts/utils/populate_db.py
+    """
