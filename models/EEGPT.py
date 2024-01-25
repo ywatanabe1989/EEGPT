@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 11:00:20 (ywatanabe)"
+# Time-stamp: "2024-01-25 15:26:26 (ywatanabe)"
 
 """"To tokenize EEG signals and process them in a manner similar to GPT (Generative Pre-trained Transformer) used in Natural Language Processing (NLP)"""
 
@@ -8,137 +8,289 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from models.Conv2DNet import Conv2DNet
+from models.MNet import MNet
+from models.VectorQuantizer import VectorQuantizer
+from torch.nn import Transformer
 from torchinfo import summary
 
 
-class CNNFeatureExtractor(nn.Module):
-    def __init__(self):
-        super(CNNFeatureExtractor, self).__init__()
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
-
-    def forward(self, x):
-        if x.dim() == 3:
-            x = x.unsqueeze(1)
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        return x
-
-
-class VectorQuantizer(nn.Module):
-    """
-    Converts input vectors into combinations of finite number of embeddings,
-    which are learnable parameters of the model.
-
-    Arguments:
-        num_embeddings (int): The number of distinct embeddings.
-        embedding_dim (int): The dimensionality of each embedding vector.
-
-    Attributes:
-        num_embeddings (int): The number of embeddings.
-        embedding_dim (int): The dimensionality of embeddings.
-        embedding (nn.Embedding): The embedding layer containing the embeddings.
-
-    Returns:
-        Tensor: The quantized output tensor with shape (batch_size, embedding_dim).
-
-    Example usage:
-        # Demo input vector data
-        BATCH_SIZE, VEC_LEN = 16, 4096
-        x = torch.randn(BATCH_SIZE, VEC_LEN)
-        NUM_EMBEDDINGS = 64  # Each vector will be represented in one of these patterns.
-
-        m = VectorQuantizer(NUM_EMBEDDINGS, VEC_LEN)
-        out = m(x)  # (BATCH_SIZE, VEC_LEN)
-
-        # Differentiability check
-        out.sum().backward()
-
-    Note:
-        This implementation is specific to PyTorch tensors and leverages soft quantization,
-        making it suitable for gradient-based optimization.
-    """
-
-    def __init__(self, num_embeddings, embedding_dim):
-        super(VectorQuantizer, self).__init__()
-        self.num_embeddings = num_embeddings
-        self.embedding_dim = embedding_dim
-        self.embedding = nn.Embedding(num_embeddings, embedding_dim)
-        self.embedding.weight.data.uniform_(-1, 1)
-
-    def forward(self, x):
-        distances = self.calc_distances(x, self.embedding.weight)
-        softmax_distances = F.softmax(-distances, dim=1)
-        x_quantized = torch.matmul(softmax_distances, self.embedding.weight)
-        return x_quantized
-
-    @staticmethod
-    def calc_distances(x, y):
-        norm_x = torch.sum(x**2, dim=1, keepdim=True)
-        norm_embedding = torch.sum(y**2, dim=1)
-        dot_product = torch.matmul(x, y.t())
-        distances = norm_x + norm_embedding - 2 * dot_product
-        return distances
-
-
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, num_heads, num_layers, num_classes):
+    def __init__(
+        self,
+        input_dim,
+        hidden_dim,
+        nheads,
+        num_encoder_layers,
+        num_decoder_layers,
+    ):
         super(TransformerModel, self).__init__()
-        self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=input_dim, nhead=num_heads
+        self.transformer = Transformer(
+            d_model=input_dim,
+            nhead=nheads,
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
         )
-        self.transformer_encoder = nn.TransformerEncoder(
-            self.encoder_layer, num_layers=num_layers
-        )
-        self.fc = nn.Linear(input_dim, num_classes)
+        self.fc_out = nn.Linear(input_dim, input_dim)
 
     def forward(self, src):
-        src = src * torch.sqrt(torch.tensor(src.size(-1), dtype=torch.float32))
-        output = self.transformer_encoder(src)
-        output = self.fc(output.mean(dim=1))
-        return output
+        # src: (sequence length, batch size, input dimension)
+        src = src.permute(
+            1, 0, 2
+        )  # Transformer expects src to be of shape (S, N, E)
+        output = self.transformer(src, src)
+        output = self.fc_out(output)
+        return output[-1, :, :].unsqueeze(1)
 
 
-class EEGEndToEndModel(nn.Module):
+class EEGPT(nn.Module):
     def __init__(self):
-        super(EEGEndToEndModel, self).__init__()
-        self.feature_extractor = CNNFeatureExtractor()
-        self.quantizer = VectorQuantizer(num_embeddings=16, embedding_dim=8)
+        super().__init__()
+
+        # self.config = mngs.io.load("./models/MNet.yaml")
+        # self.config["n_chs"] = 14
+        self.config = {}
+        self.config["window_size"] = 32
+        self.Conv2DNet = Conv2DNet()
+
+        # self.MNet = MNet(config)
+        self.VQ = (
+            None  # placeholder, this is defined in the first forward pass
+        )
+        self.is_VQ_set = False
+
+        # Model instantiation
+        input_dim = 64  # Assuming each element in your sequence is of size 64
+        hidden_dim = 256  # Hidden dimension size
+        nheads = 4  # Number of heads in multi-head attention
+        num_encoder_layers = 3  # Number of encoder layers
+        num_decoder_layers = 3  # Number of decoder layers
+
         self.transformer = TransformerModel(
-            input_dim=256, num_heads=4, num_layers=2, num_classes=10
+            input_dim,
+            hidden_dim,
+            nheads,
+            num_encoder_layers,
+            num_decoder_layers,
         )
 
     def forward(self, x):
-        features = self.feature_extractor(x)
-        print(f"features: {features.shape}")
-        quantized = self.quantizer(features)
-        print(f"quantized: {quantized.shape}")
-        import ipdb
+        xs = [
+            x[
+                ...,
+                ii
+                * self.config["window_size"] : (ii + 1)
+                * self.config["window_size"],
+            ]
+            for ii in range(x.shape[-1] // self.config["window_size"])
+        ]
 
-        ipdb.set_trace()
-        output = self.transformer(quantized)
-        print(f"output: {output.shape}")
-        return output
+        xs = [self.Conv2DNet(x.unsqueeze(1)) for x in xs]
+
+        self.define_VQ_if_not_defined(xs[0])
+        xs = [self.VQ(x) for x in xs]
+        x = torch.stack(xs, axis=1)  # (64, 8, 64) # seq_len = 8
+
+        x1 = x[:, :-1, :]  # (64, 7, 64)
+        x2 = x[:, -1, :].unsqueeze(1)  # (64, 1, 64)
+
+        y = self.transformer(x1)  # (7, 64, 64)
+
+        loss = ((y - x2) ** 2).mean()
+
+        return loss
+
+    def define_VQ_if_not_defined(self, x):
+        if not self.is_VQ_set:
+            self.VQ = VectorQuantizer(
+                num_embeddings=16, embedding_dim=x.shape[-1]
+            ).to(x.device)
+            self.is_VQ_set = True
 
 
 if __name__ == "__main__":
+    x = torch.randn(64, 14, 256).cuda()
+    m = EEGPT().cuda()
+    loss = m(x)
+    print(summary(m, x.shape))
 
-    # Dummy input tensor (batch_size, vec_len)
-    x = torch.randn(16, 4096)  # Example input
-    # o = m(x)
-
-    quantized_x = vector_quantizer(x)
-    print(summary(vector_quantizer, [x.shape]))
-    torch.unique(quantized_x)
-
-    # model = EEGEndToEndModel()
-    # eeg_data = torch.randn(64, 14, 256)  # Example EEG data
-    # output = model(eeg_data)
-
-    # vq = VectorQuantize(
-    #     dim=256,
-    #     codebook_size=512,  # codebook size
-    #     decay=0.8,  # the exponential moving average decay, lower means the dictionary will change faster
-    #     commitment_weight=1.0,  # the weight on the commitment loss
-    # )
+    # =========================================================================================================
+    # Layer (type:depth-idx)                                  Output Shape              Param #
+    # =========================================================================================================
+    # EEGPT                                                   --                        --
+    # ├─Conv2DNet: 1-1                                        [64, 64]                  --
+    # │    └─Conv2d: 2-1                                      [64, 16, 14, 32]          160
+    # │    └─BatchNorm2d: 2-2                                 [64, 16, 14, 32]          32
+    # │    └─Conv2d: 2-3                                      [64, 16, 14, 32]          2,320
+    # │    └─BatchNorm2d: 2-4                                 [64, 16, 14, 32]          32
+    # │    └─MaxPool2d: 2-5                                   [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-6                                   [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-7                                      [64, 32, 7, 16]           4,640
+    # │    └─BatchNorm2d: 2-8                                 [64, 32, 7, 16]           64
+    # │    └─Conv2d: 2-9                                      [64, 32, 7, 16]           9,248
+    # │    └─BatchNorm2d: 2-10                                [64, 32, 7, 16]           64
+    # │    └─MaxPool2d: 2-11                                  [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-12                                  [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-13                                     [64, 64, 3, 8]            18,496
+    # │    └─BatchNorm2d: 2-14                                [64, 64, 3, 8]            128
+    # │    └─Conv2d: 2-15                                     [64, 64, 3, 8]            36,928
+    # │    └─BatchNorm2d: 2-16                                [64, 64, 3, 8]            128
+    # │    └─MaxPool2d: 2-17                                  [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-18                                  [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-2                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-19                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-20                                [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-21                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-22                                [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-23                                  [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-24                                  [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-25                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-26                                [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-27                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-28                                [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-29                                  [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-30                                  [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-31                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-32                                [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-33                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-34                                [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-35                                  [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-36                                  [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-3                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-37                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-38                                [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-39                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-40                                [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-41                                  [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-42                                  [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-43                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-44                                [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-45                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-46                                [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-47                                  [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-48                                  [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-49                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-50                                [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-51                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-52                                [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-53                                  [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-54                                  [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-4                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-55                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-56                                [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-57                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-58                                [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-59                                  [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-60                                  [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-61                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-62                                [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-63                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-64                                [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-65                                  [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-66                                  [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-67                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-68                                [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-69                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-70                                [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-71                                  [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-72                                  [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-5                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-73                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-74                                [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-75                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-76                                [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-77                                  [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-78                                  [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-79                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-80                                [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-81                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-82                                [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-83                                  [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-84                                  [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-85                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-86                                [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-87                                     [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-88                                [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-89                                  [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-90                                  [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-6                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-91                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-92                                [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-93                                     [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-94                                [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-95                                  [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-96                                  [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-97                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-98                                [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-99                                     [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-100                               [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-101                                 [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-102                                 [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-103                                    [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-104                               [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-105                                    [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-106                               [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-107                                 [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-108                                 [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-7                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-109                                    [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-110                               [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-111                                    [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-112                               [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-113                                 [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-114                                 [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-115                                    [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-116                               [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-117                                    [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-118                               [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-119                                 [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-120                                 [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-121                                    [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-122                               [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-123                                    [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-124                               [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-125                                 [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-126                                 [64, 32, 1, 4]            --
+    # ├─Conv2DNet: 1-8                                        [64, 64]                  (recursive)
+    # │    └─Conv2d: 2-127                                    [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-128                               [64, 16, 14, 32]          (recursive)
+    # │    └─Conv2d: 2-129                                    [64, 16, 14, 32]          (recursive)
+    # │    └─BatchNorm2d: 2-130                               [64, 16, 14, 32]          (recursive)
+    # │    └─MaxPool2d: 2-131                                 [64, 16, 7, 16]           --
+    # │    └─MaxPool2d: 2-132                                 [64, 1, 7, 16]            --
+    # │    └─Conv2d: 2-133                                    [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-134                               [64, 32, 7, 16]           (recursive)
+    # │    └─Conv2d: 2-135                                    [64, 32, 7, 16]           (recursive)
+    # │    └─BatchNorm2d: 2-136                               [64, 32, 7, 16]           (recursive)
+    # │    └─MaxPool2d: 2-137                                 [64, 32, 3, 8]            --
+    # │    └─MaxPool2d: 2-138                                 [64, 16, 3, 8]            --
+    # │    └─Conv2d: 2-139                                    [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-140                               [64, 64, 3, 8]            (recursive)
+    # │    └─Conv2d: 2-141                                    [64, 64, 3, 8]            (recursive)
+    # │    └─BatchNorm2d: 2-142                               [64, 64, 3, 8]            (recursive)
+    # │    └─MaxPool2d: 2-143                                 [64, 64, 1, 4]            --
+    # │    └─MaxPool2d: 2-144                                 [64, 32, 1, 4]            --
+    # ├─VectorQuantizer: 1-9                                  [64, 64]                  1,024
+    # ├─VectorQuantizer: 1-10                                 [64, 64]                  (recursive)
+    # ├─VectorQuantizer: 1-11                                 [64, 64]                  (recursive)
+    # ├─VectorQuantizer: 1-12                                 [64, 64]                  (recursive)
+    # ├─VectorQuantizer: 1-13                                 [64, 64]                  (recursive)
+    # ├─VectorQuantizer: 1-14                                 [64, 64]                  (recursive)
+    # ├─VectorQuantizer: 1-15                                 [64, 64]                  (recursive)
+    # ├─VectorQuantizer: 1-16                                 [64, 64]                  (recursive)
+    # ├─TransformerModel: 1-17                                [64, 1, 64]               --
+    # │    └─Transformer: 2-145                               [7, 64, 64]               --
+    # │    │    └─TransformerEncoder: 3-1                     [7, 64, 64]               843,584
+    # │    │    └─TransformerDecoder: 3-2                     [7, 64, 64]               893,888
+    # │    └─Linear: 2-146                                    [7, 64, 64]               4,160
+    # =========================================================================================================
+    # Total params: 1,814,896
+    # Trainable params: 1,814,896
+    # Non-trainable params: 0
+    # Total mult-adds (G): 2.06
+    # =========================================================================================================
+    # Input size (MB): 0.92
+    # Forward/backward pass size (MB): 250.87
+    # Params size (MB): 6.66
+    # Estimated Total Size (MB): 258.45
+    # =========================================================================================================
