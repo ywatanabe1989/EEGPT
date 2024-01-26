@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 17:35:16 (ywatanabe)"
+# Time-stamp: "2024-01-26 17:39:26 (ywatanabe)"
 
 import re
 import sqlite3

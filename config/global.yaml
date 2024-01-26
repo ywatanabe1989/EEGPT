@@ -4,6 +4,7 @@ CHANNEL_MAPPING:
   "T5": "P7",
   "T4": "T8",
   "T6": "P8",
+  "CPZ": "PZ", # for ds004574, ds004584, ds004579, ds0580
   }
 
 TGT_MONTAGE:
