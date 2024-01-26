@@ -2,6 +2,8 @@
 
 res
 scripts/train_EEGPT/*
+*pkl
+**/2024-*
 
 ################################################################################
 # Byte-compiled / optimized / DLL files

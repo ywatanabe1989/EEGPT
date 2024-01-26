@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 10:10:24 (ywatanabe)"
+# Time-stamp: "2024-01-26 13:26:08 (ywatanabe)"
 
 import re
 import sqlite3
@@ -66,12 +66,16 @@ class SQLiteDataset(Dataset):
 
 
 if __name__ == "__main__":
+    import os
     import random
+    import sys
     from datetime import datetime
 
+    import matplotlib.pyplot as plt
+    import mngs
+
+    CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
-    # Starts timer
-    start_time = datetime.now()
 
     # Loads the database iteratively using pytorch dataloader
     sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=True)
@@ -99,12 +103,8 @@ if __name__ == "__main__":
         ds_all.append(dataset_ids)
         batch_counter += 1
 
-    # print(f"\nLoaded datasets: {np.unique(np.hstack(ds_all))}")
-
-    # Calculates time spent
-    end_time = datetime.now()
-    diff_time = end_time - start_time
-    print(f"\nTime taken: {diff_time}")
-
     # Don't forget to close the database connection when done
     sqlite_dataset.close()
+
+    # END
+    mngs.gen.close(CONFIG)
