@@ -59,11 +59,15 @@ ds_ID_list=(
     ds003474    
 )
 
-find /mnt/ssd/EEGPT_datasets/ -type d -empty -delete
-echo "${ds_ID_list[@]}" | tr ' ' '\n' | xargs -I {} -n1 -P10 ./scripts/download_an_OpenNeuro_dataset.sh {}
-find /mnt/ssd/EEGPT_datasets/ -type d -empty -delete
 
+find ./data/ -type d -empty -delete
+echo "${ds_ID_list[@]}" | tr ' ' '\n' | xargs -I {} -n1 -P10 ./scripts/download_an_OpenNeuro_dataset.sh {}
+find ./data/ -type d -empty -delete
+
+# ls ./data/ds*-download
+# rm -rf ./data/ds*-download
 # rm -rf /mnt/ssd/EEGPT_datasets/ds*-download
+
 # screen -S download
 # ./scripts/download_OpenNeuro_datasets.sh | tee ./download_OpenNeuro_datasets.log
 ## EOF
