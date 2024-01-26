@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 16:07:43 (ywatanabe)"
+# Time-stamp: "2024-01-26 10:10:24 (ywatanabe)"
 
 import re
 import sqlite3
+from pprint import pprint
 
 import mne
 import mngs
@@ -15,11 +16,30 @@ CONFIG = mngs.io.load("./config/global.yaml")
 
 
 class SQLiteDataset(Dataset):
-    def __init__(self, db_path):
+    def __init__(self, db_path, show=False):
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
         self.cursor.execute("SELECT COUNT(*) FROM eeg_data")
         self.length = self.cursor.fetchone()[0]
+
+        if show:
+            # Load and print unique combinations of dataset_id and subject_id
+            self.cursor.execute(
+                "SELECT DISTINCT dataset_id, subject_id FROM eeg_data"
+            )
+            unique_dataset_subject_ids = self.cursor.fetchall()
+
+            # Sort the unique combinations for better readability if needed
+            unique_dataset_subject_ids.sort(key=lambda x: (x[0], x[1]))
+
+            # Print the unique combinations
+            print("\nLoaded:\n")
+            pprint(unique_dataset_subject_ids)
+            uq_datasets = np.unique(
+                [ds_sub[0] for ds_sub in unique_dataset_subject_ids]
+            )
+            print(f"\n# of datasets:\n{len(uq_datasets)}")
+            print(f"\n# of subjects:\n{len(unique_dataset_subject_ids)}")
 
     def __len__(self):
         return self.length
@@ -54,7 +74,9 @@ if __name__ == "__main__":
     start_time = datetime.now()
 
     # Loads the database iteratively using pytorch dataloader
-    sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"])
+    sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=True)
+
+    # You might want to pack the dataset to DataLoader
     data_loader = DataLoader(
         sqlite_dataset,
         batch_size=CONFIG["BATCH_SIZE"],
@@ -77,7 +99,7 @@ if __name__ == "__main__":
         ds_all.append(dataset_ids)
         batch_counter += 1
 
-    print(f"\nLoaded datasets: {np.unique(np.hstack(ds_all))}")
+    # print(f"\nLoaded datasets: {np.unique(np.hstack(ds_all))}")
 
     # Calculates time spent
     end_time = datetime.now()

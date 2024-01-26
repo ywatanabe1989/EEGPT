@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 15:50:43 (ywatanabe)"
+# Time-stamp: "2024-01-26 12:34:38 (ywatanabe)"
 
 """"To tokenize EEG signals and process them in a manner similar to GPT (Generative Pre-trained Transformer) used in Natural Language Processing (NLP)"""
 
@@ -47,13 +47,10 @@ class EEGPT(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # self.config = mngs.io.load("./models/MNet.yaml")
-        # self.config["n_chs"] = 14
         self.config = {}
         self.config["window_size"] = 32
         self.Conv2DNet = Conv2DNet()
 
-        # self.MNet = MNet(config)
         self.VQ = (
             None  # placeholder, this is defined in the first forward pass
         )
@@ -74,7 +71,46 @@ class EEGPT(nn.Module):
             num_decoder_layers,
         )
 
-    def forward(self, x):
+        self.activation = {}
+
+    def forward(self, x, get_latent=False):
+
+        if get_latent:
+            self.transformer.transformer.encoder.norm.register_forward_hook(
+                self.get_latent("encoder_norm")
+            )
+
+        x = self.conv_and_vq(x).transpose(1, 2)
+
+        x1 = x[:, :-1, :]  # (64, 7, 64)
+        x2 = x[:, -1, :].unsqueeze(1)  # (64, 1, 64)
+
+        y = self.transformer(x1)  # (7, 64, 64)
+
+        if get_latent:
+            l1 = (
+                self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
+            )
+            return l1
+
+        loss = ((y - x2) ** 2).mean()
+
+        return loss
+
+    def define_VQ_if_not_defined(self, x):
+        if not self.is_VQ_set:
+            self.VQ = VectorQuantizer(
+                num_embeddings=16, embedding_dim=x.shape[-1]
+            ).to(x.device)
+            self.is_VQ_set = True
+
+    def get_latent(self, name):
+        def hook(model, input, output):
+            self.activation[name] = output.detach()
+
+        return hook
+
+    def conv_and_vq(self, x):
         xs = [
             x[
                 ...,
@@ -90,32 +126,31 @@ class EEGPT(nn.Module):
         self.define_VQ_if_not_defined(xs[0])
         xs = [self.VQ(x) for x in xs]
         x = torch.stack(xs, axis=1)  # (64, 8, 64) # seq_len = 8
+        return x.transpose(1, 2)
 
-        x1 = x[:, :-1, :]  # (64, 7, 64)
-        x2 = x[:, -1, :].unsqueeze(1)  # (64, 1, 64)
-
-        y = self.transformer(x1)  # (7, 64, 64)
-
-        loss = ((y - x2) ** 2).mean()
-
-        return loss
-
-    def define_VQ_if_not_defined(self, x):
-        if not self.is_VQ_set:
-            self.VQ = VectorQuantizer(
-                num_embeddings=16, embedding_dim=x.shape[-1]
-            ).to(x.device)
-            self.is_VQ_set = True
+    # # def to_features(self, x):
+    # #     x = self.Conv2DNet(x.unsqueeze(1))
+    # #     x = self.VQ(x)
+    # #     return x
 
 
 if __name__ == "__main__":
     m = EEGPT().cuda()
+    weights_path = (
+        "./scripts/train_EEGPT/2024-0126-09:25_bvYp7bIr/checkpoint.pth"
+    )
+
     for _ in range(10):
-        x = torch.randn(64, 14, 256).cuda()
+        x = torch.randn(32, 14, 256).cuda()
         loss = m(x)
         loss.backward()
         print(loss)
 
+    # Pretrained model
+    m.load_state_dict(mngs.io.load(weights_path).state_dict())
+    l = m(x, get_latent=True)
+
+    # m.conv_and_vq(x)
     print(summary(m, x.shape))
 
     # =========================================================================================================

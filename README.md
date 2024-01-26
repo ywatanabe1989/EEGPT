@@ -1,20 +1,19 @@
-#### Dataset
-- ds002778
-[UC San Diego Resting State EEG Data from Patients with Parkinson's Disease](https://openneuro.org/datasets/ds002778/versions/1.0.5)
-HC: 16
-PD: 15
-
-- ds003478
-[EEG: Depression rest](https://openneuro.org/datasets/ds003478/versions/1.1.0/file-display/sub-002:eeg:sub-002_task-Rest_run-01_coordsystem.json)
-
-- ds003775
-[SRM Resting-state EEG](https://openneuro.org/datasets/ds003775/versions/1.2.1)
-
-- ds004504
-[A dataset of EEG recordings from: Alzheimer's disease, Frontotemporal dementia and Healthy subjects](https://openneuro.org/datasets/ds004504/versions/1.0.6)
-
+## Installation
 ```
-$ python ./scripts/utils/populate_db.py | tee ./res/logs/populate_db.log
-$ python ./train_EEGPT.py | tee ./res/logs/train_EEGPT.log
+$ git clone git@github.com:ywatanabe1989/EEGPT.git
+$ cd EEGPT
+$ python -m venv env
+$ source env/bin/activate
+$ pip install -U pip
+$ pip install -r requirements.txt
+```
+
+## Scripts
+```
+$ source env/bin/activate
+$ ./scripts/download_OpenNeuro_datasets.sh
+$ ./scripts/utils/populate_db.py
+$ ./scripts/train_EEGPT.py
+$ ./scripts/plot_learning_curves.py
 ```
 

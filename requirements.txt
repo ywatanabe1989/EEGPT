@@ -1,4 +1,7 @@
 scikit-image
-vector-quantize-pytorch
 torchinfo
 matplotlib
+requests
+beautifulsoup4
+selenium
+webdriver_manager

@@ -1,6 +1,7 @@
 ## large files
 
 res
+scripts/train_EEGPT/*
 
 ################################################################################
 # Byte-compiled / optimized / DLL files
