@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 20:28:57 (ywatanabe)"
+# Time-stamp: "2024-01-26 11:45:41 (ywatanabe)"
 
 import re
 
+import matplotlib
+import matplotlib.pyplot as plt
 import mngs
 import pandas as pd
 
@@ -14,7 +16,7 @@ def plot_lc(
     title="Title",
     max_n_ticks=4,
     scattersize=3,
-    linewidth=3,
+    linewidth=1,
     yscale="linear",
 ):
     COLORS_DICT = {
@@ -97,10 +99,10 @@ def plot_lc(
 
 
 if __name__ == "__main__":
-    metrics = mngs.io.load("./res/train_EEGPT/metrics.csv")
-    del metrics["Unnamed: 0"]
+    sdir = "./scripts/train_EEGPT/2024-0126-09:25_bvYp7bIr/"
+    metrics = mngs.io.load(sdir + "metrics.csv")
+    # del metrics["Unnamed: 0"]
     metrics = metrics.set_index("i_global")
-
     fig = plot_lc(metrics, yscale="log")
 
-    mngs.io.save(fig, "./res/train_EEGPT/learning_curve.png")
+    mngs.io.save(fig, sdir + "learning_curve.png")

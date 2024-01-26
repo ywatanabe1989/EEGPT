@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 16:23:08 (ywatanabe)"
+# Time-stamp: "2024-01-26 13:23:09 (ywatanabe)"
 
 import re
 import sqlite3
@@ -15,79 +15,83 @@ CONFIG = mngs.io.load("./config/global.yaml")
 
 
 def load_eeg_file(filepath):
-    with mngs.gen.suppress_output():
-        # Loads
-        try:
-            raw = mne.io.read_raw(filepath, preload=True, verbose=False)
-        except Exception as e:
-            print(e)
-            return None
+    try:
+        with mngs.gen.suppress_output():
+            # Loads
+            try:
+                raw = mne.io.read_raw(filepath, preload=True, verbose=False)
+            except Exception as e:
+                print(e)
+                return None
 
-        # Converts channel names to uppercase
-        raw.rename_channels(lambda x: x.upper())
+            # Converts channel names to uppercase
+            raw.rename_channels(lambda x: x.upper())
 
-        # Maps channels
-        try:
-            raw.rename_channels(CONFIG["CHANNEL_MAPPING"])
-        except Exception as e:
-            print("Channel mapping was not conducted:", e)
+            # Maps channels
+            try:
+                raw.rename_channels(CONFIG["CHANNEL_MAPPING"])
+            except Exception as e:
+                print("Channel mapping was not conducted:", e)
 
-        # Sets montages
-        raw.set_montage(
-            mngs.dsp.to_dig_montage(CONFIG["TGT_MONTAGE"]),
-            on_missing="ignore",
-            match_case=False,
-        )
-
-        # Picks predefined channels
-        raw = raw.pick(CONFIG["TGT_MONTAGE"])
-
-        # Re-reference
-        try:
-            raw = mne.set_bipolar_reference(
-                raw,
-                anode=[
-                    bi.split("-")[0]
-                    for bi in CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]
-                ],
-                cathode=[
-                    bi.split("-")[1]
-                    for bi in CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]
-                ],
-                ch_name=CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"],
-                drop_refs=True,
+            # Sets montages
+            raw.set_montage(
+                mngs.dsp.to_dig_montage(CONFIG["TGT_MONTAGE"]),
+                on_missing="ignore",
+                match_case=False,
             )
-        except Exception as e:
-            print(e)
-            return None
 
-        # Notch filtering at 50 and 60 Hz
-        raw = raw.notch_filter(freqs=[50, 60], n_jobs=1)
+            # Picks predefined channels
+            raw = raw.pick(CONFIG["TGT_MONTAGE"])
 
-        # Interpolate bad channels if any
-        raw = raw.interpolate_bads(verbose=False)
+            # Re-reference
+            try:
+                raw = mne.set_bipolar_reference(
+                    raw,
+                    anode=[
+                        bi.split("-")[0]
+                        for bi in CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]
+                    ],
+                    cathode=[
+                        bi.split("-")[1]
+                        for bi in CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]
+                    ],
+                    ch_name=CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"],
+                    drop_refs=True,
+                )
+            except Exception as e:
+                print(e)
+                return None
 
-        # Downsampling to CONFIG["TGT_FS"]
-        raw.resample(CONFIG["TGT_FS"], n_jobs=1)
+            # Notch filtering at 50 and 60 Hz
+            raw = raw.notch_filter(freqs=[50, 60], n_jobs=1)
 
-        # Convert to DataFrame and transpose
-        df = raw.to_data_frame().set_index("time").T
+            # Interpolate bad channels if any
+            raw = raw.interpolate_bads(verbose=False)
 
-        # Segmentation
-        segs = mngs.dsp.crop(
-            np.array(df),
-            int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]),  # 256
-            overlap_factor=CONFIG["OVERLAP_FACTOR"],
-        )
+            # Downsampling to CONFIG["TGT_FS"]
+            raw.resample(CONFIG["TGT_FS"], n_jobs=1)
 
-        # Extract segments
-        segs = segs[
-            np.random.permutation(np.arange(len(segs)))[
-                : CONFIG["MAX_N_WINDOWS_PER_SUB"]
+            # Convert to DataFrame and transpose
+            df = raw.to_data_frame().set_index("time").T
+
+            # Segmentation
+            segs = mngs.dsp.crop(
+                np.array(df),
+                int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]),  # 256
+                overlap_factor=CONFIG["OVERLAP_FACTOR"],
+            )
+
+            # Extract segments
+            segs = segs[
+                np.random.permutation(np.arange(len(segs)))[
+                    : CONFIG["MAX_N_WINDOWS_PER_SUB"]
+                ]
             ]
-        ]
 
-        return segs
+            return segs
+
+    except Exception as e:
+        print(f"\nError:\n{filepath} was not populated.\n{e}")
 
 
 # Create and populate the database
@@ -112,13 +116,16 @@ def create_and_populate_db(files_list, db_path):
     )
     for filepath in files_list:
         print(f"\nPopulating: {filepath}")
-        dataset_id, subject_id = extract_ids(filepath)
+
+        dataset_id, subject_id, is_retrieved = extract_ids(filepath)
+
+        if not is_retrieved:
+            continue
+
         eeg_segments = load_eeg_file(filepath)
         if eeg_segments is None:
             continue
         eeg_segments_z = mngs.gen.to_z(eeg_segments, axis=-1)
-        # print(np.isnan(eeg_segments_z).any())
-        # print(eeg_segments_z.max(), eeg_segments_z.min())
 
         for i, segment in enumerate(eeg_segments_z):
             segment_bytes = segment.tobytes()
@@ -128,94 +135,48 @@ def create_and_populate_db(files_list, db_path):
             )
     conn.commit()
     conn.close()
+    print(f"\nConglaturations! SQLite databse was created:\n{db_path}")
 
 
 def extract_ids(filepath):
-    pattern = (
-        r".*/ds(?P<dataset_id>\d+).*?/sub-(?P<subject_id>[a-zA-Z0-9]+)/.*"
-    )
+    pattern = r".*/ds(?P<dataset_id>\d+).*?/sub-(?P<subject_id>[a-zA-Z0-9]+).*"
     match = re.search(pattern, filepath)
-    dataset_id = "ds" + match.group("dataset_id")
-    subject_id = "sub-" + match.group("subject_id")
-    return dataset_id, subject_id
+    is_retrieved = False
+    try:
+        dataset_id = "ds" + match.group("dataset_id")
+        subject_id = "sub-" + match.group("subject_id")
+        is_retrieved = True
+    except Exception as e:
+        dataset_id, subject_id = None, None
+        pass
 
-
-class BidsDatasetSQLite(Dataset):
-    def __init__(self, db_path):
-        self.conn = sqlite3.connect(db_path)
-        self.cursor = self.conn.cursor()
-        self.cursor.execute("SELECT COUNT(*) FROM eeg_data")
-        self.length = self.cursor.fetchone()[0]
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, index):
-        # Adjust the SQL query to also select dataset_id and subject_id
-        self.cursor.execute(
-            "SELECT dataset_id, subject_id, segment FROM eeg_data WHERE id = ?",
-            (index + 1,),
-        )
-        row = self.cursor.fetchone()
-        dataset_id, subject_id, segment = row
-        # Convert the segment from bytes to a NumPy array and then to a PyTorch tensor
-        segment_tensor = torch.from_numpy(
-            np.frombuffer(segment, dtype=np.float32)
-            .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
-            .copy()
-        )
-        # Return a tuple with dataset_id, subject_id, and the segment tensor
-        return dataset_id, subject_id, segment_tensor
-
-    def close(self):
-        self.conn.close()
+    return dataset_id, subject_id, is_retrieved
 
 
 if __name__ == "__main__":
     # Usage
     import os
+    import sys
     from datetime import datetime
 
+    import matplotlib.pyplot as plt
     import mngs
 
-    if os.path.exists(CONFIG["DB_PATH"]):
-        os.remove(CONFIG["DB_PATH"])
+    CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
+
+    # if os.path.exists(CONFIG["DB_PATH"]):
+    #     os.remove(CONFIG["DB_PATH"])
 
     EXTS = [".edf", ".bdf", ".set"]  # ".fdt",
     LPATHS = np.hstack(
         [mngs.gen.find(CONFIG["DATA_DIR"], "*" + ext) for ext in EXTS]
     )
 
-    create_and_populate_db(LPATHS, CONFIG["DB_PATH"])
+    create_and_populate_db(
+        LPATHS, "./data/eeg_data_v4.db"
+    )  # CONFIG["DB_PATH"])
 
-    start_time = datetime.now()
-
-    bids_dataset_sqlite = BidsDatasetSQLite(db_path=CONFIG["DB_PATH"])
-    data_loader = DataLoader(
-        bids_dataset_sqlite,
-        batch_size=CONFIG["BATCH_SIZE"],
-        shuffle=True,
-        num_workers=4,
-    )
-    database_all = []
-    for batch in data_loader:
-        dataset_ids, subject_ids, X = batch
-        # X.shape # torch.Size([24, 16896]) # why????
-        database_all.append(dataset_ids)
-        # print(dataset_ids)
-    ds_uq = np.unique(
-        np.hstack(database_all)
-    )  # array(['ds002778', 'ds003478', 'ds003775', 'ds004504'], dtype='<U8')
-
-    end_time = datetime.now()
-    diff_time = end_time - start_time
-    print(f"Time taken: {diff_time}")
-
-    # Don't forget to close the database connection when done
-    bids_dataset_sqlite.close()
-
-    # download.sh*        ds003478-download/  ds004504-download/  eeg_data.db
-    # ds002778-download/  ds003775-download/  du_out.txt
+    mngs.gen.close(CONFIG)
 
     """
     python ./scripts/utils/populate_db.py
