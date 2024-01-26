@@ -86,4 +86,4 @@ LEARNING_RATE:
   1e-3
 
 DB_PATH:
-  "./data/eeg_data.db"
+  "./data/eeg_data_6.db"

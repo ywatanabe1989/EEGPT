@@ -2,7 +2,7 @@
 ```
 $ git clone git@github.com:ywatanabe1989/EEGPT.git
 $ cd EEGPT
-$ python -m venv env
+$ python3 -m venv env
 $ source env/bin/activate
 $ pip install -U pip
 $ pip install -r requirements.txt

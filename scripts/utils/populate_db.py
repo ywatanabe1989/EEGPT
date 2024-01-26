@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 13:23:09 (ywatanabe)"
+# Time-stamp: "2024-01-26 17:35:16 (ywatanabe)"
 
 import re
 import sqlite3
@@ -161,23 +161,28 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     import mngs
+    from tqdm import tqdm
 
     CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
 
-    # if os.path.exists(CONFIG["DB_PATH"]):
-    #     os.remove(CONFIG["DB_PATH"])
-
     EXTS = [".edf", ".bdf", ".set"]  # ".fdt",
     LPATHS = np.hstack(
-        [mngs.gen.find(CONFIG["DATA_DIR"], "*" + ext) for ext in EXTS]
+        [mngs.gen.find(CONFIG["DATA_DIR"], "*" + ext) for ext in tqdm(EXTS)]
     )
 
-    create_and_populate_db(
-        LPATHS, "./data/eeg_data_v4.db"
-    )  # CONFIG["DB_PATH"])
+    create_and_populate_db(LPATHS, CONFIG["DB_PATH"])
 
     mngs.gen.close(CONFIG)
 
     """
-    python ./scripts/utils/populate_db.py
+    find ./data/ -name '*.edf' > ./data/files_list.txt
+    find ./data/ -name '*.bdf' >> ./data/files_list.txt
+    find ./data/ -name '*.set' >> ./data/files_list.txt
+
+    screen -S populate
+    sshell
+    source env/bin/activate
+    python3.9 ./scripts/utils/populate_db.py
+
+    # du ./data/ # 2.5T
     """
