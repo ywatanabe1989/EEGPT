@@ -1,6 +1,8 @@
 ## large files
 
 res
+**.log
+**.pkl
 
 ################################################################################
 # Byte-compiled / optimized / DLL files
