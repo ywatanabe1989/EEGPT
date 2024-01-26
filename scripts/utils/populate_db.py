@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 13:23:09 (ywatanabe)"
+# Time-stamp: "2024-01-26 14:35:15 (ywatanabe)"
 
 import re
 import sqlite3
@@ -172,9 +172,7 @@ if __name__ == "__main__":
         [mngs.gen.find(CONFIG["DATA_DIR"], "*" + ext) for ext in EXTS]
     )
 
-    create_and_populate_db(
-        LPATHS, "./data/eeg_data_v4.db"
-    )  # CONFIG["DB_PATH"])
+    create_and_populate_db(LPATHS, CONFIG["DB_PATH"])
 
     mngs.gen.close(CONFIG)
 

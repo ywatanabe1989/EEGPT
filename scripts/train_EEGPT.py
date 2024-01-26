@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 11:19:09 (ywatanabe)"
+# Time-stamp: "2024-01-26 16:22:04 (ywatanabe)"
 
 import os
 import random
@@ -15,7 +15,6 @@ from models.EEGPT import EEGPT
 from scripts.utils.SQLiteDataset import SQLiteDataset
 from torch.optim import SGD, Adam
 from torch.utils.data import DataLoader, Dataset, random_split
-from tqdm import tqdm
 
 # Configurations
 CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(
@@ -119,7 +118,7 @@ optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 # Main
 metrics = mngs.gen.listed_dict()
 i_global = 0
-for i_epoch, epoch in tqdm(enumerate(range(CONFIG["N_EPOCHS"]))):
+for i_epoch, epoch in enumerate(range(CONFIG["N_EPOCHS"])):
 
     # Training
     print()
@@ -150,6 +149,9 @@ sqlite_dataset.close()
 # Saves
 mngs.io.save(model, CONFIG["SDIR"] + "checkpoint.pth")
 mngs.io.save(pd.DataFrame(metrics), CONFIG["SDIR"] + "metrics.csv")
+fig = mngs.ml.plt.learning_curve(metrics, yscale="log")
+mngs.io.save(fig, CONFIG["SDIR"] + "learning_curve.png")
+
 
 # Closes
 mngs.gen.close(CONFIG)
