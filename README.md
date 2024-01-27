@@ -62,26 +62,4 @@ $ du data/ds*
 # 1.4G    data/ds004771-download
 # 117G    data/ds004883-download
 # 8.1G    data/ds004902-download
-
 ```
-
-## Populate dataset to SQLite3 data base
-
-``` bash
-$ ./scripts/utils/populate_db.py # ./data/eeg_data_v7.db # /2024-0127-12:41_yPiZGl7l/
-```
-
-
-## [MNE documentation](https://mne.tools/stable/auto_tutorials/io/20_reading_eeg_data.html)
-- BrainVision (.vhdr, .vmrk, .eeg)
-- European data format (.edf)
-- BioSemi data format (.bdf)
-- General data format (.gdf)
-- Neuroscan CNT (.cnt)
-- EGI simple binary (.egi)
-- EGI MFF (.mff)
-- EEGLAB files (.set, .fdt)
-- Nihon Kohden EEG data (.eeg, .21e, .pnt, .log)
-- XDF data (.xdf, .xdfz)
-
-
