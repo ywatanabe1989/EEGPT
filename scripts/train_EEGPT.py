@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 16:22:04 (ywatanabe)"
+# Time-stamp: "2024-01-27 13:54:50 (ywatanabe)"
 
 import os
 import random
@@ -54,6 +54,8 @@ def base_step(model, i_batch, batch, i_global, metrics, step="Training"):
     Xb = mngs.gen.to_z(Xb, axis=1)
     Xb = Xb.float().cuda()
 
+    Xb = Xb[~Xb.isnan().any(-1).any(-1)]
+
     loss = model(Xb)
 
     if step == "Training":
@@ -78,14 +80,52 @@ def base_step(model, i_batch, batch, i_global, metrics, step="Training"):
 
 # Loads
 sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=True)
+# Get unique subject IDs
+subject_ids = sqlite_dataset.get_pseudo_ids()
+# Shuffle subject IDs
+random.shuffle(subject_ids)
+# Split subject IDs into non-overlapping groups
+num_subjects = len(subject_ids)
+num_tra = int(num_subjects * 0.6)
+num_val = int(num_subjects * 0.2)
 
-# Data splitting
-ratio_tra = 0.6
-ratio_val = 0.2
-ratio_tes = 0.2
-ds_tra, ds_val, ds_tes = random_split(
-    sqlite_dataset, [ratio_tra, ratio_val, ratio_tes]
+subjects_tra = subject_ids[:num_tra]
+subjects_val = subject_ids[num_tra : num_tra + num_val]
+subjects_tes = subject_ids[num_tra + num_val :]
+
+# Check if subjects are mutually exclusive among datasets
+assert len(set(subjects_tra) & set(subjects_val)) == 0
+assert len(set(subjects_tra) & set(subjects_tes)) == 0
+assert len(set(subjects_val) & set(subjects_tes)) == 0
+
+
+# Create datasets based on subject IDs
+ds_tra = sqlite_dataset.get_subset_by_pseudo_ids(subjects_tra)
+ds_val = sqlite_dataset.get_subset_by_pseudo_ids(subjects_val)
+ds_tes = sqlite_dataset.get_subset_by_pseudo_ids(subjects_tes)
+
+
+print(
+    f"\nTraining dataset: n = {len(ds_tra)} samples from n = {len(subjects_tra)} subjects"
 )
+print(
+    f"\nValidation dataset: n = {len(ds_val)} samples from n = {len(subjects_val)} subjects"
+)
+print(
+    f"\nTest dataset: n = {len(ds_tes)} samples from n = {len(subjects_tes)} subjects"
+)
+
+
+# # Data splitting
+# ratio_tra = 0.6
+# ratio_val = 0.2
+# ratio_tes = 0.2
+# ds_tra, ds_val, ds_tes = random_split(
+#     sqlite_dataset, [ratio_tra, ratio_val, ratio_tes]
+# )
+# print(f"\nTraining dataset: n = {len(ds_tra)}")
+# print(f"\nValidation dataset: n = {len(ds_val)}")
+# print(f"\nTest dataset: n = {len(ds_tes)}")
 
 dl_tra = DataLoader(
     ds_tra,
@@ -146,12 +186,14 @@ for i_batch, batch in enumerate(dl_tes):
 # Closes the database
 sqlite_dataset.close()
 
+metrics_df = pd.DataFrame(metrics)
 # Saves
 mngs.io.save(model, CONFIG["SDIR"] + "checkpoint.pth")
-mngs.io.save(pd.DataFrame(metrics), CONFIG["SDIR"] + "metrics.csv")
-fig = mngs.ml.plt.learning_curve(metrics, yscale="log")
+mngs.io.save(metrics_df, CONFIG["SDIR"] + "metrics.csv")
+fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
 mngs.io.save(fig, CONFIG["SDIR"] + "learning_curve.png")
 
 
 # Closes
 mngs.gen.close(CONFIG)
+# 'ID': '2024-0127-11:45_jVHxkLqM',
