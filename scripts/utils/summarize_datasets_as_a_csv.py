@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 08:20:07 (ywatanabe)"
+# Time-stamp: "2024-01-27 17:40:19 (ywatanabe)"
 
 import re
 from glob import glob
 
 import bids
 import mngs
+import pandas as pd
 from bids import BIDSLayout
+from natsort import natsorted
 
 
 # Functions
@@ -88,7 +90,7 @@ def summarize(BIDS_ROOT):
                 "DatasetID",
                 "Subject",
                 "SamplingFrequency",
-                "RecordingDuration",
+                # "RecordingDuration",
                 "EEGChannelCount",
                 "PowerLineFrequency",
                 # "ManufacturersModelName",
@@ -118,24 +120,25 @@ def summarize_all(BIDS_ROOTS):
     print(f"# of Subjects: {len(summary)}")
     print(f"# of Datasets: {len(summary.DatasetName.unique())}")
     print(f"Power Line Frequencies: {summary.PowerLineFrequency.unique()}")
-    print(
-        f"Total Available Duration: {summary.RecordingDuration.astype(float).sum() / 60 / 60} h"
-    )
+    # print(
+    #     f"Total Available Duration: {summary.RecordingDuration.astype(float).sum() / 60 / 60} h"
+    # )
     return summary
 
 
 if __name__ == "__main__":
-    # Config
-    CONFIG = mngs.io.load("./config/global.yaml")
+    import sys
+
+    import matplotlib.pyplot as plt
+    import mngs
+
+    CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
 
     # Path
     BIDS_ROOTS = glob(CONFIG["DATA_DIR"] + "ds*-download/")
     summary = summarize_all(BIDS_ROOTS)
-    mngs.io.save(summary, CONFIG["DATA_DIR"] + "summary.csv")
+    mngs.io.save(summary, CONFIG["SDIR"] + "summary.csv")
 
-    # # of Subjects: 1420
-    # # of Datasets: 17
-    # Power Line Frequencies: ['60' '50' 'n/a']
-    # Total Available Duration: 341.03247248263887 h
+    mngs.gen.close(CONFIG)
 
     # EOF

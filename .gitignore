@@ -3,7 +3,7 @@ res
 **.log
 **.pkl
 scripts/train_EEGPT/*
-**/2024-* # logfiles
+**/2024-*
 singularity
 work_singularity
 
