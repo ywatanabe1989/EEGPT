@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 13:17:30 (ywatanabe)"
+# Time-stamp: "2024-01-27 14:27:30 (ywatanabe)"
 
 import re
 import sqlite3
@@ -177,6 +177,7 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     import mngs
+    from tqdm import tqdm
 
     CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
 
@@ -196,5 +197,14 @@ if __name__ == "__main__":
     mngs.gen.close(CONFIG)
 
     """
-    python ./scripts/utils/populate_db.py
+    find ./data/ -name '*.edf' > ./data/files_list.txt
+    find ./data/ -name '*.bdf' >> ./data/files_list.txt
+    find ./data/ -name '*.set' >> ./data/files_list.txt
+
+    screen -S populate
+    sshell
+    source env/bin/activate
+    python3.9 ./scripts/utils/populate_db.py
+
+    # du ./data/ # 2.5T
     """
