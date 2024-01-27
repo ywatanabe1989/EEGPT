@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 13:54:50 (ywatanabe)"
+# Time-stamp: "2024-01-27 19:54:43 (ywatanabe)"
 
 import os
 import random
@@ -25,42 +25,53 @@ CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(
     torch=torch,
     np=np,
 )
-
-DEBUG = False
-if DEBUG:
-    CONFIG["N_EPOCHS"] = 2
-    CONFIG["BATCH_SIZE"] = 64
-
 WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
 
 # Functions
-def base_step(model, i_batch, batch, i_global, metrics, step="Training"):
+def base_step(
+    model,
+    optimizer,
+    batch,
+    i_epoch,
+    i_batch,
+    i_global,
+    metrics,
+    step="Training",
+):
+    if CONFIG["DEBUG"] and (i_batch > 50):
+        return None
+
+    # Model mode
     if step == "Training":
         model.train()
-        optimizer.zero_grad()  # Zero the gradients before running the backward pass.
+        optimizer.zero_grad()
     else:
         model.eval()
 
-    Db, Sb, Xb = batch  # Dataset ID, Subject ID, EEG signal
+    # Batched Dataset ID, Subject ID, and EEG signal
+    Db, Sb, Xb = batch
 
-    # Sliding window data augumentation
+    # Sliding window as a data augumentation method
     start = random.randint(0, Xb.shape[-1] - WINDOW_SIZE_PTS)
     end = start + WINDOW_SIZE_PTS
     Xb = Xb[..., start:end]
 
-    # Normalization
+    # Normalization after cropping
     Xb = mngs.gen.to_z(Xb, axis=2)
     Xb = mngs.gen.to_z(Xb, axis=1)
     Xb = Xb.float().cuda()
 
+    # Remove samples with nan values
     Xb = Xb[~Xb.isnan().any(-1).any(-1)]
 
+    # Forward pass
     loss = model(Xb)
 
+    # Backpropagation and weight update
     if step == "Training":
-        loss.backward()  # Backpropagation
-        optimizer.step()  # Update the weights
+        loss.backward()
+        optimizer.step()
 
     # Buffering
     loss = loss.detach().cpu().item()
@@ -70,130 +81,160 @@ def base_step(model, i_batch, batch, i_global, metrics, step="Training"):
     metrics["i_batch"].append(i_batch)
     metrics["loss"].append(loss)
 
+    # Print
+    if i_batch == 0:
+        print(f"\n{'-'*40}\n")
     if i_batch % 10 == 0:
         print(
-            f"{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
+            f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
         )
 
     return metrics
 
 
-# Loads
-sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=True)
-# Get unique subject IDs
-subject_ids = sqlite_dataset.get_pseudo_ids()
-# Shuffle subject IDs
-random.shuffle(subject_ids)
-# Split subject IDs into non-overlapping groups
-num_subjects = len(subject_ids)
-num_tra = int(num_subjects * 0.6)
-num_val = int(num_subjects * 0.2)
+def split_to_datasets(sqlite_dataset):
+    # Get unique dataset IDs
+    dataset_ids = sqlite_dataset.get_dataset_ids()
 
-subjects_tra = subject_ids[:num_tra]
-subjects_val = subject_ids[num_tra : num_tra + num_val]
-subjects_tes = subject_ids[num_tra + num_val :]
+    # Shuffle dataset IDs
+    random.shuffle(dataset_ids)
 
-# Check if subjects are mutually exclusive among datasets
-assert len(set(subjects_tra) & set(subjects_val)) == 0
-assert len(set(subjects_tra) & set(subjects_tes)) == 0
-assert len(set(subjects_val) & set(subjects_tes)) == 0
+    # Split dataset IDs into non-overlapping groups
+    num_datasets = len(dataset_ids)
+    num_tra = int(num_datasets * 0.6)
+    num_val = int(num_datasets * 0.2)
+    datasets_tra = dataset_ids[:num_tra]
+    datasets_val = dataset_ids[num_tra : num_tra + num_val]
+    datasets_tes = dataset_ids[num_tra + num_val :]
 
+    # Check if datasets are mutually exclusive among datasets
+    assert len(set(datasets_tra) & set(datasets_val)) == 0
+    assert len(set(datasets_tra) & set(datasets_tes)) == 0
+    assert len(set(datasets_val) & set(datasets_tes)) == 0
 
-# Create datasets based on subject IDs
-ds_tra = sqlite_dataset.get_subset_by_pseudo_ids(subjects_tra)
-ds_val = sqlite_dataset.get_subset_by_pseudo_ids(subjects_val)
-ds_tes = sqlite_dataset.get_subset_by_pseudo_ids(subjects_tes)
+    # Create datasets based on dataset IDs
+    ds_tra = sqlite_dataset.get_subset_by_dataset_ids(datasets_tra)
+    ds_val = sqlite_dataset.get_subset_by_dataset_ids(datasets_val)
+    ds_tes = sqlite_dataset.get_subset_by_dataset_ids(datasets_tes)
 
+    print(f"\n{'-'*40}\n")
+    print(
+        f"\nTraining dataset:\n"
+        f"n = {len(ds_tra):,} samples from n = {len(datasets_tra):,} datasets"
+    )
+    print(
+        f"\nValidation dataset:\n"
+        f"n = {len(ds_val):,} samples from n = {len(datasets_val):,} datasets"
+    )
+    print(
+        f"\nTest dataset:\n"
+        f"n = {len(ds_tes):,} samples from n = {len(datasets_tes):,} datasets"
+    )
+    print(f"\n{'-'*40}\n")
 
-print(
-    f"\nTraining dataset: n = {len(ds_tra)} samples from n = {len(subjects_tra)} subjects"
-)
-print(
-    f"\nValidation dataset: n = {len(ds_val)} samples from n = {len(subjects_val)} subjects"
-)
-print(
-    f"\nTest dataset: n = {len(ds_tes)} samples from n = {len(subjects_tes)} subjects"
-)
-
-
-# # Data splitting
-# ratio_tra = 0.6
-# ratio_val = 0.2
-# ratio_tes = 0.2
-# ds_tra, ds_val, ds_tes = random_split(
-#     sqlite_dataset, [ratio_tra, ratio_val, ratio_tes]
-# )
-# print(f"\nTraining dataset: n = {len(ds_tra)}")
-# print(f"\nValidation dataset: n = {len(ds_val)}")
-# print(f"\nTest dataset: n = {len(ds_tes)}")
-
-dl_tra = DataLoader(
-    ds_tra,
-    batch_size=CONFIG["BATCH_SIZE"],
-    shuffle=True,
-    num_workers=10,
-    drop_last=True,
-)
-
-dl_val = DataLoader(
-    ds_val,
-    batch_size=CONFIG["BATCH_SIZE"],
-    shuffle=True,
-    num_workers=10,
-    drop_last=False,
-)
-
-dl_tes = DataLoader(
-    ds_tes,
-    batch_size=CONFIG["BATCH_SIZE"],
-    shuffle=True,
-    num_workers=10,
-    drop_last=False,
-)
-
-# Model
-model = EEGPT().cuda()
-optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
-
-# Main
-metrics = mngs.gen.listed_dict()
-i_global = 0
-for i_epoch, epoch in enumerate(range(CONFIG["N_EPOCHS"])):
-
-    # Training
-    print()
-    for i_batch, batch in enumerate(dl_tra):
-        if DEBUG and (i_batch > 30):
-            continue
-        base_step(model, i_batch, batch, i_global, metrics, step="Training")
-        i_global += 1
-
-    # Validating
-    print()
-    for i_batch, batch in enumerate(dl_val):
-        if DEBUG and (i_batch > 30):
-            continue
-
-        base_step(model, i_batch, batch, i_global, metrics, step="Validation")
-
-# Testing
-print()
-for i_batch, batch in enumerate(dl_tes):
-    if DEBUG and (i_batch > 30):
-        continue
-    base_step(model, i_batch, batch, i_global, metrics, step="Test")
-
-# Closes the database
-sqlite_dataset.close()
-
-metrics_df = pd.DataFrame(metrics)
-# Saves
-mngs.io.save(model, CONFIG["SDIR"] + "checkpoint.pth")
-mngs.io.save(metrics_df, CONFIG["SDIR"] + "metrics.csv")
-fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
-mngs.io.save(fig, CONFIG["SDIR"] + "learning_curve.png")
+    return ds_tra, ds_val, ds_tes
 
 
-# Closes
-mngs.gen.close(CONFIG)
-# 'ID': '2024-0127-11:45_jVHxkLqM',
+def to_DataLoaders(ds_tra, ds_val, ds_tes):
+    dl_tra = DataLoader(
+        ds_tra,
+        batch_size=CONFIG["BATCH_SIZE"],
+        shuffle=True,
+        num_workers=10,
+        drop_last=True,
+    )
+
+    dl_val = DataLoader(
+        ds_val,
+        batch_size=CONFIG["BATCH_SIZE"],
+        shuffle=True,
+        num_workers=10,
+        drop_last=False,
+    )
+
+    dl_tes = DataLoader(
+        ds_tes,
+        batch_size=CONFIG["BATCH_SIZE"],
+        shuffle=True,
+        num_workers=10,
+        drop_last=False,
+    )
+    return dl_tra, dl_val, dl_tes
+
+
+def train_and_eval(dl_tra, dl_val, dl_tes):
+    # Model
+    model = EEGPT().cuda()
+    optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
+
+    # Main
+    metrics = mngs.gen.listed_dict()
+    i_global = 0
+    for i_epoch, epoch in enumerate(range(CONFIG["N_EPOCHS"])):
+
+        # Training
+        for i_batch, batch in enumerate(dl_tra):
+            base_step(
+                model,
+                optimizer,
+                batch,
+                i_epoch,
+                i_batch,
+                i_global,
+                metrics,
+                step="Training",
+            )
+            i_global += 1
+
+        # Validating
+        for i_batch, batch in enumerate(dl_val):
+            base_step(
+                model,
+                optimizer,
+                batch,
+                i_epoch,
+                i_batch,
+                i_global,
+                metrics,
+                step="Validation",
+            )
+
+    # Testing
+    for i_batch, batch in enumerate(dl_tes):
+        base_step(
+            model,
+            optimizer,
+            batch,
+            i_epoch,
+            i_batch,
+            i_global,
+            metrics,
+            step="Test",
+        )
+
+    return model, pd.DataFrame(metrics)
+
+
+def main():
+    # Loads
+    sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=False)
+    dl_tra, dl_val, dl_tes = to_DataLoaders(*split_to_datasets(sqlite_dataset))
+
+    # Main
+    model, metrics_df = train_and_eval(dl_tra, dl_val, dl_tes)
+    fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
+
+    # Closes the database
+    sqlite_dataset.close()
+
+    # Saves
+    mngs.io.save(model, CONFIG["SDIR"] + "checkpoint.pth")
+    mngs.io.save(metrics_df, CONFIG["SDIR"] + "metrics.csv")
+    mngs.io.save(fig, CONFIG["SDIR"] + "learning_curve.png")
+
+    # Closes
+    mngs.gen.close(CONFIG)
+
+
+if __name__ == "__main__":
+    main()

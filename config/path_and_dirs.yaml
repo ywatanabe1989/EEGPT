@@ -1,0 +1,6 @@
+# PATH and DIRECTORIES
+DATA_DIR:
+    "./data/"
+    
+DB_PATH:
+  "./data/eeg_data_v7.db"

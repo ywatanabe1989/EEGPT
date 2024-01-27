@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 13:35:19 (ywatanabe)"
+# Time-stamp: "2024-01-27 19:49:36 (ywatanabe)"
 
 import re
 import sqlite3
+import sys
 from pprint import pprint
 
+import matplotlib.pyplot as plt
 import mne
 import mngs
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, Subset
 
-CONFIG = mngs.io.load("./config/global.yaml")
+CONFIG = mngs.io.load("./config/dsp.yaml")
+
+# CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
 
 
 class SQLiteDataset(Dataset):
@@ -71,23 +75,23 @@ class SQLiteDataset(Dataset):
         ).float()
         return dataset_id, subject_id, segment_tensor
 
-    def get_pseudo_ids(self):
-        """Retrieve unique pseudo IDs for each subject across datasets."""
-        return list(self.pseudo_id_map.keys())
+    # def get_pseudo_ids(self):
+    #     """Retrieve unique pseudo IDs for each subject across datasets."""
+    #     return list(self.pseudo_id_map.keys())
 
-    def get_subset_by_pseudo_ids(self, pseudo_ids):
-        """Retrieve a subset of the dataset based on pseudo IDs."""
-        indices = []
-        for pseudo_id in pseudo_ids:
-            dataset_id, subject_id = self.pseudo_id_map[pseudo_id]
-            self.cursor.execute(
-                "SELECT id FROM eeg_data WHERE dataset_id = ? AND subject_id = ?",
-                (dataset_id, subject_id),
-            )
-            indices.extend(
-                [row[0] - 1 for row in self.cursor.fetchall()]
-            )  # Adjusting index to be 0-based
-        return Subset(self, indices)
+    # def get_subset_by_pseudo_ids(self, pseudo_ids):
+    #     """Retrieve a subset of the dataset based on pseudo IDs."""
+    #     indices = []
+    #     for pseudo_id in pseudo_ids:
+    #         dataset_id, subject_id = self.pseudo_id_map[pseudo_id]
+    #         self.cursor.execute(
+    #             "SELECT id FROM eeg_data WHERE dataset_id = ? AND subject_id = ?",
+    #             (dataset_id, subject_id),
+    #         )
+    #         indices.extend(
+    #             [row[0] - 1 for row in self.cursor.fetchall()]
+    #         )  # Adjusting index to be 0-based
+    #     return Subset(self, indices)
 
     # def get_subject_ids(self):
     #     """Retrieve unique subject IDs from the database."""
@@ -104,6 +108,22 @@ class SQLiteDataset(Dataset):
     #         row[0] - 1 for row in self.cursor.fetchall()
     #     ]  # Adjusting index to be 0-based
     #     return Subset(self, indices)
+
+    def get_dataset_ids(self):
+        """Retrieve unique dataset IDs from the database."""
+        self.cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
+        dataset_ids = [row[0] for row in self.cursor.fetchall()]
+        return dataset_ids
+
+    def get_subset_by_dataset_ids(self, dataset_ids):
+        """Retrieve a subset of the dataset based on dataset IDs."""
+        placeholders = ",".join("?" for _ in dataset_ids)
+        query = f"SELECT id FROM eeg_data WHERE dataset_id IN ({placeholders})"
+        self.cursor.execute(query, dataset_ids)
+        indices = [
+            row[0] - 1 for row in self.cursor.fetchall()
+        ]  # Adjusting index to be 0-based
+        return Subset(self, indices)
 
     def close(self):
         self.conn.close()
