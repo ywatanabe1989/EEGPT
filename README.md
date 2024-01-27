@@ -76,7 +76,7 @@ $ ./scripts/utils/populate_db.py # ./data/eeg_data_v7.db # /2024-0127-12:41_yPiZ
 ```
 
 
-## (MNE documentation)[https://mne.tools/stable/auto_tutorials/io/20_reading_eeg_data.html]
+## [MNE documentation](https://mne.tools/stable/auto_tutorials/io/20_reading_eeg_data.html)
 - BrainVision (.vhdr, .vmrk, .eeg)
 - European data format (.edf)
 - BioSemi data format (.bdf)
