@@ -1,9 +1,6 @@
 ## Installation
 ```
 $ git clone git@github.com:ywatanabe1989/EEGPT.git
-
-# Python
-
 $ cd EEGPT
 $ python3 -m venv env
 $ source env/bin/activate
