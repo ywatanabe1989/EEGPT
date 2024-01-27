@@ -1,13 +1,13 @@
 ## large files
-
 res
-
 **.log
 **.pkl
 scripts/train_EEGPT/*
-**/2024-*
+**/2024-* # logfiles
 singularity
 work_singularity
+
+
 
 ################################################################################
 # Byte-compiled / optimized / DLL files
