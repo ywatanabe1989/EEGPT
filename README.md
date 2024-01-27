@@ -15,10 +15,7 @@ $ pip install -r requirements.txt
 ```
 $ ./scripts/utils/download_OpenNeuro_datasets.sh
 $ ./scripts/utils/populate_db.py
-$ tail ./scripts/utils/populate_db/2024-0127-12\:41_yPiZGl7l/logs/stdout.log 
-# Conglaturations! SQLite databse was created from 20755 files, 18 datasets, and 2636 subjects: ./data/eeg_data_v7.db
 $ ./scripts/utils/summarie_datasets_as_a_csv.py 
-# ./scripts/utils/summarize_datasets_as_a_csv/2024-0127-15:40_6JdKYiPZ/summary.csv
 $ ./scripts/train_EEGPT.py
 ```
 
