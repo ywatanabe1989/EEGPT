@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 14:27:30 (ywatanabe)"
+# Time-stamp: "2024-01-27 14:40:20 (ywatanabe)"
 
 import re
 import sqlite3
@@ -119,6 +119,9 @@ def create_and_populate_db(files_list):
             continue
 
         eeg_segments_z = mngs.gen.to_z(eeg_segments, axis=-1)
+        eeg_segments_z = eeg_segments_z[
+            ~np.isnan(eeg_segments).any(axis=-1).any(axis=-1)
+        ]
 
         for i, segment in enumerate(eeg_segments_z):
             segment_bytes = segment.tobytes()
@@ -139,7 +142,8 @@ def create_and_populate_db(files_list):
         np.unique(mngs.ml.utils.merge_labels(datasets, subject_ids))
     )
     print(
-        f"\nConglaturations! SQLite databse was created from {count} files, {n_datasets} datasets, and {n_subjects} subjects:\n{CONFIG["DB_PATH"]}"
+        f"\nConglaturations! SQLite databse was created from {count} files, "
+        f"{n_datasets} datasets, and {n_subjects} subjects:\n{CONFIG['DB_PATH']}"
     )
 
 
@@ -184,12 +188,11 @@ if __name__ == "__main__":
     y_or_n = prompt_to_user(CONFIG["DB_PATH"])
 
     if y_or_n == "y":
-        LPATHS = np.random.permutation(mngs.io.load("./data/eeg_files.txt"))[
-            :1000
-        ]
-        # import ipdb
-
-        # ipdb.set_trace()
+        LPATHS = np.random.permutation(
+            mngs.io.load("./data/eeg_files.txt")
+        )  # [
+        #     :1000
+        # ]
         n_lpaths_uq = len(np.unique([lpath.split("/")[2] for lpath in LPATHS]))
         print(f"\nMaximum of {n_lpaths_uq} datasets will be populated.")
         create_and_populate_db(LPATHS)
