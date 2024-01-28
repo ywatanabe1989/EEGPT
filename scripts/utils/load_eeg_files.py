@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 12:09:53 (ywatanabe)"
+# Time-stamp: "2024-01-29 08:04:02 (ywatanabe)"
 
 import random
 
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import distance
 
-CONFIG = mngs.io.load("./config/global.yaml")
+CONFIG = mngs.io.load_configs()
 
 # Functions
 def rename_channels_for_consistency(raw, channel_mapping):
@@ -132,6 +132,8 @@ def load_an_eeg_file(lpath):
 
 
 def load_eeg_files(lpaths, n_loads=None):
+    print(f"\nLoading from {n_loads} of {len(lpaths)} files")
+
     if n_loads is not None:
         lpaths = np.random.permutation(lpaths)[:n_loads]
 
@@ -160,22 +162,88 @@ def load_eeg_files(lpaths, n_loads=None):
         # has_tgt_montages.append(_has_tgt_montages)
 
     # unloaded = pd.DataFrame(unloaded)
+    print(f"\nLoaded: {len(loaded) / n_loads * 100}% of {n_loads} data")
     return loaded  # , ch_names, unloaded
 
 
-if __name__ == "__main__":
-    LPATHS = mngs.io.load("./data/eeg_files.txt")
-    # Removes .fdt
-    LPATHS = np.array(LPATHS)[
-        ~(mngs.gen.search(".fdt", LPATHS, as_bool=True)[0])
+def preprocess_raw(raw):
+    # Re-reference
+    try:
+        raw = mne.set_bipolar_reference(
+            raw,
+            anode=[
+                bi.split("-")[0]
+                for bi in CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]
+            ],
+            cathode=[
+                bi.split("-")[1]
+                for bi in CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]
+            ],
+            ch_name=CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"],
+            drop_refs=True,
+        )
+    except Exception as e:
+        print(e)
+        return None
+
+    # Notch filtering at 50 and 60 Hz
+    raw = raw.notch_filter(freqs=[50, 60], n_jobs=1)
+
+    # Interpolate bad channels if any
+    raw = raw.interpolate_bads(verbose=False)
+
+    # Downsampling to CONFIG["TGT_FS"]
+    raw.resample(CONFIG["TGT_FS"], n_jobs=1)
+    return raw
+
+
+# def segment_raw(raw, CONFIG):
+def segment_raw(raw):
+    # Convert to DataFrame and transpose
+    df = raw.to_data_frame().set_index("time").T
+
+    # Segmentation
+    segs = mngs.dsp.crop(
+        np.array(df),
+        int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]),  # 256
+        overlap_factor=CONFIG["OVERLAP_FACTOR"],
+    )
+
+    # Limit the number of segments to reduce sampling bias
+    segs = segs[
+        np.random.permutation(np.arange(len(segs)))[
+            : CONFIG["MAX_N_WINDOWS_PER_SUB"]
+        ]
     ]
+    return segs
 
+
+def load_processed_eeg_file(filepath):
+    with mngs.gen.suppress_output():
+        try:
+            raw = load_an_eeg_file(filepath)
+        except Exception as e:
+            print(f"\nError:\n{filepath} was not loaded.\n{e}")
+
+        if raw is not None:
+            try:
+                raw = preprocess_raw(raw)
+            except Exception as e:
+                print(f"\nError:\n{filepath} was not preprocessed.\n{e}")
+
+            try:
+                segs = segment_raw(raw)
+            except Exception as e:
+                print(f"\nError:\n{filepath} was not segmented.\n{e}")
+
+            return segs
+        else:
+            return None
+
+
+if __name__ == "__main__":
+    # LPATHS = mngs.io.load(CONFIG["EEG_FILES_LIST_OPENNEURO"])
+    LPATHS = mngs.io.load(CONFIG["EEG_FILES_LIST_INTERNAL"])
     N_LOADS = 100
-
-    print(f"\nLoading from {N_LOADS} of {len(LPATHS)} files")
     loaded = load_eeg_files(LPATHS, n_loads=N_LOADS)
-    # loaded, ch_names, unloaded = load_eeg_files(LPATHS, n_loads=N_LOADS)
-
-    print(f"\nLoaded: {len(loaded) / N_LOADS * 100}% of {N_LOADS} data")
-
-    # print(f"\nUnloaded files with reasons: {unloaded}")
+    processed = load_processed_eeg_file(LPATHS[0])

@@ -1,6 +1,25 @@
 # PATH and DIRECTORIES
-DATA_DIR:
-    "./data/"
+# DATA_DIR:
+#     "./data/"
     
-DB_PATH:
-  "./data/eeg_data_v7.db"
+DATA_DIR_COMBINED:
+    "./data/Combined/"
+
+DATA_DIR_OPENNEURO:
+  "./data/OpenNeuro/"
+
+DATA_DIR_INTERNAL:
+  "./data/Internal/"  
+    
+DB_PATH_OPENNEURO:
+  "./data/OpenNeuro/eeg_data_v8.db"
+
+EEG_FILES_LIST_OPENNEURO:
+  "./data/OpenNeuro/eeg_files.txt"
+
+DB_PATH_INTERNAL:
+  "./data/Internal/eeg_data_v1.db"
+
+EEG_FILES_LIST_INTERNAL:
+  "./data/Internal/eeg_files.txt"
+  

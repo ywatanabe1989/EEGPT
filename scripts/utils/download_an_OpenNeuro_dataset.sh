@@ -2,7 +2,7 @@
 
 download_an_openneuro_dataset() {
     ds_ID=$1
-    dest_path="/mnt/ssd/EEGPT_datasets/${ds_ID}-download/"
+    dest_path="/mnt/ssd/EEGPT_datasets/OpenNeuro/${ds_ID}-download/"
 
     if [[ ! -d $dest_path ]]; then
         echo -e "\nDownloading ${ds_ID} ..."
