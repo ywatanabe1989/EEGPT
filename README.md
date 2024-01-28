@@ -5,15 +5,18 @@ $ cd EEGPT
 $ python3 -m venv env
 $ source env/bin/activate
 $ pip install -U pip
-$ pip install -r requirements.txt
+$ pip install -Ur requirements.txt
+echo 'export PYTHONPATH=.:$PYTHONPATH' >> ~/.bash_profile
 ```
 
 ## Scripts
 ```
-$ ./scripts/utils/download_OpenNeuro_datasets.sh
-$ ./scripts/utils/populate_db.py
-$ ./scripts/utils/summarie_datasets_as_a_csv.py 
-$ ./scripts/train_EEGPT.py
+# edit ./config/is_debug.yaml
+$ ./scripts/utils/download_OpenNeuro_datasets.sh # Takes a large amount of time
+$ yes | ./scripts/utils/populate_db.py
+$ ./scripts/utils/summarize_datasets_as_a_csv.py 
+
+$ yes | ./scripts/utils/populate_db.py && ./scripts/train_EEGPT.py
 ```
 
 ## Datasets
@@ -22,44 +25,44 @@ $ ./scripts/train_EEGPT.py
 - 2. PARTICIPANTS: 50 or more
 
 ``` bash
-$ du data/ds* | wc -l # 38
-$ du data/ # 1.7T
-$ du data/ds*
-# 44G     data/ds003825-download
-# 54G     data/ds003838-download
-# 6.2G    data/ds003944-download
-# 13G     data/ds003947-download
-# 55G     data/ds003969-download
-# 18G     data/ds004019-download
-# 94G     data/ds004067-download
-# 96G     data/ds004118-download
-# 100G    data/ds004120-download
-# 95G     data/ds004148-download
-# 23G     data/ds004151-download
-# 78G     data/ds004166-download
-# 114G    data/ds004186-download
-# 19G     data/ds004256-download
-# 26G     data/ds004279-download
-# 9.9G    data/ds004315-download
-# 19G     data/ds004317-download
-# 12G     data/ds004362-download
-# 146G    data/ds004395-download
-# 36G     data/ds004448-download
-# 5.4G    data/ds004504-download
-# 9.5G    data/ds004515-download
-# 23G     data/ds004532-download
-# 4.8G    data/ds004572-download
-# 14G     data/ds004574-download
-# 660M    data/ds004577-download
-# 25G     data/ds004579-download
-# 16G     data/ds004580-download
-# 2.9G    data/ds004584-download
-# 7.9G    data/ds004595-download
-# 74G     data/ds004602-download
-# 20G     data/ds004626-download
-# 30G     data/ds004635-download
-# 102G    data/ds004718-download
-# 1.4G    data/ds004771-download
-# 117G    data/ds004883-download
-# 8.1G    data/ds004902-download
+$ du data/OpenNeuro/ds* | wc -l # 37
+$ du data/OpenNeuro # 2.4T
+$ du data/OpenNeuro/ds*
+56G     data/OpenNeuro/ds003825-download
+254G    data/OpenNeuro/ds003838-download
+6.2G    data/OpenNeuro/ds003944-download
+13G     data/OpenNeuro/ds003947-download
+55G     data/OpenNeuro/ds003969-download
+18G     data/OpenNeuro/ds004019-download
+101G    data/OpenNeuro/ds004067-download
+125G    data/OpenNeuro/ds004118-download
+303G    data/OpenNeuro/ds004120-download
+95G     data/OpenNeuro/ds004148-download
+23G     data/OpenNeuro/ds004151-download
+78G     data/OpenNeuro/ds004166-download
+215G    data/OpenNeuro/ds004186-download
+19G     data/OpenNeuro/ds004256-download
+26G     data/OpenNeuro/ds004279-download
+9.9G    data/OpenNeuro/ds004315-download
+19G     data/OpenNeuro/ds004317-download
+12G     data/OpenNeuro/ds004362-download
+507G    data/OpenNeuro/ds004395-download
+36G     data/OpenNeuro/ds004448-download
+5.4G    data/OpenNeuro/ds004504-download
+9.5G    data/OpenNeuro/ds004515-download
+23G     data/OpenNeuro/ds004532-download
+4.8G    data/OpenNeuro/ds004572-download
+14G     data/OpenNeuro/ds004574-download
+660M    data/OpenNeuro/ds004577-download
+25G     data/OpenNeuro/ds004579-download
+16G     data/OpenNeuro/ds004580-download
+2.9G    data/OpenNeuro/ds004584-download
+7.9G    data/OpenNeuro/ds004595-download
+74G     data/OpenNeuro/ds004602-download
+20G     data/OpenNeuro/ds004626-download
+30G     data/OpenNeuro/ds004635-download
+102G    data/OpenNeuro/ds004718-download
+1.4G    data/OpenNeuro/ds004771-download
+117G    data/OpenNeuro/ds004883-download
+8.1G    data/OpenNeuro/ds004902-download
 ```

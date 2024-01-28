@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 17:40:19 (ywatanabe)"
+# Time-stamp: "2024-01-29 08:46:57 (ywatanabe)"
 
 import re
 from glob import glob
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
 
     # Path
-    BIDS_ROOTS = glob(CONFIG["DATA_DIR"] + "ds*-download/")
+    BIDS_ROOTS = glob(CONFIG["DATA_DIR_COMBINED"] + "ds*/")
     summary = summarize_all(BIDS_ROOTS)
     mngs.io.save(summary, CONFIG["SDIR"] + "summary.csv")
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 19:54:43 (ywatanabe)"
+# Time-stamp: "2024-01-29 09:05:27 (ywatanabe)"
 
 import os
 import random
@@ -217,7 +217,9 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
 
 def main():
     # Loads
-    sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=False)
+    sqlite_dataset = SQLiteDataset(
+        db_path=CONFIG["DB_PATH_OPENNEURO"], show=True
+    )
     dl_tra, dl_val, dl_tes = to_DataLoaders(*split_to_datasets(sqlite_dataset))
 
     # Main

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-27 19:49:36 (ywatanabe)"
+# Time-stamp: "2024-01-29 08:52:03 (ywatanabe)"
 
 import re
 import sqlite3
@@ -11,12 +11,11 @@ import matplotlib.pyplot as plt
 import mne
 import mngs
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset, Subset
 
-CONFIG = mngs.io.load("./config/dsp.yaml")
-
-# CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(sys, plt)
+CONFIG = mngs.io.load_configs()
 
 
 class SQLiteDataset(Dataset):
@@ -48,7 +47,8 @@ class SQLiteDataset(Dataset):
 
             # Print the unique combinations
             print("\nLoaded:\n")
-            pprint(unique_dataset_subject_ids)
+            # pprint(unique_dataset_subject_ids)
+            print(pd.DataFrame(np.array(unique_dataset_subject_ids)))
             uq_datasets = np.unique(
                 [ds_sub[0] for ds_sub in unique_dataset_subject_ids]
             )

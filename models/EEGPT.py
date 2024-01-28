@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-26 12:34:38 (ywatanabe)"
+# Time-stamp: "2024-01-29 09:10:43 (ywatanabe)"
 
 """"To tokenize EEG signals and process them in a manner similar to GPT (Generative Pre-trained Transformer) used in Natural Language Processing (NLP)"""
 
@@ -51,9 +51,8 @@ class EEGPT(nn.Module):
         self.config["window_size"] = 32
         self.Conv2DNet = Conv2DNet()
 
-        self.VQ = (
-            None  # placeholder, this is defined in the first forward pass
-        )
+        # placeholder, this is defined in the first forward pass
+        self.VQ = None
         self.is_VQ_set = False
 
         # Model instantiation
@@ -136,6 +135,8 @@ class EEGPT(nn.Module):
 
 if __name__ == "__main__":
     m = EEGPT().cuda()
+    # RuntimeError: Unexpected error from cudaGetDeviceCount(). Did you run some cuda functions before calling NumCudaDevices() that might have already set an error? Error 804: forward compatibility was attempted on non supported HW
+
     weights_path = (
         "./scripts/train_EEGPT/2024-0126-09:25_bvYp7bIr/checkpoint.pth"
     )

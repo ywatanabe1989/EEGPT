@@ -1,15 +1,24 @@
 # PATH and DIRECTORIES
-DATA_DIR:
-    "./data/"
+# DATA_DIR:
+#     "./data/"
     
-DB_PATH:
-  "./data/eeg_data_v7.db"
+DATA_DIR_COMBINED:
+    "./data/Combined/"
 
-BIDS_DIR_Osaka:
-  "/local/ywatanabe/EEG_DEM_CLF/BIDS_dataset_Osk_v5.3/"
+DATA_DIR_OPENNEURO:
+  "./data/OpenNeuro/"
 
-BIDS_DIR_Kochi:
- "/local/ywatanabe/EEG_DEM_CLF/BIDS_dataset_v1.1_Kochi/"
-  
-BIDS_DIR_NISSEI:
-  "/local/ywatanabe/EEG_DEM_CLF/BIDS_dataset_Nissei_v1.1/"
+DATA_DIR_INTERNAL:
+  "./data/Internal/"  
+    
+DB_PATH_OPENNEURO:
+  "./data/OpenNeuro/eeg_data_v8.db"
+
+EEG_FILES_LIST_OPENNEURO:
+  "./data/OpenNeuro/eeg_files.txt"
+
+DB_PATH_INTERNAL:
+  "./data/Internal/eeg_data_v1.db"
+
+EEG_FILES_LIST_INTERNAL:
+  "./data/Internal/eeg_files.txt"
