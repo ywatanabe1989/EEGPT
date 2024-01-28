@@ -4,3 +4,12 @@ DATA_DIR:
     
 DB_PATH:
   "./data/eeg_data_v7.db"
+
+BIDS_DIR_Osaka:
+  "/local/ywatanabe/EEG_DEM_CLF/BIDS_dataset_Osk_v5.3/"
+
+BIDS_DIR_Kochi:
+ "/local/ywatanabe/EEG_DEM_CLF/BIDS_dataset_v1.1_Kochi/"
+  
+BIDS_DIR_NISSEI:
+  "/local/ywatanabe/EEG_DEM_CLF/BIDS_dataset_Nissei_v1.1/"
