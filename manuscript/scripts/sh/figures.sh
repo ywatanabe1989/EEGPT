@@ -18,7 +18,6 @@ function main() {
     fi
 }
 
-
 function _main(){
     tree ./src/figures
     if check_legend && (check_ppt || check_tif || check_png); then
@@ -63,6 +62,7 @@ function rm_templates() {
     rm "${TIF_CROPPED_DIR}Figure_ID_template.tif" -f > /dev/null 2>&1    
     rm "${PNG_DIR}Figure_ID_template.png" -f > /dev/null 2>&1        
     rm "${LEGEND_DIR}Figure_ID_template.tex" -f > /dev/null 2>&1
+    rm "${COMPILED_DIR}Figure_ID_template.tex" -f > /dev/null 2>&1    
 }
 
 function mkdirs() {

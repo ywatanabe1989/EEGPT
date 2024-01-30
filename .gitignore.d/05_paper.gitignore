@@ -1,2 +1,2 @@
 # Ignore dot-start files at any level under the paper directory
-paper/**/.*
+manuscript/**/.*
