@@ -22,4 +22,3 @@ DB_PATH_INTERNAL:
 
 EEG_FILES_LIST_INTERNAL:
   "./data/Internal/eeg_files.txt"
-  
