@@ -1,6 +1,3 @@
-################################################################################
-## Usage.gitignore
-################################################################################
 # function git_cat_gitignores() {
 #     rm -f .gitignore # Remove the existing .gitignore file if it exists
 #     for file in $(ls .gitignore.d/*.gitignore | sort); do

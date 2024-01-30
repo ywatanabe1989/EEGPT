@@ -1,9 +1,6 @@
 ################################################################################
 ## 00_usage.gitignore
 ################################################################################
-################################################################################
-## Usage.gitignore
-################################################################################
 # function git_cat_gitignores() {
 #     rm -f .gitignore # Remove the existing .gitignore file if it exists
 #     for file in $(ls .gitignore.d/*.gitignore | sort); do
@@ -28,10 +25,19 @@ singularity
 work_singularity
 **.old
 **debug**
+
+env
+
+# Old
 *.old
 old/*
-env
+**old**
 !old/.gitkeep
+# Ignore directories named .old or old
+.old/
+old/
+
+
 Figures/png/*
 Figures/tif/*
 !Figures/png/.gitkeep
@@ -151,6 +157,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+env
 .env
 .venv
 env/
@@ -540,4 +547,10 @@ flycheck_*.el
 
 # network security
 /network-security.data
+
+################################################################################
+## 05_paper.gitignore
+################################################################################
+# Ignore dot-start files at any level under the paper directory
+paper/**/.*
 

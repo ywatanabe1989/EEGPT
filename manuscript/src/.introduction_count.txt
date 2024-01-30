@@ -1,0 +1,28 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=latex)
+ restricted \write18 enabled.
+entering extended mode
+(./wordcount.tex
+LaTeX2e <2020-10-01> patch level 4
+L3 programming layer <2021-02-18>
+(/usr/share/texlive/texmf-dist/tex/latex/base/fontenc.sty)
+No auxiliary output files.
+
+File name [press RETURN to cancel]: ./src/introduction.tex
+Processing ./src/introduction.tex...
+
+
+
+! LaTeX Error: File `./src/introduction.tex' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: tex)
+
+Enter file name: 
+! Emergency stop.
+<read *> 
+         
+l.198 \@tempa
+             ^^M
+No pages of output.
+Transcript written on wordcount.log.
+LaTeX run was apparently unsuccessful.
