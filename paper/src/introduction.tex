@@ -1,0 +1,22 @@
+fixme:
+Please advance the introduction by contrasting EEG with NLP, image classification and videos.
+
+EEG data are highcost
+
+
+\section{Introduction}
+
+Neuroscience research has seen a significant influx of interest with the arrival of Generative Pre-trained Transformers (GPT) in the field of natural language processing (NLP). The development and application of machine learning (ML) techniques have revolutionized NLP, transforming it into a rapidly evolving arena (\cite{NIPS2017_3f5ee243}, \cite{radford_language_nodate}). This advancement underscores the promise of developing similar proficiency levels in other areas, particularly critical fields like brain signal analysis and brain-machine interfaces (BMI). These facets, although bearing enormous potential, have remained relatively underexplored and, therefore, highlight the compelling need for further progress.
+
+Translating these advancements from NLP to brain signal analysis, particularly electroencephalography (EEG)-based interfaces, presents considerable challenges. Distinct from language, which is comprised of separate words each assigned a unique semantic value, brain signals convey a high-dimensional, convoluted terrain of continuous, floating-point values. Given these complexities, deriving meaningful data from neural activity for interface developments becomes a challenging endeavor.
+
+Several obstacles impede progress in EEG-based interface development. Firstly, generalizing research findings across varying institutions with different data recording protocols, electrode placements, technical devices, and subject characteristics is a formidable task. Furthermore, EEG data complexity is augmented by substantial noise, often concealing core neural signals. Akin to a video recording, EEG streams contain significant data punctuated by periods lacking in meaningful information. Identifying these critical time windows in continuous EEG data further compounds the existing complexity.
+
+These challenges underscore the novel proposition of this study: developing an EEG-focused tokenization strategy, analogous to the NLP tokenization process of converting language into words. This approach aims to strike a balance between encapsulating relevant information while limiting noise and complexity interference.
+The current study proposes implementing convolutional neural networks (CNN), demonstrated to be efficacious in EEG signal processing. CNN offers an adaptive filter capturing high-frequency components as local features, thereby reducing complexity—an essential element considering the continuous nature of EEG data compared to the language’s restricted degree of freedom to a limited corpus. Additionally, drawing parallels with successful strategies in NLP, attention mechanisms such as transformers could enable capturing long-sequence dependencies through parallel processing for feasible model training—all while forecasting the next word, thereby encouraging model capture of latent temporal data trends.
+
+In pursuit of developing a universal EEG processing AI, this study aimed to ensure the generalizability of the proposed model across subjects, recording sites, channel settings, and tasks. To achieve this, the study incorporated an expansive pool of 30 publicly available EEG datasets. A model, named "EEGPT", was trained and its performance was assessed through the application of a pretrained model on these datasets for downstream tasks on both private and publicly available datasets.
+
+This approach, if successful, would mark a substantial contribution towards predictive diagnostics, therapeutic interventions within the realm of neurodegenerative diseases, and BMI development that may have profound impacts on our understanding of brain function and disease.
+
+\label{sec:introduction}

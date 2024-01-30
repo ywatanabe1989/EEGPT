@@ -8,10 +8,19 @@ singularity
 work_singularity
 **.old
 **debug**
+
+env
+
+# Old
 *.old
 old/*
-env
+**old**
 !old/.gitkeep
+# Ignore directories named .old or old
+.old/
+old/
+
+
 Figures/png/*
 Figures/tif/*
 !Figures/png/.gitkeep

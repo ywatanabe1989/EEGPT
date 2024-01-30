@@ -1,0 +1,14 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=latex)
+ restricted \write18 enabled.
+entering extended mode
+(./wordcount.tex
+LaTeX2e <2020-10-01> patch level 4
+L3 programming layer <2021-02-18>
+(/usr/share/texlive/texmf-dist/tex/latex/base/fontenc.sty)
+No auxiliary output files.
+
+File name [press RETURN to cancel]: ./src/abstract.tex
+Processing ./src/abstract.tex...
+
+
+LaTeX run was apparently unsuccessful.
