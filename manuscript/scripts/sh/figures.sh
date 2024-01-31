@@ -9,7 +9,7 @@ LEGEND_DIR="./src/figures/2_legend/"
 COMPILED_DIR="./src/figures/99_tex_compiled/"
 ALL_COMPILED_PATH="./src/figures/99_tex_compiled/ALL_FIGURES.tex"
 
-function main() {
+main() {
     rm_templates
     if ! _main "$@"; then
         echo "An error occurred during the execution of _main."
@@ -18,7 +18,7 @@ function main() {
     fi
 }
 
-function _main(){
+_main(){
     tree ./src/figures
     if check_legend && (check_ppt || check_tif || check_png); then
         echo -e "\nFigures are being compiled..."
@@ -35,11 +35,11 @@ function _main(){
         fi
     else
         echo -e "\nRequired legend files and either of ppt, tif, or png files are not present."
-        exit 1
+        return 1
     fi
 }
 
-# function main() {
+# main() {
 #     rm_templates
 #     if ! _main; then
 #         echo "aaa"
@@ -47,16 +47,7 @@ function _main(){
 #     fi
 # }
 
-function cp_templates() {
-    echo -e "\nUsing preset templates..."            
-    cp "${PPT_DIR}.Figure_ID_template.pptx" "${PPT_DIR}Figure_ID_template.pptx" -v
-    cp "${TIF_DIR}.Figure_ID_template.tif" "${TIF_DIR}Figure_ID_template.tif" -v
-    # cp "${PNG_DIR}.Figure_ID_template.png" "${PNG_DIR}Figure_ID_template.png" -v        
-    cp "${LEGEND_DIR}.Figure_ID_template.tex" "${LEGEND_DIR}Figure_ID_template.tex" -v
-}
-    
-
-function rm_templates() {
+rm_templates() {
     rm "${PPT_DIR}Figure_ID_template.pptx" -f > /dev/null 2>&1
     rm "${TIF_DIR}Figure_ID_template.tif" -f > /dev/null 2>&1
     rm "${TIF_CROPPED_DIR}Figure_ID_template.tif" -f > /dev/null 2>&1    
@@ -65,11 +56,20 @@ function rm_templates() {
     rm "${COMPILED_DIR}Figure_ID_template.tex" -f > /dev/null 2>&1    
 }
 
-function mkdirs() {
+cp_templates() {
+    echo -e "\nUsing preset templates..."            
+    cp "${PPT_DIR}.Figure_ID_template.pptx" "${PPT_DIR}Figure_ID_template.pptx" -v
+    cp "${TIF_DIR}.Figure_ID_template.tif" "${TIF_DIR}Figure_ID_template.tif" -v
+    # cp "${PNG_DIR}.Figure_ID_template.png" "${PNG_DIR}Figure_ID_template.png" -v        
+    cp "${LEGEND_DIR}.Figure_ID_template.tex" "${LEGEND_DIR}Figure_ID_template.tex" -v
+}
+    
+
+mkdirs() {
     mkdir -p "$LEGEND_DIR" "$PPT_DIR" "$TIF_DIR" "$PNG_DIR" "$COMPILED_DIR"
 }
 
-function check_ppt() {
+check_ppt() {
     if compgen -G "$PPT_DIR*.pptx" > /dev/null; then
         return 0
     else
@@ -78,11 +78,11 @@ function check_ppt() {
     fi
 }
 
-function ppt2tif() {
+ppt2tif() {
     ./scripts/sh/ppt2tif_all.sh
 }
 
-function check_tif() {
+check_tif() {
     if compgen -G "$TIF_DIR*.tif" > /dev/null; then
         return 0
     else
@@ -91,22 +91,21 @@ function check_tif() {
     fi
 }
 
-function crop_tif() {
+crop_tif() {
     for tif_file in "$TIF_DIR"*.tif; do
         ./env/bin/python ./scripts/py/crop_tif.py -l "$tif_file"
     done
 }
 
-function tif2png() {
+tif2png() {
     for file in "$TIF_CROPPED_DIR"*.tif; do
         if [ -f "$file" ]; then
             local png_path="$PNG_DIR$(basename "$file" .tif).png"
             convert "$file" -resample 100x100 "$png_path"
         fi
     done
-
 }
-# function tif2png() {
+# tif2png() {
 #     for file in "$TIF_DIR"*.tif; do
 #         if [ -f "$file" ]; then
 #             convert "$file" -resample 100x100 "$PNG_DIR$(basename "$file" .tif).png"
@@ -114,7 +113,7 @@ function tif2png() {
 #     done
 # }
 
-function check_png() {
+check_png() {
     if compgen -G "$PNG_DIR*.png" > /dev/null; then
         echo -e "\nPNG files are ready."
     else
@@ -122,7 +121,7 @@ function check_png() {
     fi
 }
 
-function check_legend() {
+check_legend() {
     if compgen -G "$LEGEND_DIR*.tex" > /dev/null; then
         echo -e "\nLegend files are ready."
     else
@@ -130,12 +129,12 @@ function check_legend() {
     fi
 }
 
-function check_legend_png_consistency() {
+check_legend_png_consistency() {
     local missing_counter=0
     local n_files=$(ls -A "$LEGEND_DIR"*.tex 2>/dev/null | wc -l)    
 
     if [ $n_files -gt 0 ]; then
-        for legend_file in "$LEGEND_DIR"*.tex; do
+        for legend_file in "$LEGEND_DIR"Figure_ID*.tex; do
             local base_name=$(basename "$legend_file" .tex)
             local corresponding_png="$PNG_DIR""$base_name".png
 
@@ -160,7 +159,7 @@ function check_legend_png_consistency() {
     fi
 }
 
-# function check_legend_png_consistency() {
+# check_legend_png_consistency() {
 #     local missing_counter=0
 
 #     if legend_dir is not empty:
@@ -184,7 +183,7 @@ function check_legend_png_consistency() {
 # }
 
 
-function compile_legend() {
+compile_legend() {
     rm "$COMPILED_DIR"/*.tex -f
     local ii=0
     for legend_file in "$LEGEND_DIR"Figure_ID_*.tex; do
@@ -214,7 +213,7 @@ EOF
     done
 }
 
-function gather_compiled(){
+gather_compiled(){
     rm "$ALL_COMPILED_PATH" -f
 	for fig_tex in "$COMPILED_DIR"*.tex; do
 	    fname="${fig_tex%.tex}"
@@ -225,19 +224,19 @@ function gather_compiled(){
     fi
 }
 
-function hide_figures() {
+hide_figures() {
     for fig_tex in "$COMPILED_DIR"*.tex; do
         sed -i 's/^\\includegraphics/%\\includegraphics/g' "$fig_tex"
     done
 }
 
-function add_figures() {
+add_figures() {
     for fig_tex in "$COMPILED_DIR"*.tex; do
         sed -i 's/^% *\\includegraphics/\\includegraphics/g' "$fig_tex"
     done
 }
 
-function handle_figure_visibility() {
+handle_figure_visibility() {
     if [ "$1" == "--no-figs" ]; then
         hide_figures
     else
@@ -245,6 +244,6 @@ function handle_figure_visibility() {
     fi
 }
 
-_main "$@"
+main "$@"
 
 ## EOF

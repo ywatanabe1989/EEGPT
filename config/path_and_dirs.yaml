@@ -12,7 +12,7 @@ DATA_DIR_INTERNAL:
   "./data/Internal/"  
     
 DB_PATH_OPENNEURO:
-  "./data/OpenNeuro/eeg_data_v8.db"
+  "./data/OpenNeuro/eeg_data_v9.db"
 
 EEG_FILES_LIST_OPENNEURO:
   "./data/OpenNeuro/eeg_files.txt"

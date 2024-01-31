@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-29 08:46:57 (ywatanabe)"
+# Time-stamp: "2024-01-31 10:25:32 (ywatanabe)"
 
 import re
 from glob import glob
@@ -13,6 +13,19 @@ from natsort import natsorted
 
 
 # Functions
+def validate_BIDS(BIDS_ROOT):
+    try:
+        layout = BIDSLayout(BIDS_ROOT, validate=True)
+        print(f"BIDS dataset at {BIDS_ROOT} passed the validation.")
+        return True
+    except Exception as e:
+        print(
+            f"BIDS dataset at {BIDS_ROOT} failed the validation with error {e}",
+            file=sys.stderr,
+        )
+        return False
+
+
 def from_doi_to_dataset_id_and_version(doi):
     pattern = r"openneuro\.(ds\d+)\.v(\d+\.\d+\.\d+)"
     match = re.search(pattern, doi)
@@ -108,7 +121,11 @@ def summarize(BIDS_ROOT):
         print(f"\n{BIDS_ROOT} was successfully summarized.")
         return out
     except Exception as e:
-        print(f"\nError:\n{BIDS_ROOT} was not summarized.\n{e}\n")
+        print(
+            f"\nError:\n{BIDS_ROOT} was not summarized.\n{e}\n",
+            file=sys.stderr,
+        )
+
         return None
 
 
@@ -136,7 +153,13 @@ if __name__ == "__main__":
 
     # Path
     BIDS_ROOTS = glob(CONFIG["DATA_DIR_COMBINED"] + "ds*/")
-    summary = summarize_all(BIDS_ROOTS)
+    indi_valid = []
+    for BIDS_ROOT in BIDS_ROOTS:
+        indi_valid.append(validate_BIDS(BIDS_ROOT))
+    BIDS_ROOTS_validated = np.array(BIDS_ROOTS)[indi_valid]
+    BIDS_ROOTS_not_validated = np.array(BIDS_ROOTS)[~np.array(indi_valid)]
+
+    summary = summarize_all(BIDS_ROOTS_validated)
     mngs.io.save(summary, CONFIG["SDIR"] + "summary.csv")
 
     mngs.gen.close(CONFIG)

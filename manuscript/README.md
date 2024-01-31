@@ -1,11 +1,16 @@
 # SciTeX
 
+
 ## Quick Start on Ubuntu
 
 To install the template and Python dependencies, execute:
 
 ```bash
 $ ./install.sh
+# /ssh:ywatanabe@444|sudo:444:/etc/texlive/web2c/texmf.cnf
+$ sudo fmtutil-sys --all 
+
+or texhash.
 ```
 
 ## How to Use

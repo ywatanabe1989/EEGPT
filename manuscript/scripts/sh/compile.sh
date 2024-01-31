@@ -81,31 +81,17 @@ LOG_FILE="./logs/compile.log"
     ################################################################################
     ## Figures
     ################################################################################    
-    # # PowerPoint to Tiff (default: false)
-    # if [ "$do_p2t" = "true" ] && [ "$no_figs" = "false" ]; then
-    # ./scripts/sh/pptx2tif_all.sh
-    # fi
-
-    # # Crop figures
-    # if [ "$no_figs" = false ]; then
-    #     ./scripts/sh/crop_figures.sh
-    # fi
     ./scripts/sh/figures.sh
 
     ################################################################################
     ## Tables
     ################################################################################    
-    
+    ./scripts/sh/tables.sh    
 
     ################################################################################
     # Word count
     ################################################################################    
     ./scripts/sh/count_words_figures_and_tables.sh
-
-    # Main
-    # compile tables and figures
-    # ./scripts/sh/tables.sh 
-    # ./scripts/sh/figures.sh $no_figs
 
     ################################################################################    
     ## compiled.pdf
