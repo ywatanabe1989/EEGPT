@@ -77,7 +77,7 @@ ds_ID_list=(
 
 
 find ./data/ -type d -empty -delete
-echo "${ds_ID_list[@]}" | tr ' ' '\n' | xargs -I {} -n1 -P10 ./scripts/utils/download_an_OpenNeuro_dataset.sh {}
+echo "${ds_ID_list[@]}" | tr ' ' '\n' | xargs -I {} -n1 -P10 ./scripts/utils/_download_an_OpenNeuro_dataset.sh {}
 find ./data/ -type d -empty -delete
 
 # ls ./data/ds*-download

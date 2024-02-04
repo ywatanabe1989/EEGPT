@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-29 09:05:27 (ywatanabe)"
+# Time-stamp: "2024-02-04 13:27:28 (ywatanabe)"
 
 import os
 import random
@@ -17,7 +17,7 @@ from torch.optim import SGD, Adam
 from torch.utils.data import DataLoader, Dataset, random_split
 
 # Configurations
-CONFIG, sys.stdout, sys.stderr, plt = mngs.gen.start(
+CONFIG, sys.stdout, sys.stderr, plt, cc = mngs.gen.start(
     sys,
     plt,
     os=os,
@@ -39,7 +39,7 @@ def base_step(
     metrics,
     step="Training",
 ):
-    if CONFIG["DEBUG"] and (i_batch > 50):
+    if CONFIG["IS_DEBUG"] and (i_batch > 50):
         return None
 
     # Model mode
@@ -216,10 +216,12 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
 
 
 def main():
+    # lpath_db_latest = mngs.gen.find_latest(
+    #     CONFIG["DIR_OPENNEURO"] + "dbs/", "eeg_data", ".db"
+    # )
+    lpath_db = "./data/OpenNeuro/dbs/eeg_data_v9.db"  # fixme
     # Loads
-    sqlite_dataset = SQLiteDataset(
-        db_path=CONFIG["DB_PATH_OPENNEURO"], show=True
-    )
+    sqlite_dataset = SQLiteDataset(lpath_db=lpath_db, show=True)
     dl_tra, dl_val, dl_tes = to_DataLoaders(*split_to_datasets(sqlite_dataset))
 
     # Main

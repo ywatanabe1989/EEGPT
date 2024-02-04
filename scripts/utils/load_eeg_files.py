@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-04 11:53:41 (ywatanabe)"
+# Time-stamp: "2024-02-04 13:43:56 (ywatanabe)"
 
 import random
 
@@ -197,10 +197,9 @@ def preprocess_raw(raw):
     return raw
 
 
-# def segment_raw(raw, CONFIG):
-def segment_raw(raw):
+def segment_preprocessed_raw(preprocessed_raw):
     # Convert to DataFrame and transpose
-    df = raw.to_data_frame().set_index("time").T
+    df = preprocessed_raw.to_data_frame().set_index("time").T
 
     # Segmentation
     segs = mngs.dsp.crop(
@@ -232,7 +231,7 @@ def load_processed_eeg_file(filepath):
                 print(f"\nError:\n{filepath} was not preprocessed.\n{e}")
 
             try:
-                segs = segment_raw(raw)
+                segs = segment_preprocessed_raw(raw)
             except Exception as e:
                 print(f"\nError:\n{filepath} was not segmented.\n{e}")
 

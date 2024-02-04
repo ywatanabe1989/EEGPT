@@ -11,12 +11,10 @@ echo 'export PYTHONPATH=.:$PYTHONPATH' >> ~/.bash_profile
 
 ## Scripts
 ```
-# edit ./config/is_debug.yaml
+# Edit ./config/IS_DEBUG.yaml
 $ ./scripts/utils/download_OpenNeuro_datasets.sh # Takes a large amount of time
-$ yes | ./scripts/utils/populate_db.py
+$ ./scripts/utils/populate_db.py && ./scripts/pretrain_EEGPT.py
 $ ./scripts/utils/summarize_datasets_as_a_csv.py 
-
-$ yes | ./scripts/utils/populate_db.py && ./scripts/train_EEGPT.py
 ```
 
 ## OpenNeuro Datasets for Pretraining
@@ -25,9 +23,9 @@ $ yes | ./scripts/utils/populate_db.py && ./scripts/train_EEGPT.py
 - 2. PARTICIPANTS: 50 or more
 
 ``` bash
-$ du data/OpenNeuro/ds* | wc -l # 47
-$ du data/OpenNeuro # 3.2T
-$ du data/OpenNeuro/ds*
+$ du data/OpenNeuro/raw/ # 3.2T
+$ du data/OpenNeuro/raw/ds* | wc -l # 47
+$ du data/OpenNeuro/raw/ds*
 # 3.1G    data/OpenNeuro/ds003474-download
 # 3.1G    data/OpenNeuro/ds003478-download
 # 3.1G    data/OpenNeuro/ds003490-download
@@ -77,29 +75,40 @@ $ du data/OpenNeuro/ds*
 # 8.1G    data/OpenNeuro/ds004902-download
 ```
 
-## Epilepsy Datasets
+## Dementia Datasets
 
 ``` bash
-$ du data/Dementia/ds* | wc -l # 3
-$ du data/Dementia # 53G
-$ du data/Dementia/*
+$ du data/Dementia/raw/ # 53G
+$ du data/Dementia/raw/* | wc -l # 3
+$ du data/Dementia/raw/*
 11G     data/Dementia/BIDS_dataset_Nissei_v1.1
 37G     data/Dementia/BIDS_dataset_Osk_v5.3
 5.8G    data/Dementia/BIDS_dataset_v1.1_Kochi
 ```
 
+## Epilepsy Datasets
+
+``` bash
+$ du data/Epilepsy/raw # 27G
+$ du data/Epilepsy/raw/* | wc -l # 2
+$ du data/Epilepsy/raw/*
+6.6G    data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1
+21G     data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0
+```
+
 ## WorkingMemory Datasets
 ``` bash
-$ du data/WorkingMemory/ds* | wc -l # 1
-$ du data/WorkingMemory # 38G
-$ du data/WorkingMemory/*
+$ du data/WorkingMemory/raw/* | wc -l # 1
+$ du data/WorkingMemory/raw/ # 38G
+$ du data/WorkingMemory/raw/*
 38G     data/WorkingMemory/ds004395-download
 ```
 
 ## MotorMovementImagery
 ``` bash
-$ du data/MotorMovementImagery/* | wc -l # 1
-$ du data/MotorMovementImagery/*
+$ du data/MotorMovementImagery/raw/* | wc -l # 1
+$ du data/MotorMovementImagery/raw/ # 3.4G
+$ du data/MotorMovementImagery/raw/*
 3.4G    data/MotorMovementImagery/eeg-motor-movementimagery-dataset-1.0.0
 ```
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-02 05:40:54 (ywatanabe)"
+# Time-stamp: "2024-02-04 13:23:51 (ywatanabe)"
 
 import re
 import sqlite3
@@ -19,8 +19,8 @@ CONFIG = mngs.io.load_configs()
 
 
 class SQLiteDataset(Dataset):
-    def __init__(self, db_path, show=False):
-        self.conn = sqlite3.connect(db_path)
+    def __init__(self, lpath_db, show=False):
+        self.conn = sqlite3.connect(lpath_db)
         self.cursor = self.conn.cursor()
         self.cursor.execute("SELECT COUNT(*) FROM eeg_data")
         self.length = self.cursor.fetchone()[0]
@@ -142,9 +142,9 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Loads the database iteratively using pytorch dataloader
-    db_path = "./data/OpenNeuro/eeg_data_v8.db"
-    # sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH_OPENNEURO"], show=True)
-    sqlite_dataset = SQLiteDataset(db_path=db_path, show=True)
+    lpath_db = "./data/OpenNeuro/eeg_data_v8.db"
+    # sqlite_dataset = SQLiteDataset(lpath_db=CONFIG["LPATH_DB_OPENNEURO"], show=True)
+    sqlite_dataset = SQLiteDataset(lpath_db=lpath_db, show=True)
 
     # You might want to pack the dataset to DataLoader
     data_loader = DataLoader(
