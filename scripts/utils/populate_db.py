@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-04 12:33:09 (ywatanabe)"
+# Time-stamp: "2024-02-04 16:07:57 (ywatanabe)"
 
 import re
 import sqlite3
@@ -9,7 +9,9 @@ import mne
 import mngs
 import numpy as np
 import torch
-from scripts.utils.load_eeg_files import load_processed_eeg_file
+from scripts.utils.load_eeg_files import (
+    load_a_processed_and_segmented_eeg_file,
+)
 
 
 def create_and_populate_db(files_list, spath_db):
@@ -47,7 +49,7 @@ def create_and_populate_db(files_list, spath_db):
         )  # make subject_id identical across datasets
 
         # checks the number of samples per subject
-        eeg_segments = load_processed_eeg_file(filepath)
+        eeg_segments = load_a_processed_and_segmented_eeg_file(filepath)
 
         if eeg_segments is None:
             continue
