@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-29 08:52:03 (ywatanabe)"
+# Time-stamp: "2024-02-02 05:40:54 (ywatanabe)"
 
 import re
 import sqlite3
@@ -142,7 +142,9 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Loads the database iteratively using pytorch dataloader
-    sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH"], show=True)
+    db_path = "./data/OpenNeuro/eeg_data_v8.db"
+    # sqlite_dataset = SQLiteDataset(db_path=CONFIG["DB_PATH_OPENNEURO"], show=True)
+    sqlite_dataset = SQLiteDataset(db_path=db_path, show=True)
 
     # You might want to pack the dataset to DataLoader
     data_loader = DataLoader(

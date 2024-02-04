@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-29 08:04:02 (ywatanabe)"
+# Time-stamp: "2024-02-04 11:53:41 (ywatanabe)"
 
 import random
 
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import distance
 
-CONFIG = mngs.io.load_configs()
+CONFIG = mngs.io.load_configs(show=False)
 
 # Functions
 def rename_channels_for_consistency(raw, channel_mapping):

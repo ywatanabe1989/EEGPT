@@ -1,0 +1,35 @@
+# PATH and DIRECTORIES
+# DATA_DIR:
+#     "./data/"
+    
+DIR_OPENNEURO:
+  "./data/OpenNeuro/"
+
+DIR_EPILEPSY:
+  "./data/Epilepsy/"  
+
+DIR_DEMENTIA:
+  "./data/Dementia/"  
+
+DIR_VISUAL:
+  "./data/Visual/"
+  
+DIR_WORKINGMEMORY:
+  "./data/WorkingMemory/"
+  
+DIR_MOTORMOVEMENTIMAGERY:
+  "./data/MotorMovementImagery/"  
+
+EEG_EXTENSIONS: [
+        "eeg",
+        "edf",
+        "bdf",
+        "gdf",
+        "cnt",
+        "egi",
+        "mff",
+        "set",
+        "xdf",
+        "xdfz",
+    ]
+  
