@@ -1,108 +1,75 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2023-08-04 08:13:34 (ywatanabe)"
+# Time-stamp: "2023-08-07 09:00:54 (ywatanabe)"
 
-import os
-import random
+from glob import glob
+
 import mne
+import mngs
+import numpy as np
 import torch
-from mne_bids import BIDSPath, read_raw_bids
-from mne.channels import make_standard_montage
-from torch.utils.data import Dataset, DataLoader
-import warnings
-
-
-
-
-class EEGDataset(Dataset):
-    def __init__(self, bids_roots, t_segment=10, fs=128):
-        self.bids_roots = bids_roots if isinstance(bids_roots, list) else [bids_roots]
-        self.t_segment = t_segment
-        self.fs = fs
-        self.segments = self.get_segments()
-
-    def get_subjects(self, bids_root):
-        subjects = []
-        for subj_folder in os.listdir(bids_root):
-            if "sub" in subj_folder:
-                subjects.append((subj_folder, bids_root))
-        return subjects
-
-    def get_raw(self, subject, root):
-        subject_id = subject.split('-')[1]  # Extract the subject id without the 'sub-' prefix
-        bids_path = BIDSPath(subject=subject_id, root=root, datatype='eeg')
-
-        try:
-            all_matching_paths = bids_path.match()
-            if len(all_matching_paths) > 0:
-                bids_path = random.choice(all_matching_paths)
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", message="Did not find any eeg.json associated with")
-                    raw = read_raw_bids(bids_path, verbose=False)
-
-                # Resample to 128 Hz
-                raw.resample(self.fs)
-
-                # Adjust channels (keep only EEG channels and exclude bad ones)
-                raw.pick(picks="eeg", exclude='bads')
-
-                # Load standard montage (modify according to your data)
-                montage = make_standard_montage('standard_1020')
-                raw.set_montage(montage, match_case=False)
-
-                print(f"Subject {subject_id} from {root} was successfully loaded.")
-                return raw
-
-            else:
-                print(f"No EEG data found for subject {subject_id}.")
-                return None
-
-        except Exception as e:
-            print(f"Error with subject {subject_id} in {bids_path} due to error: {str(e)}")
-            return None    
-    
-
-    def get_segments(self):
-        segments = []
-        for bids_root in self.bids_roots:
-            subjects = self.get_subjects(bids_root)
-            for subject, root in subjects:
-                raw = self.get_raw(subject, root)
-                if raw is not None:  # Only generate segments if the raw data was loaded successfully
-                    n_segments = raw.times[-1] // self.t_segment
-                    segments += [(subject, root, i*self.t_segment, (i+1)*self.t_segment) for i in range(int(n_segments))]
-        return segments    
-    
-
-    def __len__(self):
-        return len(self.segments)
-
-    def __getitem__(self, idx):
-        subject, root, t_start, t_end = self.segments[idx]
-        raw = self.get_raw(subject, root)
-        data, times = raw[
-            :, int(t_start * raw.info["sfreq"]) : int(t_end * raw.info["sfreq"])
-        ]
-        return torch.from_numpy(data), subject, (t_start, t_end)
-
+from mne.io import read_raw_edf
+from torch.utils.data import DataLoader, Dataset
+import random
 
 def collate_fn(batch):
-    data, subjects, time_windows = zip(*batch)
-    return torch.stack(data), subjects, time_windows
+    batch = list(filter(lambda x: x is not None, batch))
+    return torch.utils.data.dataloader.default_collate(batch)
+
+class EEGDataset(Dataset):
+    def __init__(self, file_paths, t_segment=10, sampling_rate=128):
+        self.file_paths = file_paths
+        self.t_segment = t_segment
+        self.sampling_rate = sampling_rate
+        self.montage = mne.channels.make_standard_montage("standard_1020")
+
+    def __len__(self):
+        return len(self.file_paths)
+
+    def __getitem__(self, index):
+        try:
+            raw = mne.io.read_raw_edf(self.file_paths[index], preload=True, verbose=False)
+            raw.resample(self.sampling_rate)
+
+            # Interpolate data to match the 10-20 system
+            raw = raw.pick(picks="eeg")
+            raw.set_montage(self.montage, on_missing="ignore", verbose=False)
+
+            # Map the 10-20 montage to the data
+            layout = mne.channels.make_eeg_layout(raw.info)
+            raw = mne.channels.layout_to_channels(raw, layout)
+
+            # Randomly select a time segment
+            total_time = raw.times[-1]
+            start_time = random.uniform(0, total_time - self.t_segment)
+            stop_time = start_time + self.t_segment
+
+            # Extract EEG data for the time segment
+            segment, times = raw[
+                :, int(start_time * raw.info["sfreq"]) : int(stop_time * raw.info["sfreq"])
+            ]
+
+            return np.array(segment)
+        except Exception as e:
+            print(f"Error processing file {self.file_paths[index]}: {e}")
+            return None
 
 
-if __name__ == "__main__":
-    from glob import glob
+# bids_roots = glob("./data/EEGPT_datasets/ds*")
+edf_file_paths = mngs.io.load("./res/edf_files.npy")
+# Assuming `file_paths` is a list of paths to your edf files
+eeg_dataset = EEGDataset(edf_file_paths)
 
-    bids_roots = glob("./data/EEGPT_datasets/*")
-    # bids_roots = ['/path/to/your/bids/dataset1', '/path/to/your/bids/dataset2']  # add more paths as needed
-    dataset = EEGDataset(bids_roots)
+# Create DataLoader
+batch_size = 64
+data_loader = DataLoader(
+    eeg_dataset, batch_size=batch_size, shuffle=True, num_workers=32
+)
 
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, collate_fn=collate_fn)
+ii = random.randint(0, len(data_loader))
+data = data_loader.dataset[ii]
+print(data)
 
-    for i_batch, sample_batched in enumerate(dataloader):
-        print(i_batch, sample_batched)
-        if i_batch == 5:  # stop after 5 batches for testing
-            break
+batch = next(iter(data_loader))
 
-        
+

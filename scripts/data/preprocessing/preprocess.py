@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-05 15:22:48 (ywatanabe)"
+# Time-stamp: "2024-02-06 08:18:18 (ywatanabe)"
 
 
 import random
@@ -11,7 +11,7 @@ import mngs
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance
-from scripts.utils.handle_channels import handle_channels
+from scripts.data.preprocessing.handle_channels import handle_channels
 
 CONFIG = mngs.io.load_configs(show=False)
 
@@ -65,6 +65,27 @@ def preprocess_raw(raw):
 
     except Exception as e:
         print(f"\nERRROR:\nNot preprocessed.\n{e}")
+        return None
+
+
+def segment_processed_raw(processed_raw):
+    assert processed_raw.info["sfreq"] == CONFIG["TGT_FS"]
+    try:
+
+        # Convert to DataFrame and transpose
+        df = processed_raw.to_data_frame().set_index("time").T
+
+        # Segmentation
+        segs = mngs.dsp.crop(
+            np.array(df),
+            int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]),  # 256
+            overlap_factor=CONFIG["OVERLAP_FACTOR"],
+        )
+
+        return segs
+
+    except Exception as e:
+        print(f"\nERROR:\nNot segmented.\n{e}")
         return None
 
 

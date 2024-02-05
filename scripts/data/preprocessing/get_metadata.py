@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-05 18:44:11 (ywatanabe)"
+# Time-stamp: "2024-02-06 08:33:01 (ywatanabe)"
 
 import json
 import logging
@@ -9,6 +9,18 @@ import re
 import mngs
 
 CONFIG = mngs.io.load_configs(show=False)
+
+
+def get_metadata(lpath_edf):
+    category = _check_category(lpath_edf)
+    get_metadata_fn = {
+        # "OpenNeuro": _get_metadata_fake,
+        "Dementia_Japan": _get_metadata_dementia_Japan,
+        "Epilepsy_Japan": _get_metadata_epilepsy_Osaka,
+        "Epilepsy_Siena": _get_metadata_epilepsy_Siena,
+        "MotorMovementImagery": _get_metadata_mmi,
+    }.get(category, _get_metadata_fake)
+    return get_metadata_fn(lpath_edf)
 
 
 def _get_metadata_fake(lpath):
@@ -257,18 +269,6 @@ def _check_category(lpath):
         return "MotorMovementImagery"
 
 
-def get_metadata(lpath_edf):
-    category = _check_category(lpath_edf)
-    get_metadata_fn = {
-        # "OpenNeuro": _get_metadata_fake,
-        "Dementia_Japan": _get_metadata_dementia_Japan,
-        "Epilepsy_Japan": _get_metadata_epilepsy_Osaka,
-        "Epilepsy_Siena": _get_metadata_epilepsy_Siena,
-        "MotorMovementImagery": _get_metadata_mmi,
-    }.get(category, _get_metadata_fake)
-    return get_metadata_fn(lpath_edf)
-
-
 if __name__ == "__main__":
     # OpenNeuro
     print(
@@ -304,34 +304,5 @@ if __name__ == "__main__":
             "./data/MotorMovementImagery/raw/eeg-motor-movementimagery-dataset-1.0.0/S001/S001R03.edf"
         )
     )
-    #    onset_sec offset_sec label
-    # 0        0.0        4.2    T0
-    # 1        4.2        8.3    T2
-    # 2        8.3       12.5    T0
-    # 3       12.5       16.6    T1
-    # 4       16.6       20.8    T0
-    # 5       20.8       24.9    T1
-    # 6       24.9       29.1    T0
-    # 7       29.1       33.2    T2
-    # 8       33.2       37.4    T0
-    # 9       37.4       41.5    T2
-    # 10      41.5       45.7    T0
-    # 11      45.7       49.8    T1
-    # 12      49.8       54.0    T0
-    # 13      54.0       58.1    T1
-    # 14      58.1       62.3    T0
-    # 15      62.3       66.4    T2
-    # 16      66.4       70.6    T0
-    # 17      70.6       74.7    T1
-    # 18      74.7       78.9    T0
-    # 19      78.9       83.0    T2
-    # 20      83.0       87.2    T0
-    # 21      87.2       91.3    T2
-    # 22      91.3       95.5    T0
-    # 23      95.5       99.6    T1
-    # 24      99.6      103.8    T0
-    # 25     103.8      107.9    T1
-    # 26     107.9      112.1    T0
-    # 27     112.1      116.2    T2
-    # 28     116.2      120.4    T0
-    # 29     120.4      124.5    T1
+
+    assert True

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-05 13:43:02 (ywatanabe)"
+# Time-stamp: "2024-02-06 08:19:40 (ywatanabe)"
 
 import random
 
 import mngs
 import numpy as np
-from scripts.utils.preprocess import preprocess_raw
+from scripts.data.preprocessing.preprocess import preprocess_raw
 
 CONFIG = mngs.io.load_configs(show=False)
 
@@ -48,42 +48,25 @@ def _load_an_eeg_file(lpath):
 #     return loaded_raws
 
 
-# def segment_raw(raw):
-#     try:
-#         # Convert to DataFrame and transpose
-#         df = raw.to_data_frame().set_index("time").T
+def load_a_processed_and_segmented_eeg_file(lpath_eeg):
+    def return_if_not_none(fn, arg):
+        if arg is None:
+            return None
+        else:
+            return fn(arg)
 
-#         # Segmentation
-#         segs = mngs.dsp.crop(
-#             np.array(df),
-#             int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]),  # 256
-#             overlap_factor=CONFIG["OVERLAP_FACTOR"],
-#         )
+    raw = return_if_not_none(_load_an_eeg_file, lpath_eeg)
 
-#         # Limit the number of segments to reduce sampling bias
-#         segs = segs[
-#             np.random.permutation(np.arange(len(segs)))[
-#                 : CONFIG["MAX_N_WINDOWS_PER_SUB"]
-#             ]
-#         ]
-#         return segs
+    metadata = get_metadata(lpath_eeg)
 
-#     except Exception as e:
-#         print(f"\nERROR:\nNot segmented.\n{e}")
-#         return None
+    # Process raw
+    preprocessed_raw = return_if_not_none(preprocess_raw, raw)
+    eeg_segs = return_if_not_none(segment_processed_raw, preprocessed_raw)
 
+    # Process metadata
+    segmented_metadata = associate_segs_and_metadata(metadata, eeg_segs)
 
-# def load_a_processed_and_segmented_eeg_file(filepath):
-#     def return_if_not_none(fn, arg):
-#         if arg is None:
-#             return None
-#         else:
-#             return fn(arg)
-
-#     raw = return_if_not_none(_load_an_eeg_file, filepath)
-#     preprocessed_raw = return_if_not_none(preprocess_raw, raw)
-#     segs = return_if_not_none(segment_raw, preprocessed_raw)
-#     return segs
+    return eeg_segs, segmented_metadata
 
 
 if __name__ == "__main__":
