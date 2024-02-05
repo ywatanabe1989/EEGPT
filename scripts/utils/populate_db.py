@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-04 16:07:57 (ywatanabe)"
+# Time-stamp: "2024-02-05 08:30:03 (ywatanabe)"
 
+import random
 import re
 import sqlite3
 
@@ -9,12 +10,13 @@ import mne
 import mngs
 import numpy as np
 import torch
+from scripts.utils.get_metadata import get_metadata
 from scripts.utils.load_eeg_files import (
     load_a_processed_and_segmented_eeg_file,
 )
 
 
-def create_and_populate_db(files_list, spath_db):
+def populate_db(files_list, spath_db):
     conn = sqlite3.connect(spath_db)
     cursor = conn.cursor()
 
@@ -30,8 +32,10 @@ def create_and_populate_db(files_list, spath_db):
             subject_id TEXT NOT NULL,
             segment_number INTEGER NOT NULL,
             segment BLOB NOT NULL
+            metadata TEXT  -- Column to store metadata as JSON string
         )
         """
+        # please include metadata column
     )
     count = 0
     datasets = []
@@ -40,30 +44,34 @@ def create_and_populate_db(files_list, spath_db):
         print(f"\nPopulating: {filepath}")
 
         dataset_id, subject_id, is_retrieved = extract_ids(filepath)
-
         if not is_retrieved:
             continue
 
-        subject_id = (
-            dataset_id + subject_id
-        )  # make subject_id identical across datasets
+        # Fetches metadata for the current file
+        metadata = get_metadata(filepath)
 
-        # checks the number of samples per subject
+        # Makes subject_id identical across datasets
+        subject_id = dataset_id + subject_id
+
+        # Loads EEG segments
+        # Now metadata is retrieved from lpath. However, these metadata targets the eegdata of lpath as a whole. So, splitting labels logic is also required.
         eeg_segments = load_a_processed_and_segmented_eeg_file(filepath)
-
         if eeg_segments is None:
             continue
 
+        # Normalize the EEG segments
         eeg_segments_z = mngs.gen.to_z(eeg_segments, axis=-1)
         eeg_segments_z = eeg_segments_z[
             ~np.isnan(eeg_segments).any(axis=-1).any(axis=-1)
         ]
 
+        # Insert segments and metadata into the database
         for i, segment in enumerate(eeg_segments_z):
             segment_bytes = segment.tobytes()
             cursor.execute(
-                "INSERT INTO eeg_data (dataset_id, subject_id, segment_number, segment) VALUES (?, ?, ?, ?)",
-                (dataset_id, subject_id, i, segment_bytes),
+                "INSERT INTO eeg_data (dataset_id, subject_id, segment_number, segment, metadata) VALUES (?, ?, ?, ?, ?)"(
+                    dataset_id, subject_id, i, segment_bytes, metadata
+                ),
             )
 
         subject_ids.append(subject_id)
@@ -159,7 +167,6 @@ if __name__ == "__main__":
     import mngs
     from tqdm import tqdm
 
-    parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser(
         description="Populate an SQLite database with EEG data."
     )
@@ -172,6 +179,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     CONFIG, sys.stdout, sys.stderr, plt, cc = mngs.gen.start(sys, plt)
+
+    mngs.gen.fix_seeds(np=np, random=random)
 
     # Process directories and populate the database
     for data_cat in args.data_category:
@@ -188,7 +197,7 @@ if __name__ == "__main__":
         )
         LPATHS = np.random.permutation(LPATHS)[: CONFIG["N_LPATHS_TO_LOAD"]]
         count_datasets(LPATHS)
-        create_and_populate_db(LPATHS, spath_db)
+        populate_db(LPATHS, spath_db)
 
     mngs.gen.close(CONFIG)
 

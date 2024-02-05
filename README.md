@@ -22,6 +22,13 @@ $ ./scripts/utils/summarize_datasets_as_a_csv.py
 - 1. MODALITY: EEG
 - 2. PARTICIPANTS: 50 or more
 
+```
+Congratulations! SQLite database was created from 41823 files, 19 datasets, and 4450 subjects:
+./data/OpenNeuro/dbs/eeg_data_v016.db
+```
+
+
+
 ``` bash
 $ du data/OpenNeuro/raw/ # 3.2T
 $ du data/OpenNeuro/raw/ds* | wc -l # 47

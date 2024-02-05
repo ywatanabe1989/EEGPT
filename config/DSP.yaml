@@ -6,6 +6,26 @@ CHANNEL_MAPPING:
   "T4": "T8",
   "T6": "P8",
   "CPZ": "PZ", # for ds004574, ds004584, ds004579, ds0580
+  # For Siena Epilepsy dataset
+  "EEG FP1": "FP1", 
+  "EEG F3": "F3",
+  "EEG C3": "C3",
+  "EEG P3": "P3",
+  "EEG O1": "O1",
+  "EEG FP2": "FP2",
+  "EEG F4": "F4",
+  "EEG C4": "C4",
+  "EEG P4": "P4",
+  "EEG O2": "O2",
+  "EEG F7": "F7",
+  "EEG T3": "T7",
+  "EEG T5": "P7",          
+  "EEG F8": "F8",
+  "EEG T4": "T8",
+  "EEG T6": "P8",
+  "EEG FZ": "FZ",
+  "EEG CZ": "CZ",
+  "EEG PZ": "PZ",    
   }
 
 TGT_MONTAGE:

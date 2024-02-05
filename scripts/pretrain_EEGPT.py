@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-04 13:27:28 (ywatanabe)"
+# Time-stamp: "2024-02-05 08:47:21 (ywatanabe)"
 
 import os
 import random
@@ -216,17 +216,17 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
 
 
 def main():
-    # lpath_db_latest = mngs.gen.find_latest(
-    #     CONFIG["DIR_OPENNEURO"] + "dbs/", "eeg_data", ".db"
-    # )
-    lpath_db = "./data/OpenNeuro/dbs/eeg_data_v9.db"  # fixme
+    lpath_db_latest = mngs.gen.find_latest(
+        CONFIG["DIR_OPENNEURO"] + "dbs/", "eeg_data", ".db"
+    )
     # Loads
-    sqlite_dataset = SQLiteDataset(lpath_db=lpath_db, show=True)
+    sqlite_dataset = SQLiteDataset(lpath_db=lpath_db_latest, show=True)
     dl_tra, dl_val, dl_tes = to_DataLoaders(*split_to_datasets(sqlite_dataset))
 
     # Main
     model, metrics_df = train_and_eval(dl_tra, dl_val, dl_tes)
     fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
+    # *** ValueError: Source ('src') and target ('tgt') must have the same number of elements.
 
     # Closes the database
     sqlite_dataset.close()
@@ -242,3 +242,18 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # print(metrics_df)
+    #          step  i_global  i_epoch  i_batch      loss
+    # 0    Training         0        0        0  0.721624
+    # 1    Training         1        0        1  0.715103
+    # 2    Training         2        0        2  0.709523
+    # 3    Training         3        0        3  0.721214
+    # 4    Training         4        0        4  0.731842
+    # ..        ...       ...      ...      ...       ...
+    # 250      Test      5956        1       46  0.739182
+    # 251      Test      5956        1       47  0.742658
+    # 252      Test      5956        1       48  0.720806
+    # 253      Test      5956        1       49  0.740011
+    # 254      Test      5956        1       50  0.720261
+
+    #   [255 rows x 5 columns]
