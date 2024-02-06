@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 08:19:40 (ywatanabe)"
+# Time-stamp: "2024-02-06 09:11:10 (ywatanabe)"
 
 import random
 
 import mngs
 import numpy as np
-from scripts.data.preprocessing.preprocess import preprocess_raw
+from scripts.data.preprocessing.associate_EEG_segments_and_metadata import (
+    associate_EEG_segments_and_metadata,
+)
+from scripts.data.preprocessing.get_metadata import get_metadata
+from scripts.data.preprocessing.preprocess import (
+    preprocess_raw,
+    segment_processed_raw,
+)
 
 CONFIG = mngs.io.load_configs(show=False)
 
@@ -49,6 +56,11 @@ def _load_an_eeg_file(lpath):
 
 
 def load_a_processed_and_segmented_eeg_file(lpath_eeg):
+    """
+    LPATHS = find_eeg_files("dementia")
+    segs, meta = load_a_processed_and_segmented_eeg_file(LPATHS[0])
+    """
+
     def return_if_not_none(fn, arg):
         if arg is None:
             return None
@@ -64,12 +76,13 @@ def load_a_processed_and_segmented_eeg_file(lpath_eeg):
     eeg_segs = return_if_not_none(segment_processed_raw, preprocessed_raw)
 
     # Process metadata
-    segmented_metadata = associate_segs_and_metadata(metadata, eeg_segs)
+    segmented_metadata = associate_EEG_segments_and_metadata(
+        metadata, eeg_segs
+    )
 
     return eeg_segs, segmented_metadata
 
 
 if __name__ == "__main__":
     LPATHS = find_eeg_files("dementia")
-    # loaded = load_eeg_files(LPATHS, n_loads=100)
-    segs = load_a_processed_and_segmented_eeg_file(LPATHS[0])
+    segs, meta = load_a_processed_and_segmented_eeg_file(LPATHS[0])

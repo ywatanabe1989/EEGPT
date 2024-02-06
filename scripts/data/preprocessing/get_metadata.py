@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 08:33:01 (ywatanabe)"
+# Time-stamp: "2024-02-06 17:14:27 (ywatanabe)"
 
 import json
 import logging
@@ -42,33 +42,62 @@ def _get_metadata_dementia_Japan(lpath_edf):
         # {"disease_type": "NPH", "cognitive_level": "MCI", "institution": "Osaka University"}
     """
     try:
-        # Extract the subject ID from the EDF file path
-        subject_id_match = re.search(r"sub-(\w+)", lpath_edf)
-        if subject_id_match:
-            subject_id = subject_id_match.group(1)
-        else:
-            raise ValueError("Subject ID not found in the EDF file path.")
 
-        # Construct the base path from the EDF file path
-        base_path = re.sub(r"sub-\w+/.*$", "", lpath_edf)
+        def in_get_subject_id(lpath_edf):
+            # Extract the subject ID from the EDF file path
+            subject_id_match = re.search(r"sub-(\w+)", lpath_edf)
+            if subject_id_match:
+                subject_id = subject_id_match.group(1)
+            else:
+                raise ValueError("Subject ID not found in the EDF file path.")
+            return subject_id
 
-        # Construct the paths to the metadata files
-        lpath_disease_type = f"{base_path}sub-{subject_id}/sub-{subject_id}_sessions.tsv"  # [REVISED]
-        lpath_cognitive_level = f"{base_path}sub-{subject_id}/sub-{subject_id}_sessions.tsv"  # [REVISED]
-        lpath_institution = lpath_edf.replace(".edf", ".json")
+        def in_get_disease_type(lpath_edf):
+            subject_id = in_get_subject_id(lpath_edf)
+            base_path = re.sub(r"sub-\w+/.*$", "", lpath_edf)
+            lpath_disease_type = (
+                f"{base_path}sub-{subject_id}/sub-{subject_id}_sessions.tsv"
+            )
+            # Load the metadata from the TSV files
+            disease_type = mngs.io.load(lpath_disease_type)[
+                "disease_type"
+            ].iloc[0]
+            return disease_type
 
-        # Load the metadata from the TSV files
-        disease_type = mngs.io.load(lpath_disease_type)["disease_type"].iloc[0]
-        cognitive_level = mngs.io.load(lpath_cognitive_level)[
-            "cognitive_level"
-        ].iloc[0]
-        institution = mngs.io.load(lpath_institution)["InstitutionName"]
+        def in_get_cognitive_level(lpath_edf):
+            subject_id = in_get_subject_id(lpath_edf)
+            base_path = re.sub(r"sub-\w+/.*$", "", lpath_edf)
+            lpath_cognitive_level = (
+                f"{base_path}sub-{subject_id}/sub-{subject_id}_sessions.tsv"
+            )
+            key_try = "cognitive_level"
+            key_except = "disease_level"
+            try:
+                cognitive_level = mngs.io.load(lpath_cognitive_level)[
+                    key_try
+                ].iloc[0]
+            except Exception as e:
+                cognitive_level = mngs.io.load(lpath_cognitive_level)[
+                    key_except
+                ].iloc[0]
+                # logging.error(
+                #     f"{lpath_cognitive_level} did not have {key_try} column. Try to get {key_except} column: {e}"
+                # )
+            return cognitive_level
+
+        def in_get_institution(lpath_edf):
+            if "Nissei" in lpath_edf:
+                return "Nissei"
+            if "Osk" in lpath_edf:
+                return "Osaka"
+            if "Kochi" in lpath_edf:
+                return "Kochi"
 
         return json.dumps(
             dict(
-                disease_type=disease_type,
-                cognitive_level=cognitive_level,
-                institution=institution,
+                disease_type=in_get_disease_type(lpath_edf),
+                cognitive_level=in_get_cognitive_level(lpath_edf),
+                institution=in_get_institution(lpath_edf),
             )
         )
     except Exception as e:
@@ -279,11 +308,11 @@ if __name__ == "__main__":
     # {}
 
     # Dementia, Japan
-    print(
-        get_metadata(
-            "./data/Dementia/raw/BIDS_dataset_Osk_v5.3/sub-EEGO0001/ses-010/eeg/sub-EEGO0001_ses-010_task-rest_run-01_eeg.edf"
-        )
-    )
+    from scripts.data.preprocessing.load import find_eeg_files
+
+    for lpath in find_eeg_files("Dementia"):
+        print(get_metadata(lpath))
+
     # {"disease_type": "AD", "cognitive_level": "Dementia", "institution": "Osaka University"}
 
     # Epilepsy, Japan # fixme

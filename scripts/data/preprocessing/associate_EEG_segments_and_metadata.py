@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 08:21:05 (ywatanabe)"
+# Time-stamp: "2024-02-06 08:57:48 (ywatanabe)"
 
 import json
 import random
@@ -8,7 +8,8 @@ import random
 import mngs
 import numpy as np
 from scripts.data.preprocessing.get_metadata import get_metadata
-from scripts.data.preprocessing.load import _load_an_eeg_file
+
+# from scripts.data.preprocessing.load import _load_an_eeg_file
 from scripts.data.preprocessing.preprocess import (
     preprocess_raw,
     segment_processed_raw,
@@ -81,43 +82,41 @@ def associate_EEG_segments_and_metadata(
     return [json.dumps(label) for label in segment_labels]
 
 
-def test_example():
-    assert True
-
-
 if __name__ == "__main__":
-    # OpenNeuro
-    segs, meta = load_a_processed_and_segmented_eeg_file(
-        "./data/OpenNeuro/raw/ds003474-download/sub-001/eeg/sub-001_task-ProbabilisticSelection_eeg.set"
-    )
-    print(segs.shape, len(meta))
+    pass
 
-    # Dementia, Japan
-    segs, meta = load_a_processed_and_segmented_eeg_file(
-        "./data/Dementia/raw/BIDS_dataset_Osk_v5.3/sub-EEGO0001/ses-010/eeg/sub-EEGO0001_ses-010_task-rest_run-01_eeg.edf"
-    )
-    print(segs.shape, len(meta))  # (3125, 14, 256) # 3125
+    # # OpenNeuro
+    # segs, meta = load_a_processed_and_segmented_eeg_file(
+    #     "./data/OpenNeuro/raw/ds003474-download/sub-001/eeg/sub-001_task-ProbabilisticSelection_eeg.set"
+    # )
+    # print(segs.shape, len(meta))
 
-    # Epilepsy, Japan # fixme
+    # # Dementia, Japan
+    # segs, meta = load_a_processed_and_segmented_eeg_file(
+    #     "./data/Dementia/raw/BIDS_dataset_Osk_v5.3/sub-EEGO0001/ses-010/eeg/sub-EEGO0001_ses-010_task-rest_run-01_eeg.edf"
+    # )
+    # print(segs.shape, len(meta))  # (3125, 14, 256) # 3125
 
-    # Epilepsy, Siena
-    lpaths_siena = mngs.gen.find(
-        "./data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0/", "f", "*.edf"
-    )
+    # # Epilepsy, Japan # fixme
 
-    all_sec = 0
-    for lpath in lpaths_siena:
-        segs, meta = load_a_processed_and_segmented_eeg_file(lpath)
-        print(segs.shape, len(meta))  # (3125, 14, 256) # 3125
-        lpath_sec = (
-            len(segs) * CONFIG["WINDOW_SIZE_SEC"] / CONFIG["OVERLAP_FACTOR"]
-        )
-        all_sec += lpath_sec
-    print(all_sec / 60)  # 8460.55
-    all_hours = all_sec / 60 / 60  # 141 h
+    # # Epilepsy, Siena
+    # lpaths_siena = mngs.gen.find(
+    #     "./data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0/", "f", "*.edf"
+    # )
 
-    fig, axes = mngs.plt.subplots(nrows=5, sharex=True, sharey=True)
-    for ii, i_seg in enumerate(range(4, 9)):
-        axes[ii].plot(segs[i_seg].T)
-        axes[ii].set_title(meta[i_seg])
-    plt.show()
+    # all_sec = 0
+    # for lpath in lpaths_siena:
+    #     segs, meta = load_a_processed_and_segmented_eeg_file(lpath)
+    #     print(segs.shape, len(meta))  # (3125, 14, 256) # 3125
+    #     lpath_sec = (
+    #         len(segs) * CONFIG["WINDOW_SIZE_SEC"] / CONFIG["OVERLAP_FACTOR"]
+    #     )
+    #     all_sec += lpath_sec
+    # print(all_sec / 60)  # 8460.55
+    # all_hours = all_sec / 60 / 60  # 141 h
+
+    # fig, axes = mngs.plt.subplots(nrows=5, sharex=True, sharey=True)
+    # for ii, i_seg in enumerate(range(4, 9)):
+    #     axes[ii].plot(segs[i_seg].T)
+    #     axes[ii].set_title(meta[i_seg])
+    # plt.show()

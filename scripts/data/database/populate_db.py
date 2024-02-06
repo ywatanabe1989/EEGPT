@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-05 08:30:03 (ywatanabe)"
+# Time-stamp: "2024-02-06 18:44:34 (ywatanabe)"
 
 import random
 import re
@@ -10,8 +10,8 @@ import mne
 import mngs
 import numpy as np
 import torch
-from scripts.utils.get_metadata import get_metadata
-from scripts.utils.load_eeg_files import (
+from scripts.data.preprocessing.get_metadata import get_metadata
+from scripts.data.preprocessing.load import (
     load_a_processed_and_segmented_eeg_file,
 )
 
@@ -31,13 +31,12 @@ def populate_db(files_list, spath_db):
             dataset_id TEXT NOT NULL,        
             subject_id TEXT NOT NULL,
             segment_number INTEGER NOT NULL,
-            segment BLOB NOT NULL
+            segment BLOB NOT NULL,
             metadata TEXT  -- Column to store metadata as JSON string
         )
         """
-        # please include metadata column
     )
-    count = 0
+    count_populated = 0
     datasets = []
     subject_ids = []
     for filepath in files_list:
@@ -47,15 +46,14 @@ def populate_db(files_list, spath_db):
         if not is_retrieved:
             continue
 
-        # Fetches metadata for the current file
-        metadata = get_metadata(filepath)
-
         # Makes subject_id identical across datasets
-        subject_id = dataset_id + subject_id
+        subject_id = dataset_id + "_" + subject_id
 
         # Loads EEG segments
-        # Now metadata is retrieved from lpath. However, these metadata targets the eegdata of lpath as a whole. So, splitting labels logic is also required.
-        eeg_segments = load_a_processed_and_segmented_eeg_file(filepath)
+        eeg_segments, metadatas = load_a_processed_and_segmented_eeg_file(
+            filepath
+        )
+
         if eeg_segments is None:
             continue
 
@@ -66,70 +64,72 @@ def populate_db(files_list, spath_db):
         ]
 
         # Insert segments and metadata into the database
-        for i, segment in enumerate(eeg_segments_z):
+        for i_seg, (segment, metadata) in enumerate(
+            zip(eeg_segments_z, metadatas)
+        ):
             segment_bytes = segment.tobytes()
             cursor.execute(
-                "INSERT INTO eeg_data (dataset_id, subject_id, segment_number, segment, metadata) VALUES (?, ?, ?, ?, ?)"(
-                    dataset_id, subject_id, i, segment_bytes, metadata
-                ),
+                "INSERT INTO eeg_data (dataset_id, subject_id, segment_number, segment, metadata) VALUES (?, ?, ?, ?, ?)",
+                (dataset_id, subject_id, i_seg, segment_bytes, metadata),
             )
 
         subject_ids.append(subject_id)
         datasets.append(dataset_id)
-        count += 1
+        count_populated += 1
 
     conn.commit()
 
-    # Determine which subjects have more segments than the maximum allowed
-    cursor.execute(
-        "SELECT subject_id, COUNT(*) as segment_count FROM eeg_data GROUP BY subject_id"
-    )
-    subjects_to_trim = [
-        row
-        for row in cursor.fetchall()
-        if row[1] > CONFIG["MAX_N_WINDOWS_PER_SUB"]
-    ]
+    # # Determine which subjects have more segments than the maximum allowed
+    # cursor.execute(
+    #     "SELECT subject_id, COUNT(*) as segment_count FROM eeg_data GROUP BY subject_id"
+    # )
+    # subjects_to_trim = [
+    #     row
+    #     for row in cursor.fetchall()
+    #     if row[1] > CONFIG["MAX_N_WINDOWS_PER_SUB"]
+    # ]
 
-    # Randomly delete excess segments for subjects to reduce sampling biases
-    for subject_id, segment_count in subjects_to_trim:
-        # Calculate the number of segments to delete
-        num_to_delete = segment_count - CONFIG["MAX_N_WINDOWS_PER_SUB"]
-        # Get the segment IDs for this subject
-        cursor.execute(
-            "SELECT id FROM eeg_data WHERE subject_id = ?", (subject_id,)
-        )
-        segment_ids = [row[0] for row in cursor.fetchall()]
-        # Randomly select segment IDs to delete
-        ids_to_delete = random.sample(segment_ids, num_to_delete)
-        # Delete the selected segments
-        cursor.executemany(
-            "DELETE FROM eeg_data WHERE id = ?",
-            [(id,) for id in ids_to_delete],
-        )
+    # # Randomly delete excess segments for subjects to reduce sampling biases
+    # for subject_id, segment_count in subjects_to_trim:
+    #     # Calculate the number of segments to delete
+    #     num_to_delete = segment_count - CONFIG["MAX_N_WINDOWS_PER_SUB"]
+    #     # Get the segment IDs for this subject
+    #     cursor.execute(
+    #         "SELECT id FROM eeg_data WHERE subject_id = ?", (subject_id,)
+    #     )
+    #     segment_ids = [row[0] for row in cursor.fetchall()]
+    #     # Randomly select segment IDs to delete
+    #     ids_to_delete = random.sample(segment_ids, num_to_delete)
+    #     # Delete the selected segments
+    #     cursor.executemany(
+    #         "DELETE FROM eeg_data WHERE id = ?",
+    #         [(id,) for id in ids_to_delete],
+    #     )
 
-    conn.commit()
+    # conn.commit()
 
     # Print the summary
     cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
     datasets = [row[0] for row in cursor.fetchall()]
     cursor.execute("SELECT DISTINCT subject_id FROM eeg_data")
-    subject_ids = [row[0] for row in cursor.fetchall()]
-    n_datasets = len(datasets)
-    n_subjects = len(subject_ids)
-    print(
-        f"\nCongratulations! SQLite database was created from {len(files_list)} files, "
-        f"{n_datasets} datasets, and {n_subjects} subjects:\n{spath_db}"
-    )
-    conn.close()
-
-    # n_datasets = len(np.unique(datasets))
-    # n_subjects = len(
-    #     np.unique(mngs.ml.utils.merge_labels(datasets, subject_ids))
-    # )
+    subject_ids = [row[1] for row in cursor.fetchall()]
+    # n_datasets = len(datasets)
+    # n_subjects = len(subject_ids)
     # print(
-    #     f"\nConglaturations! SQLite databse was created from {count} files, "
+    #     f"\nCongratulations! SQLite database was created from {len(files_list)} files, "
     #     f"{n_datasets} datasets, and {n_subjects} subjects:\n{spath_db}"
     # )
+    # conn.close()
+
+    n_datasets = len(np.unique(datasets))
+    n_subjects = len(
+        np.unique(mngs.ml.utils.merge_labels(datasets, subject_ids))
+    )
+    perc_populated = round(100 * (count_populated / len(files_list)), 2)
+    print(
+        f"\nConglaturations! SQLite databse was created from {count_populated} files ({perc_populated}%), "
+        f"{n_datasets} datasets, and {n_subjects} subjects:\n{spath_db}"
+    )
 
 
 def extract_ids(filepath):
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         "--data_category",
         nargs="+",
         help="[openneuro, dementia, epilepsy, mmi, vis or wm]",
-        default=["openneuro"],
+        default=["dementia"],
     )
     args = parser.parse_args()
 
@@ -184,9 +184,6 @@ if __name__ == "__main__":
 
     # Process directories and populate the database
     for data_cat in args.data_category:
-        """
-        data_cat = args.data_category[0]
-        """
         spath_db = mngs.io.increment_version(
             CONFIG[f"DIR_{data_cat.upper()}"] + "dbs/", "eeg_data", ".db"
         )
@@ -203,7 +200,7 @@ if __name__ == "__main__":
 
     """
     screen -S populate
-    ./scripts/utils/populate_db.py 
+    ./scripts/data/database/populate_db.py --data_category dementia
     """
 
     ## EOF

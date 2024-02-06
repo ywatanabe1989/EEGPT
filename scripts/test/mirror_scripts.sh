@@ -2,7 +2,7 @@
 
 # Define the source and destination directories
 SOURCE_DIR="./scripts/"
-DEST_DIR="./tests/"
+DEST_DIR="./tests/scripts/"
 
 # Check if the source directory exists
 if [ ! -d "$SOURCE_DIR" ]; then
