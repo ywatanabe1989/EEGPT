@@ -112,13 +112,13 @@ def test_add():
 By following this structure and these examples, you can set up `pytest` to run automated tests for your project. Make sure to install `pytest` using `pip` if you haven't already:
 
 ```bash
-pip install pytest
+pip install pytest pytest-xdist
 ```
 
 To run your tests, simply execute the `pytest` command in your terminal:
 
 ```bash
-pytest
+pytest -n 10
 ```
 
 For more advanced usage, refer to the [pytest documentation](https://docs.pytest.org/en/stable/).

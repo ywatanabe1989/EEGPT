@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 18:44:34 (ywatanabe)"
+# Time-stamp: "2024-02-07 11:29:01 (ywatanabe)"
 
 import random
 import re
@@ -67,6 +67,7 @@ def populate_db(files_list, spath_db):
         for i_seg, (segment, metadata) in enumerate(
             zip(eeg_segments_z, metadatas)
         ):
+            # fixme: segment_number may not be necessary
             segment_bytes = segment.tobytes()
             cursor.execute(
                 "INSERT INTO eeg_data (dataset_id, subject_id, segment_number, segment, metadata) VALUES (?, ?, ?, ?, ?)",
@@ -79,47 +80,12 @@ def populate_db(files_list, spath_db):
 
     conn.commit()
 
-    # # Determine which subjects have more segments than the maximum allowed
-    # cursor.execute(
-    #     "SELECT subject_id, COUNT(*) as segment_count FROM eeg_data GROUP BY subject_id"
-    # )
-    # subjects_to_trim = [
-    #     row
-    #     for row in cursor.fetchall()
-    #     if row[1] > CONFIG["MAX_N_WINDOWS_PER_SUB"]
-    # ]
-
-    # # Randomly delete excess segments for subjects to reduce sampling biases
-    # for subject_id, segment_count in subjects_to_trim:
-    #     # Calculate the number of segments to delete
-    #     num_to_delete = segment_count - CONFIG["MAX_N_WINDOWS_PER_SUB"]
-    #     # Get the segment IDs for this subject
-    #     cursor.execute(
-    #         "SELECT id FROM eeg_data WHERE subject_id = ?", (subject_id,)
-    #     )
-    #     segment_ids = [row[0] for row in cursor.fetchall()]
-    #     # Randomly select segment IDs to delete
-    #     ids_to_delete = random.sample(segment_ids, num_to_delete)
-    #     # Delete the selected segments
-    #     cursor.executemany(
-    #         "DELETE FROM eeg_data WHERE id = ?",
-    #         [(id,) for id in ids_to_delete],
-    #     )
-
-    # conn.commit()
-
     # Print the summary
     cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
     datasets = [row[0] for row in cursor.fetchall()]
     cursor.execute("SELECT DISTINCT subject_id FROM eeg_data")
-    subject_ids = [row[1] for row in cursor.fetchall()]
-    # n_datasets = len(datasets)
-    # n_subjects = len(subject_ids)
-    # print(
-    #     f"\nCongratulations! SQLite database was created from {len(files_list)} files, "
-    #     f"{n_datasets} datasets, and {n_subjects} subjects:\n{spath_db}"
-    # )
-    # conn.close()
+    subject_ids = [row[0] for row in cursor.fetchall()]
+    conn.close()
 
     n_datasets = len(np.unique(datasets))
     n_subjects = len(
@@ -147,11 +113,6 @@ def extract_ids(filepath):
     return dataset_id, subject_id, is_retrieved
 
 
-def prompt_to_user(spath_db):
-    response = input(f"Are you sure to populate {spath_db}? (y/n) ")
-    return response.lower()
-
-
 def count_datasets(lpaths):
     n_datasets_uq = len(np.unique([lpath.split("/")[4] for lpath in lpaths]))
     print(f"\nMaximum of {n_datasets_uq} datasets will be populated.")
@@ -174,7 +135,7 @@ if __name__ == "__main__":
         "--data_category",
         nargs="+",
         help="[openneuro, dementia, epilepsy, mmi, vis or wm]",
-        default=["dementia"],
+        default=["epilepsy"],
     )
     args = parser.parse_args()
 
@@ -187,10 +148,10 @@ if __name__ == "__main__":
         spath_db = mngs.io.increment_version(
             CONFIG[f"DIR_{data_cat.upper()}"] + "dbs/", "eeg_data", ".db"
         )
-        ldir_raw = CONFIG[f"DIR_{data_cat.upper()}"] + "raw/"
-
         LPATHS = mngs.io.find(
-            ldir_raw, "f", [f"*.{ext}" for ext in CONFIG["EEG_EXTENSIONS"]]
+            CONFIG[f"DIR_{data_cat.upper()}"] + "raw/",
+            "f",
+            [f"*.{ext}" for ext in CONFIG["EEG_EXTENSIONS"]],
         )
         LPATHS = np.random.permutation(LPATHS)[: CONFIG["N_LPATHS_TO_LOAD"]]
         count_datasets(LPATHS)
@@ -200,7 +161,7 @@ if __name__ == "__main__":
 
     """
     screen -S populate
-    ./scripts/data/database/populate_db.py --data_category dementia
+    ./scripts/data/database/populate_db.py --data_category epilepsy
     """
 
     ## EOF

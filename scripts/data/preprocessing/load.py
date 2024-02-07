@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 09:11:10 (ywatanabe)"
+# Time-stamp: "2024-02-07 12:22:01 (ywatanabe)"
 
 import random
 
@@ -23,6 +23,8 @@ def find_eeg_files(category):
     LPATHS = mngs.gen.find(
         CONFIG[f"DIR_{category.upper()}"] + "raw/", "f", EEG_EXPS
     )
+    if CONFIG["IS_DEBUG"]:
+        LPATHS = np.random.permutation(LPATHS)[: CONFIG["N_LOADS_LPATHS_LOAD"]]
     return LPATHS
 
 
@@ -84,5 +86,26 @@ def load_a_processed_and_segmented_eeg_file(lpath_eeg):
 
 
 if __name__ == "__main__":
-    LPATHS = find_eeg_files("dementia")
-    segs, meta = load_a_processed_and_segmented_eeg_file(LPATHS[0])
+
+    def _test_load_a_processed_and_segmented_eeg_file(category):
+        LPATHS = find_eeg_files("dementia")
+        for lpath in LPATHS:
+            (
+                eeg_segs,
+                segmented_metadata,
+            ) = load_a_processed_and_segmented_eeg_file(lpath)
+        assert True
+
+    def test_load_a_processed_and_segmented_eeg_file_OpenNeuro():
+        _test_load_a_processed_and_segmented_eeg_file("OpenNeuro")
+
+    def test_load_a_processed_and_segmented_eeg_file_Dementia():
+        _test_load_a_processed_and_segmented_eeg_file("Dementia")
+
+    def test_load_a_processed_and_segmented_eeg_file_Epilepsy():
+        _test_load_a_processed_and_segmented_eeg_file("Epilepsy")
+
+    def test_load_a_processed_and_segmented_eeg_file_MotorMovementImagery():
+        _test_load_a_processed_and_segmented_eeg_file("MotorMovementImagery")
+
+    test_load_a_processed_and_segmented_eeg_file_OpenNeuro()

@@ -54,3 +54,4 @@ rfc3986
 spython
 twine
 Cython    
+pytest-xdist

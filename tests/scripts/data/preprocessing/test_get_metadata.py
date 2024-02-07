@@ -1,55 +1,45 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 08:25:25 (ywatanabe)"
+# Time-stamp: "2024-02-07 12:05:32 (ywatanabe)"
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import mngs
+import numpy as np
+from scripts.data.preprocessing.get_metadata import get_metadata
+from scripts.data.preprocessing.load import find_eeg_files
+
+CONFIG = mngs.io.load_configs(show=False)
 
 
-def test_get_metadata():
-    # Load configurations
-    CONFIG = mngs.io.load_configs(show=False)
+def _test_getdata(category):
+    LPATHS = np.random.permutation(find_eeg_files(category))[
+        : CONFIG["N_LPATHS_TO_LOAD"]
+    ]
+    for lpath in LPATHS:
+        print(get_metadata(lpath))
+    assert True
 
-    # Import the get_metadata function
-    from scripts.data.preprocessing.get_metadata import get_metadata
 
-    # Define a helper function to print metadata
-    def print_metadata(file_path):
-        try:
-            metadata = get_metadata(file_path)
-            print(metadata)
-        except Exception as e:
-            print(f"Error processing file {file_path}: {e}")
+def test_getdata_OpenNeuro():
+    _test_getdata("OpenNeuro")
 
-    # Test cases for different datasets
-    # OpenNeuro
-    print_metadata(
-        "./data/OpenNeuro/raw/ds003474-download/sub-001/eeg/sub-001_task-ProbabilisticSelection_eeg.fdt"
-    )
 
-    # Dementia, Japan
-    print_metadata(
-        "./data/Dementia/raw/BIDS_dataset_Osk_v5.3/sub-EEGO0001/ses-010/eeg/sub-EEGO0001_ses-010_task-rest_run-01_eeg.edf"
-    )
+def test_getdata_Dementia():
+    _test_getdata("Dementia")
 
-    # Epilepsy, Japan
-    # FIXME: Add test case for Epilepsy, Japan when ready
 
-    # Epilepsy, Siena
-    lpaths_siena = mngs.gen.find(
-        "./data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0/", "f", "*.edf"
-    )
-    for lpath_siena in lpaths_siena:
-        print_metadata(lpath_siena)
+def test_getdata_Epilepsy():
+    _test_getdata("Epilepsy")
 
-    # MotorMovementImagery
-    # FIXME: Segmentation should be applied beforehand
-    print_metadata(
-        "./data/MotorMovementImagery/raw/eeg-motor-movementimagery-dataset-1.0.0/S001/S001R03.edf"
-    )
+
+def test_getdata_MotorMovementImagery():
+    _test_getdata("MotorMovementImagery")
 
 
 if __name__ == "__main__":
-    test_get_metadata()
+    test_getdata_OpenNeuro()
+    test_getdata_Dementia()
+    test_getdata_Epilepsy()
+    test_getdata_MotorMovementImagery()

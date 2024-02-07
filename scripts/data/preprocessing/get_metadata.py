@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 17:14:27 (ywatanabe)"
+# Time-stamp: "2024-02-07 11:53:36 (ywatanabe)"
 
 import json
 import logging
@@ -11,12 +11,28 @@ import mngs
 CONFIG = mngs.io.load_configs(show=False)
 
 
+def _check_category(lpath):
+    if "OpenNeuro" in lpath:
+        return "OpenNeuro"
+
+    if ("Dementia" in lpath) & ("BIDS_dataset" in lpath):
+        return "Dementia_Japan"
+
+    if ("Epilepsy" in lpath) & ("siena-scalp-eeg-database-1.0.0" in lpath):
+        return "Epilepsy_Siena"
+
+    if ("Epilepsy" in lpath) & ("bids_epilepsy_pros_adult" in lpath):
+        return "Epilepsy_Osaka"
+
+    if "MotorMovementImagery" in lpath:
+        return "MotorMovementImagery"
+
+
 def get_metadata(lpath_edf):
     category = _check_category(lpath_edf)
     get_metadata_fn = {
-        # "OpenNeuro": _get_metadata_fake,
         "Dementia_Japan": _get_metadata_dementia_Japan,
-        "Epilepsy_Japan": _get_metadata_epilepsy_Osaka,
+        "Epilepsy_Osaka": _get_metadata_epilepsy_Osaka,
         "Epilepsy_Siena": _get_metadata_epilepsy_Siena,
         "MotorMovementImagery": _get_metadata_mmi,
     }.get(category, _get_metadata_fake)
@@ -72,91 +88,75 @@ def _get_metadata_dementia_Japan(lpath_edf):
             )
             key_try = "cognitive_level"
             key_except = "disease_level"
+            # cognitive_level = mngs.io.load(lpath_cognitive_level)[
+            #     key_try
+            # ].iloc[0]
+
             try:
                 cognitive_level = mngs.io.load(lpath_cognitive_level)[
                     key_try
                 ].iloc[0]
             except Exception as e:
+                # print(e)
+                # print(
+                #     f"{key_try} was not found in {lpath_cognitive_level}. Try to get {key_except} instead."
+                # )
                 cognitive_level = mngs.io.load(lpath_cognitive_level)[
                     key_except
                 ].iloc[0]
-                # logging.error(
-                #     f"{lpath_cognitive_level} did not have {key_try} column. Try to get {key_except} column: {e}"
-                # )
+
+            if cognitive_level == "HV":
+                logging.error(
+                    "Cognitive level is originally set as 'HV'. For consistency, it will be converted to 'Normal'."
+                )
+                cognitive_level = "Normal"
+
             return cognitive_level
 
-        def in_get_institution(lpath_edf):
-            if "Nissei" in lpath_edf:
-                return "Nissei"
-            if "Osk" in lpath_edf:
-                return "Osaka"
-            if "Kochi" in lpath_edf:
-                return "Kochi"
+        # working
+        # def in_get_institution_from_lpath(lpath_edf):
+        #     if "Nissei" in lpath_edf:
+        #         return "Nissei"
+        #     if "Osk" in lpath_edf:
+        #         return "Osaka"
+        #     if "Kochi" in lpath_edf:
+        #         return "Kochi"
 
-        return json.dumps(
-            dict(
-                disease_type=in_get_disease_type(lpath_edf),
-                cognitive_level=in_get_cognitive_level(lpath_edf),
-                institution=in_get_institution(lpath_edf),
+        def in_get_institution_from_json(lpath_edf):
+            return mngs.io.load(lpath_edf.replace(".edf", ".json"))[
+                "InstitutionName"
+            ]
+
+        try:
+            out = json.dumps(
+                dict(
+                    disease_type=in_get_disease_type(lpath_edf),
+                    cognitive_level=in_get_cognitive_level(lpath_edf),
+                    institution=in_get_institution_from_json(lpath_edf),
+                )
             )
-        )
+        except Exception as e:
+            print(e)
+            import ipdb
+
+            ipdb.set_trace()
+        return out
     except Exception as e:
         logging.error(f"Error extracting metadata for {lpath_edf}: {e}")
         return json.dumps({})  # Return empty JSON on error
 
 
 def _get_metadata_epilepsy_Osaka(lpath_edf):  # fixme
-    from glob import glob
-
-    dirs_sub = glob("./data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/*")
-    subs = [dir_sub.split("/")[-1] for dir_sub in dirs_sub]
-    for sub in subs:
-        if "sub-" in sub:
-            lpath = f"./data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/{sub}/{sub}_sessions.tsv"
-            df = mngs.io.load(lpath)
-            print("\n" + "-" * 40)
-            print(sub)
-            print(df)
-            print("\n" + "-" * 40)
     try:
-        return None
-
-    # mngs.io.load('data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/participants.json')
-    # mngs.io.load('data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/participants.tsv')
-
-    # try:
-    #     # # Checks restpre
-    #     lpath_pre_edf = "data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/sub-POUN0002/ses-01/eeg/sub-POUN0002_ses-01_task-restpre_run-1_eeg.edf"
-    #     lpath_pst_edf = "data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/sub-POUN0002/ses-01/eeg/sub-POUN0002_ses-01_task-restpst_run-1_eeg.edf"
-
-    #     # 2. It appears that healthy subjects are not included in the dataset.
-    #     df = mngs.io.load(
-    #             "data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/participants.tsv"
-    #         )
-    #     df.columns
-
-    #     df = pd.DataFrame(mngs.io.load(
-    #             "data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/participants.json"
-    #         ))
-    #     df.columns
-
-    #     df = mngs.io.load(
-    #         "data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/participants.tsv"
-    #     )
-    #     df.columns
-
-    #     df = mngs.io.load(
-    #         "data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1/participants.tsv"
-    #     )
-    #     diagnosis_uq, counts = np.unique(df.seizure, return_counts=True)
-    #     for dd, cc in zip(diagnosis_uq, counts):
-    #         print(f"{dd}: n = {cc}")
-    #         # focal: n = 41
-    #         # general: n = 14
-    #         # unknown: n = 2
-
-    #     return json.dumps({})
-
+        sub = re.search(r"sub-[A-Z]+\d+", lpath_edf).group()
+        dir_sub = re.search(r".*/sub-[A-Z]+\d+/", lpath_edf).group()
+        lpath_ILAE = dir_sub + sub + "_sessions.tsv"
+        ILAE = mngs.io.load(lpath_ILAE)["ILAE"].iloc[0]
+        return json.dumps(
+            dict(
+                ILAE=str(ILAE),
+            )
+        )
     except Exception as e:
         logging.error(f"Error extracting metadata for {lpath_edf}: {e}")
         return json.dumps({})
@@ -281,57 +281,28 @@ def _get_metadata_mmi(lpath_edf):
         return json.dumps({})
 
 
-def _check_category(lpath):
-    if "OpenNeuro" in lpath:
-        return "OpenNeuro"
-
-    if ("Dementia" in lpath) & ("BIDS_dataset" in lpath):
-        return "Dementia_Japan"
-
-    if ("Epilepsy" in lpath) & ("siena-scalp-eeg-database-1.0.0" in lpath):
-        return "Epilepsy_Siena"
-
-    if ("Epilepsy" in lpath) & ("BIDS_dataset" in lpath):
-        return "Epilepsy_Japan"
-
-    if "MotorMovementImagery" in lpath:
-        return "MotorMovementImagery"
-
-
 if __name__ == "__main__":
-    # OpenNeuro
-    print(
-        get_metadata(
-            "./data/OpenNeuro/raw/ds003474-download/sub-001/eeg/sub-001_task-ProbabilisticSelection_eeg.fdt"
-        )
-    )
-    # {}
-
-    # Dementia, Japan
     from scripts.data.preprocessing.load import find_eeg_files
 
-    for lpath in find_eeg_files("Dementia"):
-        print(get_metadata(lpath))
+    def _test_getdata(category):
+        # OpenNeuro
+        for lpath in find_eeg_files(category):
+            print(get_metadata(lpath))
+        assert True
 
-    # {"disease_type": "AD", "cognitive_level": "Dementia", "institution": "Osaka University"}
+    def test_getdata_OpenNeuro():
+        _test_getdata("OpenNeuro")
 
-    # Epilepsy, Japan # fixme
+    def test_getdata_Dementia():
+        _test_getdata("Dementia")
 
-    # Epilepsy, Siena
-    lpaths_siena = mngs.gen.find(
-        "./data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0/", "f", "*.edf"
-    )
-    for lpath_siena in lpaths_siena:
-        print(get_metadata(lpath_siena))
-    #  onset_sec offset_sec    label
-    # 0  19.58.36   19.59.46  seizure
-    # onset_sec offset_sec label
+    def test_getdata_Epilepsy():
+        _test_getdata("Epilepsy")
 
-    # MotorMovementImagery # fixme: segmentation should be applied beforehand
-    print(
-        get_metadata(
-            "./data/MotorMovementImagery/raw/eeg-motor-movementimagery-dataset-1.0.0/S001/S001R03.edf"
-        )
-    )
+    def test_getdata_MotorMovementImagery():
+        _test_getdata("MotorMovementImagery")
 
-    assert True
+    test_getdata_OpenNeuro()
+    test_getdata_Dementia()
+    test_getdata_Epilepsy()
+    test_getdata_MotorMovementImagery()

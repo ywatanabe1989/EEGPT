@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 17:49:11 (ywatanabe)"
+# Time-stamp: "2024-02-07 09:13:54 (ywatanabe)"
 
 
-def check_db_with_pandas(lpath_db):
+def check_db(lpath_db):
     import sqlite3
 
     import pandas as pd
@@ -21,5 +21,5 @@ def check_db_with_pandas(lpath_db):
 
 if __name__ == "__main__":
     lpath_db = "./data/Dementia/dbs/checked/eeg_data_v005.db"
-    df = check_db_with_pandas(lpath_db)
+    df = check_db(lpath_db)
     print(df)

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 17:59:11 (ywatanabe)"
+# Time-stamp: "2024-02-07 13:45:26 (ywatanabe)"
 
+import contextlib  # Add this line to import contextlib
 import json
+import random
 import re
 import sqlite3
 import sys
@@ -15,58 +17,217 @@ import mngs
 import numpy as np
 import pandas as pd
 import torch
+from scripts.data.database.check_db import check_db
 from torch.utils.data import DataLoader, Dataset, Subset
+from tqdm import tqdm
+
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 CONFIG = mngs.io.load_configs()
 
 
-def limit_data(metadata_mapping, allow_dict, max_n_subjects):
+class SQLiteDataset(Dataset):
     """
-    Limits the metadata mapping based on the allowed values and maximum number of subjects.
-
-    Parameters:
-    - metadata_mapping (dict): The original metadata mapping.
-    - allow_dict (dict): A dictionary specifying allowed values for each metadata field.
-    - max_n_subjects (int): Maximum number of subjects to include.
-
-    Returns:
-    - limited_metadata_mapping (dict): The limited metadata mapping.
+    This class works on any dataset, handling any types of metadata
     """
-    limited_metadata_mapping = {}
-    for key, mapping in metadata_mapping.items():
-        if key in allow_dict:
-            # Filter the mapping based on the allowed values
-            allowed_values = allow_dict[key]
-            limited_mapping = {
-                value: idx
-                for value, idx in mapping.items()
-                if value in allowed_values
-            }
-            limited_metadata_mapping[key] = limited_mapping
-        else:
-            # If the key is not in the allow_dict, copy the mapping as is
-            limited_metadata_mapping[key] = mapping
 
-    # # If there's a subject_id key, limit the number of subjects
-    # if "subject_id" in limited_metadata_mapping and max_n_subjects is not None:
-    #     subject_ids = list(limited_metadata_mapping["subject_id"].keys())
-    #     if len(subject_ids) > max_n_subjects:
-    #         # Randomly select a subset of subject IDs if there are too many
-    #         selected_subject_ids = set(
-    #             random.sample(subject_ids, max_n_subjects)
-    #         )
-    #         limited_metadata_mapping["subject_id"] = {
-    #             sid: idx
-    #             for sid, idx in limited_metadata_mapping["subject_id"].items()
-    #             if sid in selected_subject_ids
-    #         }
+    def __init__(self, lpath_db, allowed_metadata_mapping={}, show=False):
+        self.lpath_db = lpath_db
+        self.allowed_metadata_mapping = allowed_metadata_mapping
+        self.allowed_indices = self.limit_segments_per_subject(
+            self.find_allowed_indices()
+        )  # fixme
+        # self.allowed_indices = self.find_allowed_indices()  # this works
+        self.length = self.__len__
 
-    return limited_metadata_mapping
+        if show:
+            self.print_db()
+
+    def print_db(
+        self,
+    ):
+        with self.get_cursor() as cursor:
+            cursor.execute(
+                "SELECT DISTINCT dataset_id, subject_id FROM eeg_data"
+            )
+            unique_dataset_subject_ids = self.cursor.fetchall()
+            unique_dataset_subject_ids.sort(key=lambda x: (x[0], x[1]))
+            print("\nLoaded:\n")
+            print(pd.DataFrame(np.array(unique_dataset_subject_ids)))
+            uq_datasets = np.unique(
+                [ds_sub[0] for ds_sub in unique_dataset_subject_ids]
+            )
+            print(f"\n# of datasets:\n{len(uq_datasets)}")
+            print(f"\n# of subjects:\n{len(unique_dataset_subject_ids)}")
+
+    @contextlib.contextmanager
+    def get_cursor(self):
+        conn = sqlite3.connect(self.lpath_db)
+        try:
+            yield conn.cursor()
+        except sqlite3.DatabaseError as e:
+            print(f"An error occurred: {e}")
+        finally:
+            conn.close()
+
+    def find_allowed_indices(self):
+        where_clauses = []
+        params = []
+        for key, allowed_values in self.allowed_metadata_mapping.items():
+            placeholder = ",".join("?" for _ in allowed_values)
+            where_clauses.append(
+                f"json_extract(metadata, '$.{key}') IN ({placeholder})"
+            )
+            params.extend(allowed_values)
+        where_statement = " AND ".join(where_clauses) if where_clauses else "1"
+        query = f"""
+        SELECT id
+        FROM eeg_data
+        WHERE {where_statement}
+        """
+        # self.cursor.execute(query, params)
+        with self.get_cursor() as cursor:
+            # rows = self.cursor.fetchall()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [row[0] - 1 for row in rows]
+
+    def __len__(self):
+        return len(self.allowed_indices)
+
+    def __getitem__(self, index):
+        limited_index = self.allowed_indices[index]
+
+        # Execute the SQL query against the database with the WHERE clause
+        where_clauses = []
+        params = []
+        for key, allowed_values in self.allowed_metadata_mapping.items():
+            placeholder = ",".join("?" for _ in allowed_values)
+            where_clauses.append(
+                f"json_extract(metadata, '$.{key}') IN ({placeholder})"
+            )
+            params.extend(allowed_values)
+        where_statement = " AND ".join(where_clauses)
+        query = f"""
+        SELECT dataset_id, subject_id, segment, metadata
+        FROM eeg_data
+        WHERE id = ? AND {where_statement}
+        """
+        with self.get_cursor() as cursor:
+            cursor.execute(query, [limited_index + 1] + params)
+            row = cursor.fetchone()
+
+        # If the row does not match the filter, return None or raise an exception
+        if row is None:
+            return None
+
+        dataset_id, subject_id, segment, metadata_json = row
+
+        # Converts the segment a NumPy array in bytes to a PyTorch tensor in fp32
+        segment_tensor = torch.from_numpy(
+            np.frombuffer(segment, dtype=np.float64)
+            .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
+            .copy()
+        ).float()
+
+        # Convert the metadata dictionary to a tensor using dynamic mapping
+        metadata_tensor = self.convert_metadata_to_tensor(metadata_json)
+
+        return dataset_id, subject_id, segment_tensor, metadata_tensor
+
+    def convert_metadata_to_tensor(self, metadata_json):
+        metadata_dict = json.loads(metadata_json)
+        encoded_features = []
+        for key, value in metadata_dict.items():
+            encoded_value = self.allowed_metadata_mapping[key][value]
+            encoded_features.append(encoded_value)
+        return torch.tensor(encoded_features, dtype=torch.long)
+
+    def limit_segments_per_subject(self, indices):
+        # Group indices by subject
+        subject_to_indices = {}
+        with self.get_cursor() as cursor:
+            for index in indices:
+                cursor.execute(
+                    "SELECT subject_id FROM eeg_data WHERE id = ?",
+                    (
+                        index + 1,
+                    ),  # Assuming 'index' is 0-based and 'id' is 1-based
+                )
+                subject_id = cursor.fetchone()
+                if subject_id:
+                    subject_id = subject_id[0]
+                    if subject_id not in subject_to_indices:
+                        subject_to_indices[subject_id] = []
+                    subject_to_indices[subject_id].append(index)
+
+        # Randomly select up to MAX_N_WINDOWS_PER_SUB segments per subject
+        max_segments_per_subject = CONFIG["MAX_N_WINDOWS_PER_SUB"]
+        limited_indices = []
+        for subject_id, subject_indices in subject_to_indices.items():
+            if len(subject_indices) > max_segments_per_subject:
+                limited_indices.extend(
+                    random.sample(subject_indices, max_segments_per_subject)
+                )
+            else:
+                limited_indices.extend(subject_indices)
+
+        return limited_indices
+
+    # # fixme; this method does not function
+    # def limit_segments_per_subject(self, indices):
+    #     # Group indices by subject
+    #     subject_to_indices = {}
+    #     with self.get_cursor() as cursor:
+    #         for index in indices:
+    #             cursor.execute(
+    #                 "SELECT subject_id FROM eeg_data WHERE id = ?",
+    #                 (index + 1,),
+    #             )
+    #             subject_id = cursor.fetchone()[0]
+    #             if subject_id not in subject_to_indices:
+    #                 subject_to_indices[subject_id] = []
+    #                 subject_to_indices[subject_id].append(index)
+
+    #         # Randomly select up to MAX_N_WINDOWS_PER_SUB segments per subject
+    #         max_segments_per_subject = CONFIG["MAX_N_WINDOWS_PER_SUB"]
+    #         limited_indices = []
+    #         for subject_id, subject_indices in subject_to_indices.items():
+    #             if len(subject_indices) > max_segments_per_subject:
+    #                 limited_indices.extend(
+    #                     random.sample(
+    #                         subject_indices, max_segments_per_subject
+    #                     )
+    #                 )
+    #             else:
+    #                 limited_indices.extend(subject_indices)
+
+    #     return limited_indices
+
+    # def get_dataset_ids(self):
+    #     """Retrieve unique dataset IDs from the database."""
+    #     self.cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
+    #     dataset_ids = [row[0] for row in self.cursor.fetchall()]
+    #     return dataset_ids
+
+    # def get_subset_by_dataset_ids(self, dataset_ids):
+    #     """Retrieve a subset of the dataset based on dataset IDs."""
+    #     placeholders = ",".join("?" for _ in dataset_ids)
+    #     query = f"SELECT id FROM eeg_data WHERE dataset_id IN ({placeholders})"
+    #     self.cursor.execute(query, dataset_ids)
+    #     indices = [
+    #         row[0] - 1 for row in self.cursor.fetchall()
+    #     ]  # Adjusting index to be 0-based
+    #     return Subset(self, indices)
+
+    # def close(self):
+    #     # fixme
+    #     self.conn.close()
 
 
-def gen_metadata_mapping(lpath_db):
+def fetch_metadata_of_db(lpath_db):
     """
-    Generates independent mappings for each metadata tag from a SQLite database.
+    Fetchs metadata tag from a SQLite database and allocate independen IDs.
 
     Parameters:
     - lpath_db (str): The file path to the SQLite database.
@@ -74,18 +235,13 @@ def gen_metadata_mapping(lpath_db):
     Returns:
     - metadata_mapping (OrderedDict of OrderedDict): An ordered dictionary containing mappings for each metadata tag.
     """
-    print(f"\nGenerating metadata mapping...\n")
-    # Connect to the SQLite database
+    print(f"\nRetrieving metadata from the database ({lpath_db}) ...\n")
+
+    # Fetch unique metadata values
     conn = sqlite3.connect(lpath_db)
     cursor = conn.cursor()
-
-    # Execute the query to select distinct metadata
     cursor.execute("SELECT DISTINCT metadata FROM eeg_data")
-
-    # Fetch all unique metadata values
     unique_metadata_values = cursor.fetchall()
-
-    # Close the connection to the database
     conn.close()
 
     # Initialize an OrderedDict to collect values for each metadata tag
@@ -106,225 +262,53 @@ def gen_metadata_mapping(lpath_db):
             (value, index) for index, value in enumerate(sorted(values))
         )
 
-    # Nested function to print the metadata mapping
-    def print_metadata_mapping(metadata_mapping):
-        print("\nMetadata mapping:")
-        for metadata_key, mapping in metadata_mapping.items():
-            print(f"\n{metadata_key.capitalize()}:")
-            for value, index in mapping.items():
-                print(f"  {value} (Index: {index})")
-
-    # Call the nested function to print the metadata mapping
-    print_metadata_mapping(metadata_mapping)
+    # Print the metadata mapping
+    print("\nMetadata mapping:")
+    for metadata_key, mapping in metadata_mapping.items():
+        print(f"\n{metadata_key.capitalize()}:")
+        for value, index in mapping.items():
+            print(f"  (ID: {index}) {value}")
 
     return metadata_mapping
 
 
-class SQLiteDataset(Dataset):
-    def __init__(self, lpath_db, limited_metadata_mapping={}, show=False):
-        self.conn = sqlite3.connect(lpath_db)
-        self.cursor = self.conn.cursor()
-        # self.cursor.execute("SELECT COUNT(*) FROM eeg_data") # is this needed?
-        # self.length = self.cursor.fetchone()[0] # is this needed?
+def allow_data(metadata_mapping, allow_dict):
+    """
+    Allows the metadata mapping based on the allowed values and maximum number of subjects.
 
-        self.limited_metadata_mapping = limited_metadata_mapping
-        # Calculate the valid indices based on the filter
-        self.valid_indices = self.calculate_valid_indices()
-        self.length = self.__len__
+    Parameters:
+    - metadata_mapping (dict): The original metadata mapping.
+    - allow_dict (dict): A dictionary specifying allowed values for each metadata field.
 
-        if show:
-            # Load and print unique combinations of dataset_id and subject_id
-            self.cursor.execute(
-                "SELECT DISTINCT dataset_id, subject_id FROM eeg_data"
-            )
-            unique_dataset_subject_ids = self.cursor.fetchall()
+    Returns:
+    - allowed_metadata_mapping (dict): The limited metadata mapping.
+    """
+    allowed_metadata_mapping = {}
+    for key, mapping in metadata_mapping.items():
+        if key in allow_dict:
+            # Filter the mapping based on the allowed values
+            allowed_values = allow_dict[key]
+            limited_mapping = {
+                value: idx
+                for value, idx in mapping.items()
+                if value in allowed_values
+            }
+            allowed_metadata_mapping[key] = limited_mapping
+        else:
+            # If the key is not in the allow_dict, copy the mapping as is
+            allowed_metadata_mapping[key] = mapping
 
-            # Sort the unique combinations for better readability if needed
-            unique_dataset_subject_ids.sort(key=lambda x: (x[0], x[1]))
-
-            # Print the unique combinations
-            print("\nLoaded:\n")
-
-            print(pd.DataFrame(np.array(unique_dataset_subject_ids)))
-            uq_datasets = np.unique(
-                [ds_sub[0] for ds_sub in unique_dataset_subject_ids]
-            )
-            print(f"\n# of datasets:\n{len(uq_datasets)}")
-            print(f"\n# of subjects:\n{len(unique_dataset_subject_ids)}")
-
-    # how can I debug this function?
-    def calculate_valid_indices(self):
-        # Build the WHERE clause based on the limited_metadata_mapping
-        where_clauses = []
-        params = []
-        for key, allowed_values in self.limited_metadata_mapping.items():
-            placeholder = ",".join("?" for _ in allowed_values)
-            where_clauses.append(
-                f"json_extract(metadata, '$.{key}') IN ({placeholder})"
-            )
-            params.extend(allowed_values)
-
-        # Combine the WHERE clauses with AND
-        where_statement = " AND ".join(where_clauses) if where_clauses else "1"
-
-        # Execute the SQL query against the database with the WHERE clause
-        query = f"""
-        SELECT id
-        FROM eeg_data
-        WHERE {where_statement}
-        """
-
-        """
-        self = ds
-        
-        # In [17]: query
-        # Out[17]: "\nSELECT id\nFROM eeg_data\nWHERE json_extract(metadata, '$.disease_type') IN (?,?,?,?) AND json_extract(metadata, '$.cognitive_level') IN (?,?,?,?) AND json_extract(metadata, '$.institution') IN (?)\n"
-
-        # In [18]: params
-        # Out[18]: 
-        # ['AD',
-        #  'DLB',
-        #  'HV',
-        #  'NPH',
-        #  'Dementia',
-        #  'HV',
-        #  'MCI',
-        #  'MCI23',
-        #  'Osaka University']
-
-        self.cursor.execute(query, params)
-        rows = self.cursor.fetchall()
-
-        rows[0] # (1,)
-        """
-
-        # In [15]: query
-        # Out[15]: "\nSELECT id\nFROM eeg_data\nWHERE json_extract(metadata, '$.disease_type') IN (?,?,?,?) AND json_extract(metadata, '$.cognitive_level') IN (?,?,?,?) AND json_extract(metadata, '$.institution') IN (?)\n"
-        # params
-        # ['AD',
-        #  'DLB',
-        #  'HV',
-        #  'NPH',
-        #  'Dementia',
-        #  'HV',
-        #  'MCI',
-        #  'MCI23',
-        #  'Osaka University']
-
-        self.cursor.execute(query, params)
-        rows = self.cursor.fetchall()
-
-        # Return the list of valid indices (adjusted to be 0-based)
-        return [row[0] - 1 for row in rows]
-
-    def __len__(self):
-        return len(self.valid_indices)
-
-    def __getitem__(self, index):
-        # Map the requested index to the valid index
-        valid_index = self.valid_indices[index]
-
-        try:
-            # Build the WHERE clause based on the limited_limited_metadata_mapping
-            where_clauses = []
-            params = []
-            for key, allowed_values in self.limited_metadata_mapping.items():
-                placeholder = ",".join("?" for _ in allowed_values)
-                where_clauses.append(
-                    f"json_extract(metadata, '$.{key}') IN ({placeholder})"
-                )
-                params.extend(allowed_values)
-
-            # Combine the WHERE clauses with AND
-            where_statement = " AND ".join(where_clauses)
-
-            # Execute the SQL query against the database with the WHERE clause
-            query = f"""
-            SELECT dataset_id, subject_id, segment, metadata
-            FROM eeg_data
-            WHERE id = ? AND {where_statement}
-            """
-
-            """
-            self = ds
-
-            # In [10]:             query
-            # Out[10]: "\nSELECT dataset_id, subject_id, segment, metadata\nFROM eeg_data\nWHERE id = ? AND json_extract(metadata, '$.disease_type') IN (?,?,?,?) AND json_extract(metadata, '$.cognitive_level') IN (?,?,?,?) AND json_extract(metadata, '$.institution') IN (?)\n"
-
-            # In [11]:             params
-            # Out[11]: 
-            # ['AD',
-            # 'DLB',
-            # 'HV',
-            # 'NPH',
-            # 'Dementia',
-            # 'HV',
-            # 'MCI',
-            # 'MCI23',
-            # 'Osaka University']
-
-            ds.valid_indices
-            """
-
-            self.cursor.execute(query, [valid_index + 1] + params)
-            row = self.cursor.fetchone()
-
-            # If the row does not match the filter, return None or raise an exception
-            if row is None:
-                return None  # or raise an exception
-
-            dataset_id, subject_id, segment, metadata_json = row
-
-            # Converts the segment from bytes to a NumPy array and then to a PyTorch tensor
-            segment_tensor = torch.from_numpy(
-                np.frombuffer(segment, dtype=np.float64)
-                .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
-                .copy()
-            ).float()
-
-            # Convert the metadata dictionary to a tensor using dynamic mapping
-            metadata_dict = json.loads(metadata_json)
-            metadata_tensor = self.convert_metadata_to_tensor(metadata_dict)
-
-            return dataset_id, subject_id, segment_tensor, metadata_tensor
-        except Exception as e:
-            print(f"Error fetching data for index {index}: {e}")
-            # Optionally, you can return a placeholder value or raise the exception
-            raise
-
-    def convert_metadata_to_tensor(self, metadata):
-        # Assuming metadata is a dictionary with string values
-        encoded_features = []
-        for key, value in metadata.items():
-            encoded_value = self.limited_metadata_mapping[key][value]
-            encoded_features.append(encoded_value)
-        return torch.tensor(encoded_features, dtype=torch.long)
-
-    def get_dataset_ids(self):
-        """Retrieve unique dataset IDs from the database."""
-        self.cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
-        dataset_ids = [row[0] for row in self.cursor.fetchall()]
-        return dataset_ids
-
-    def get_subset_by_dataset_ids(self, dataset_ids):
-        """Retrieve a subset of the dataset based on dataset IDs."""
-        placeholders = ",".join("?" for _ in dataset_ids)
-        query = f"SELECT id FROM eeg_data WHERE dataset_id IN ({placeholders})"
-        self.cursor.execute(query, dataset_ids)
-        indices = [
-            row[0] - 1 for row in self.cursor.fetchall()
-        ]  # Adjusting index to be 0-based
-        return Subset(self, indices)
-
-    def close(self):
-        self.conn.close()
+    return allowed_metadata_mapping
 
 
-def test_ds(ds):
-    # Then, try to iterate over the dataset manually to see if any index raises an error
-    for i in range(len(ds)):
-        item = ds[i]
-        assert item is not None
+def apply_sliding_window_data_augmentation(segment_tensor):
+    WINDOW_SIZE_PTS = int(
+        CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"] / CONFIG["OVERLAP_FACTOR"]
+    )
+    start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
+    end = start + WINDOW_SIZE_PTS
+    segment_tensor = segment_tensor[..., start:end]
+    return segment_tensor
 
 
 if __name__ == "__main__":
@@ -339,28 +323,18 @@ if __name__ == "__main__":
     CONFIG, sys.stdout, sys.stderr, plt, cc = mngs.gen.start(sys, plt)
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
-    # Loads the database iteratively using pytorch dataloader
-    lpath_db = mngs.gen.find_latest(
-        "./data/Dementia/dbs/checked", "eeg_data", ".db"
-    )
-
-    # Generate all data mapping
-    metadata_mapping_all = gen_metadata_mapping(lpath_db)
-    # Please hardcode your filter for data used in the following processes
+    # Construct dataset
+    lpath_db = "./data/Dementia/dbs/eeg_data.db"
+    meta_all = fetch_metadata_of_db(lpath_db)
     allow_dict = {
         "disease_type": ["AD", "DLB", "NPH", "HV"],
-        "cognitive_level": ["HV", "Dementia", "MCI", "MCI23"],
-        "institution": ["Osaka"],
-        # "institution": ['ds_BIDS_dataset_Nissei_v1']
+        "cognitive_level": ["Normal", "Dementia", "MCI", "MCI23"],
+        # "institution": ["Osaka University"],  # "Osaka",
     }
-    max_n_subjects = 100  # For example, limit to 100 subjects
-    metadata_mapping_limited = limit_data(
-        metadata_mapping_all, allow_dict, max_n_subjects
-    )
-
+    meta_allow = allow_data(meta_all, allow_dict)
     ds = SQLiteDataset(
         lpath_db=lpath_db,
-        limited_metadata_mapping=metadata_mapping_limited,
+        allowed_metadata_mapping=meta_allow,
         show=False,
     )
 
@@ -369,35 +343,63 @@ if __name__ == "__main__":
         ds,
         batch_size=CONFIG["BATCH_SIZE"],
         shuffle=True,
-        num_workers=4,
+        num_workers=16,
         drop_last=True,
     )
 
-    # print(ds.limited_metadata_mapping)
-    print(dl.dataset.limited_metadata_mapping)
-
-    # koko
-    ds_all = []
-    for i_batch, batch in enumerate(dl):
+    # Main
+    DS_epoch = []
+    S_epoch = []
+    M_epoch = []
+    # DT_epoch = []
+    # C_epoch = []
+    # I_epoch = []
+    for i_batch, batch in tqdm(enumerate(dl)):
         """
         batch = next(iter(dl))
         """
-        dataset_ids, subject_ids, X, meta = batch
+        # Batched dataset ids, subject ids, EEG signals, and metadatas
+        DSb, Sb, Xb, _Mb = batch
+        Xb = apply_sliding_window_data_augmentation(Xb)
 
-        X = X[~X.isnan().any(-1).any(-1)]
+        # DTb = _Mb[:, 0]  # Disease type
+        # Cb = _Mb[:, 1]  # Cognitive level
+        # Ib = _Mb[:, 2]  # Institution
 
-        start = random.randint(0, X.shape[-1] - WINDOW_SIZE_PTS)
-        end = start + WINDOW_SIZE_PTS
-        X = X[..., start:end]  # (64, 14, 256)
+        DS_epoch.append(DSb)
+        S_epoch.append(Sb)
+        # DT_epoch.append(DTb)
+        # C_epoch.append(Cb)
+        # I_epoch.append(Ib)
+        M_epoch.append(_Mb)
 
-        if torch.isnan(X).any():
-            raise ValueError
+    print(meta_all)
+    print(meta_allow)
 
-        ds_all.append(dataset_ids)
+    print(
+        f"\nLoaded dataset list:\n" f"{mngs.gen.unique(np.vstack(DS_epoch))}"
+    )
 
-    # Don't forget to close the database connection when done
-    ds.close()
+    print(f"\nLoaded subject list:\n" f"{mngs.gen.unique(np.vstack(S_epoch))}")
 
-    print(np.unique(ds_all))
+    # print(
+    #     f"\nLoaded disease_type list:\n"
+    #     f"{mngs.gen.unique(np.vstack(DT_epoch))}"
+    # )
+
+    # print(
+    #     f"\nLoaded cognitive_level list:\n"
+    #     f"{mngs.gen.unique(np.vstack(C_epoch))}"
+    # )
+
+    # print(
+    #     f"\nLoaded institution list:\n"
+    #     f"{mngs.gen.unique(np.vstack(I_epoch))}"
+    # )
+
     # END
     mngs.gen.close(CONFIG)
+
+    """
+    ./scripts/data/database/SQLiteDataset.py
+    """
