@@ -9,28 +9,16 @@ declare -A categories=(
     [MotorMovementImagery]="data/MotorMovementImagery/raw"
 )
 
-# Function to summarize disk usage for a given dataset
-# print_dataset() {
-#     local dataset_path=$1
-#     local dataset_name=$2
-
-#     echo "## $dataset_name Datasets"
-#     echo
-#     echo "\$ du $dataset_path # $(du -sh $dataset_path | cut -f1)"
-#     echo "\$ du $dataset_path/ds* | wc -l # $(find $dataset_path -maxdepth 1 -type d -name 'ds*' | wc -l)"
-#     echo "\$ du $dataset_path/ds*"
-#     du -sh $dataset_path/ds* | sort -hr
-#     echo
-# }
+Function to summarize disk usage for a given dataset
 print_dataset() {
     local dataset_path=$1
     local dataset_name=$2
 
     echo "## $dataset_name Datasets"
     echo
-    echo "\$ du -sh $dataset_path # $(du -sh $dataset_path | cut -f1)"
-    echo "\$ find $dataset_path -maxdepth 1 -type d -name 'ds*' | wc -l # $(find $dataset_path -maxdepth 1 -type d -name 'ds*' | wc -l)"
-    echo "\$ du -sh $dataset_path/ds*"
+    echo "\$ du $dataset_path # $(du -sh $dataset_path | cut -f1)"
+    echo "\$ du $dataset_path/ds* | wc -l # $(find $dataset_path -maxdepth 1 -type d -name 'ds*' | wc -l)"
+    echo "\$ du $dataset_path/ds*"
     du -sh $dataset_path/ds* | sort -hr
     echo
 }

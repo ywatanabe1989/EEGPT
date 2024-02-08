@@ -15,7 +15,7 @@ $ ./toggle_debug_status.sh # or manually edit the './config/IS_DEBUG.yaml' file
 ``` bash
 $ ./scripts/data/download/download_OpenNeuro_datasets.sh # Takes a significant amount of time
 $ ./scripts/utils/summarize_datasets_as_a_csv.py 
-$ ./scripts/utils/print_datasets.sh | tee ./docs/datasets.md
+$ ./scripts/utils/print_datasets.sh | tee ./docs/datasets.txt
 ```
 
 #### Populates BIDS datasets into SQLite3 databases
