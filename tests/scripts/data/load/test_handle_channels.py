@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-07 12:02:57 (ywatanabe)"
+# Time-stamp: "2024-02-08 19:46:14 (ywatanabe)"
 
 
 def test_handle_channels():
@@ -8,17 +8,15 @@ def test_handle_channels():
 
     import mngs
     import numpy as np
-    from scripts.data.preprocessing.handle_channels import handle_channels
-    from scripts.data.preprocessing.load import find_eeg_files
+    from scripts.data.load.handle_channels import handle_channels
+    from scripts.data.load.load import find_eeg_files
     from tqdm import tqdm
 
-    CONFIG = mngs.io.load_configs(show=False)
+    CONFIG = mngs.io.load_configs(IS_DEBUG=True, show=False)
 
     print(f"\nCONFIG['IS_DEBUG']: {CONFIG['IS_DEBUG']}")
 
-    LPATHS = np.random.permutation(find_eeg_files("OpenNeuro"))[
-        : CONFIG["N_LPATHS_TO_LOAD"]
-    ]
+    LPATHS = find_eeg_files("OpenNeuro")
 
     lpaths_not_handled = []
     for i_lpath, lpath in tqdm(enumerate(np.random.permutation(LPATHS))):

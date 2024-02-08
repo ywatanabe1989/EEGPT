@@ -50,8 +50,9 @@ webdriver_manager
 keyring
 pytest
 pytest-cov
+pytest-xdist
+pytest-env
 rfc3986
 spython
 twine
 Cython    
-pytest-xdist

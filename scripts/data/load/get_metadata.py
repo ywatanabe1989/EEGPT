@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-07 11:53:36 (ywatanabe)"
+# Time-stamp: "2024-02-08 18:30:57 (ywatanabe)"
 
 import json
 import logging
@@ -282,7 +282,7 @@ def _get_metadata_mmi(lpath_edf):
 
 
 if __name__ == "__main__":
-    from scripts.data.preprocessing.load import find_eeg_files
+    from scripts.data.load.load import find_eeg_files
 
     def _test_getdata(category):
         # OpenNeuro

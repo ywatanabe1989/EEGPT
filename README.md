@@ -1,21 +1,61 @@
 ## Installation
 ```
-$ git clone git@github.com:ywatanabe1989/EEGPT.git
-$ cd EEGPT
-$ python3 -m venv env
-$ source env/bin/activate
-$ pip install -U pip
-$ pip install -Ur requirements.txt
-echo 'export PYTHONPATH=.:$PYTHONPATH' >> ~/.bash_profile
+$ git clone git@github.com:ywatanabe1989/EEGPT.git && cd EEGPT
+$ echo 'export PYTHONPATH=.:$PYTHONPATH' >> ~/.bash_profile # add current directory to PYTHONPATH
 ```
 
 ## Scripts
+#### Toggles the debugging state
 ```
-# Edit ./config/IS_DEBUG.yaml
-$ ./scripts/utils/download_OpenNeuro_datasets.sh # Takes a large amount of time
-$ ./scripts/utils/populate_db.py && ./scripts/pretrain_EEGPT.py
+$ ./toggle_debug_status.sh # or manually edit the './config/IS_DEBUG.yaml' file
+```
+
+#### Downloads OpenNeuro datasets
+``` bash
+$ ./scripts/data/download/download_OpenNeuro_datasets.sh # Takes a significant amount of time
 $ ./scripts/utils/summarize_datasets_as_a_csv.py 
+$ ./scripts/utils/print_datasets.sh | tee ./docs/datasets.txt
 ```
+
+#### Populates BIDS datasets into SQLite3 databases
+
+``` bash
+$ screen -dmS populate_OpenNeuro ./scripts/data/database/populate_db.py --data_category OpenNeuro
+$ screen -dmS populate_Dementia ./scripts/data/database/populate_db.py --data_category Dementia
+$ screen -dmS populate_Epilepsy ./scripts/data/database/populate_db.py --data_category Epilepsy
+$ screen -dmS populate_MotorMentalMovement ./scripts/data/database/populate_db.py --data_category MotorMentalMovement
+```
+
+
+#### Updates the links to databases
+```
+ls ./data/*/dbs -alht
+
+cd ./data/OpenNeuro/dbs
+ln -s eeg_data_v024.db eeg_data.db --force
+cd ../../..
+
+cd ./data/Dementia/dbs
+ln -s eeg_data_v011.db eeg_data.db --force
+cd ../../..
+
+cd ./data/Epilepsy/dbs
+ln -s eeg_data_v004.db eeg_data.db --force
+cd ../../..
+
+cd ./data/MotorMovementImagery/dbs
+ln -s eeg_data_v001.db eeg_data.db --force
+cd ../../..
+```
+
+
+#### Runs pretraining
+``` bash
+$ ./scripts/ml/pretrain_EEGPT.py
+```
+
+
+
 
 ## OpenNeuro Datasets for Pretraining
 47 datasets identified on OpenNeuro under the following conditions:
@@ -25,98 +65,6 @@ $ ./scripts/utils/summarize_datasets_as_a_csv.py
 ```
 Congratulations! SQLite database was created from 41823 files, 19 datasets, and 4450 subjects:
 ./data/OpenNeuro/dbs/eeg_data_v016.db
-```
-
-
-
-``` bash
-$ du data/OpenNeuro/raw/ # 3.2T
-$ du data/OpenNeuro/raw/ds* | wc -l # 47
-$ du data/OpenNeuro/raw/ds*
-# 3.1G    data/OpenNeuro/ds003474-download
-# 3.1G    data/OpenNeuro/ds003478-download
-# 3.1G    data/OpenNeuro/ds003490-download
-# 3.1G    data/OpenNeuro/ds003506-download
-# 3.1G    data/OpenNeuro/ds003509-download
-# 3.1G    data/OpenNeuro/ds003518-download
-# 3.1G    data/OpenNeuro/ds003522-download
-# 3.1G    data/OpenNeuro/ds003523-download
-# 3.1G    data/OpenNeuro/ds003602-download
-# 3.1G    data/OpenNeuro/ds003638-download
-# 56G     data/OpenNeuro/ds003825-download
-# 254G    data/OpenNeuro/ds003838-download
-# 6.2G    data/OpenNeuro/ds003944-download
-# 13G     data/OpenNeuro/ds003947-download
-# 55G     data/OpenNeuro/ds003969-download
-# 18G     data/OpenNeuro/ds004019-download
-# 101G    data/OpenNeuro/ds004067-download
-# 125G    data/OpenNeuro/ds004118-download
-# 303G    data/OpenNeuro/ds004120-download
-# 95G     data/OpenNeuro/ds004148-download
-# 23G     data/OpenNeuro/ds004151-download
-# 78G     data/OpenNeuro/ds004166-download
-# 215G    data/OpenNeuro/ds004186-download
-# 19G     data/OpenNeuro/ds004256-download
-# 26G     data/OpenNeuro/ds004279-download
-# 9.9G    data/OpenNeuro/ds004315-download
-# 19G     data/OpenNeuro/ds004317-download
-# 12G     data/OpenNeuro/ds004362-download
-# 1.2T    data/OpenNeuro/ds004395-download
-# 36G     data/OpenNeuro/ds004448-download
-# 5.4G    data/OpenNeuro/ds004504-download
-# 9.5G    data/OpenNeuro/ds004515-download
-# 23G     data/OpenNeuro/ds004532-download
-# 44G     data/OpenNeuro/ds004572-download
-# 14G     data/OpenNeuro/ds004574-download
-# 660M    data/OpenNeuro/ds004577-download
-# 25G     data/OpenNeuro/ds004579-download
-# 16G     data/OpenNeuro/ds004580-download
-# 2.9G    data/OpenNeuro/ds004584-download
-# 7.9G    data/OpenNeuro/ds004595-download
-# 74G     data/OpenNeuro/ds004602-download
-# 20G     data/OpenNeuro/ds004626-download
-# 30G     data/OpenNeuro/ds004635-download
-# 102G    data/OpenNeuro/ds004718-download
-# 1.4G    data/OpenNeuro/ds004771-download
-# 117G    data/OpenNeuro/ds004883-download
-# 8.1G    data/OpenNeuro/ds004902-download
-```
-
-## Dementia Datasets
-
-``` bash
-$ du data/Dementia/raw/ # 53G
-$ du data/Dementia/raw/* | wc -l # 3
-$ du data/Dementia/raw/*
-11G     data/Dementia/BIDS_dataset_Nissei_v1.1
-37G     data/Dementia/BIDS_dataset_Osk_v5.3
-5.8G    data/Dementia/BIDS_dataset_v1.1_Kochi
-```
-
-## Epilepsy Datasets
-
-``` bash
-$ du data/Epilepsy/raw # 27G
-$ du data/Epilepsy/raw/* | wc -l # 2
-$ du data/Epilepsy/raw/*
-6.6G    data/Epilepsy/raw/bids_epilepsy_pros_adult_v1.1
-21G     data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0
-```
-
-## WorkingMemory Datasets
-``` bash
-$ du data/WorkingMemory/raw/* | wc -l # 1
-$ du data/WorkingMemory/raw/ # 38G
-$ du data/WorkingMemory/raw/*
-38G     data/WorkingMemory/ds004395-download
-```
-
-## MotorMovementImagery
-``` bash
-$ du data/MotorMovementImagery/raw/* | wc -l # 1
-$ du data/MotorMovementImagery/raw/ # 3.4G
-$ du data/MotorMovementImagery/raw/*
-3.4G    data/MotorMovementImagery/eeg-motor-movementimagery-dataset-1.0.0
 ```
 
 

@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-07 12:22:01 (ywatanabe)"
+# Time-stamp: "2024-02-08 20:08:42 (ywatanabe)"
 
+import logging
 import random
 
 import mngs
 import numpy as np
-from scripts.data.preprocessing.associate_EEG_segments_and_metadata import (
+from scripts.data.load.associate_EEG_segments_and_metadata import (
     associate_EEG_segments_and_metadata,
 )
-from scripts.data.preprocessing.get_metadata import get_metadata
-from scripts.data.preprocessing.preprocess import (
-    preprocess_raw,
-    segment_processed_raw,
-)
+from scripts.data.load.get_metadata import get_metadata
+from scripts.data.load.preprocess import preprocess_raw, segment_processed_raw
 
 CONFIG = mngs.io.load_configs(show=False)
 
 # Functions
-def find_eeg_files(category):
+def find_eeg_files(category, IS_DEBUG=False):
     EEG_EXPS = [f"*.{ext}" for ext in CONFIG["EEG_EXTENSIONS"]]
     LPATHS = mngs.gen.find(
         CONFIG[f"DIR_{category.upper()}"] + "raw/", "f", EEG_EXPS
     )
+
     if CONFIG["IS_DEBUG"]:
-        LPATHS = np.random.permutation(LPATHS)[: CONFIG["N_LOADS_LPATHS_LOAD"]]
+        LPATHS = np.random.permutation(LPATHS)[: CONFIG["N_LPATHS_TO_LOAD"]]
+
     return LPATHS
 
 
@@ -38,6 +38,7 @@ def _load_an_eeg_file(lpath):
         return None
 
 
+# # Multiple eeg files
 # def _load_eeg_files(lpaths, n_loads=None):
 #     print(f"\nLoading from {n_loads} of {len(lpaths)} files")
 

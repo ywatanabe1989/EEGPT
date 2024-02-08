@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-07 12:05:59 (ywatanabe)"
+# Time-stamp: "2024-02-08 18:58:14 (ywatanabe)"
 
 import mngs
 import numpy as np
-from scripts.data.preprocessing.load import (
+from scripts.data.load.load import (
     find_eeg_files,
     load_a_processed_and_segmented_eeg_file,
 )
@@ -13,10 +13,7 @@ CONFIG = mngs.io.load_configs(show=False)
 
 
 def _test_load_a_processed_and_segmented_eeg_file(category):
-    LPATHS = np.random.permutation(find_eeg_files(category))[
-        : CONFIG["N_LPATHS_TO_LOAD"]
-    ]
-
+    LPATHS = find_eeg_files(category)
     for lpath in LPATHS:
         (
             eeg_segs,

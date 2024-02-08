@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 09:04:47 (ywatanabe)"
+# Time-stamp: "2024-02-08 20:14:24 (ywatanabe)"
 
 
 import random
@@ -11,7 +11,7 @@ import mngs
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance
-from scripts.data.preprocessing.handle_channels import handle_channels
+from scripts.data.load.handle_channels import handle_channels
 
 CONFIG = mngs.io.load_configs(show=False)
 
@@ -78,7 +78,11 @@ def segment_processed_raw(processed_raw):
         # Segmentation
         segs = mngs.dsp.crop(
             np.array(df),
-            int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]),  # 256
+            int(
+                CONFIG["WINDOW_SIZE_SEC"]
+                * CONFIG["TGT_FS"]
+                * CONFIG["OVERLAP_FACTOR"]
+            ),  # 2 * 128 * 2
             overlap_factor=CONFIG["OVERLAP_FACTOR"],
         )
 
@@ -92,9 +96,13 @@ def segment_processed_raw(processed_raw):
 if __name__ == "__main__":
     # Epilepsy, Siena
     lpaths_siena = mngs.gen.find(
-        "./data/Epilepsy/raw/siena-scalp-eeg-database-1.0.0/", "f", "*.edf"
+        "./data/Epilepsy/raw/ds_siena-scalp-eeg-database-1.0.0/", "f", "*.edf"
     )
     raw = mngs.io.load(lpaths_siena[0])
-    print(raw.info["sfreq"])  # 512
+    print(f"\nOriginal sampling rate: {raw.info['sfreq']}")  # 512.0
     preprocessed_raw = preprocess_raw(raw)
-    print(preprocessed_raw.info["sfreq"])  # 128
+    print(
+        f"\nPreprocessed sampling rate: {preprocessed_raw.info['sfreq']}"
+    )  # 128.0
+    segs = segment_processed_raw(preprocessed_raw)
+    print(f"\nsegss.shape: {segs.shape}")

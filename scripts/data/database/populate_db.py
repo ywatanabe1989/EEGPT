@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-07 11:29:01 (ywatanabe)"
+# Time-stamp: "2024-02-08 20:44:32 (ywatanabe)"
 
+import logging
 import random
 import re
 import sqlite3
@@ -10,10 +11,8 @@ import mne
 import mngs
 import numpy as np
 import torch
-from scripts.data.preprocessing.get_metadata import get_metadata
-from scripts.data.preprocessing.load import (
-    load_a_processed_and_segmented_eeg_file,
-)
+from scripts.data.load.get_metadata import get_metadata
+from scripts.data.load.load import load_a_processed_and_segmented_eeg_file
 
 
 def populate_db(files_list, spath_db):
@@ -43,11 +42,17 @@ def populate_db(files_list, spath_db):
         print(f"\nPopulating: {filepath}")
 
         dataset_id, subject_id, is_retrieved = extract_ids(filepath)
+
         if not is_retrieved:
+            logging.warning(
+                f"dataset_id or subject_id were not extracted from {filepath}"
+            )
             continue
 
         # Makes subject_id identical across datasets
         subject_id = dataset_id + "_" + subject_id
+        print(dataset_id)
+        print(subject_id)
 
         # Loads EEG segments
         eeg_segments, metadatas = load_a_processed_and_segmented_eeg_file(
@@ -85,6 +90,7 @@ def populate_db(files_list, spath_db):
     datasets = [row[0] for row in cursor.fetchall()]
     cursor.execute("SELECT DISTINCT subject_id FROM eeg_data")
     subject_ids = [row[0] for row in cursor.fetchall()]
+    print(subject_ids)
     conn.close()
 
     n_datasets = len(np.unique(datasets))
@@ -99,16 +105,17 @@ def populate_db(files_list, spath_db):
 
 
 def extract_ids(filepath):
-    pattern = r".*/ds(?P<dataset_id>[a-zA-Z0-9_]+).*?/sub-(?P<subject_id>[a-zA-Z0-9]+).*"
+    pattern = r".*/ds(?P<dataset_id>[a-zA-Z0-9_-]+).*?(?:/sub-|/S)(?P<subject_id>[a-zA-Z0-9]+).*"
     match = re.search(pattern, filepath)
-    is_retrieved = False
+
     try:
         dataset_id = "ds" + match.group("dataset_id")
-        subject_id = "sub-" + match.group("subject_id")
+        prefix_sub = "sub-" if "/sub-" in filepath else "S"
+        subject_id = prefix_sub + match.group("subject_id")
         is_retrieved = True
     except Exception as e:
         dataset_id, subject_id = None, None
-        pass
+        is_retrieved = False
 
     return dataset_id, subject_id, is_retrieved
 
@@ -134,8 +141,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_category",
         nargs="+",
-        help="[openneuro, dementia, epilepsy, mmi, vis or wm]",
-        default=["epilepsy"],
+        help="[Openneuro, Dementia, Epilepsy, MentalMovementImagery, Visual or WorkingMemory]",
+        # default=["epilepsy"],
+        default=["motormovementimagery"],
     )
     args = parser.parse_args()
 
@@ -148,6 +156,8 @@ if __name__ == "__main__":
         spath_db = mngs.io.increment_version(
             CONFIG[f"DIR_{data_cat.upper()}"] + "dbs/", "eeg_data", ".db"
         )
+        if CONFIG["IS_DEBUG"]:
+            spath_db = spath_db.replace("/eeg_data", "/debug_eeg_data")
         LPATHS = mngs.io.find(
             CONFIG[f"DIR_{data_cat.upper()}"] + "raw/",
             "f",
@@ -161,7 +171,10 @@ if __name__ == "__main__":
 
     """
     screen -S populate
-    ./scripts/data/database/populate_db.py --data_category epilepsy
+    ./scripts/data/database/populate_db.py --data_category OpenNeuro
+    ./scripts/data/database/populate_db.py --data_category Dementia    
+    ./scripts/data/database/populate_db.py --data_category Epilepsy
+    ./scripts/data/database/populate_db.py --data_category MotorMovementImagery
     """
 
     ## EOF

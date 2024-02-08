@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 17:14:58 (ywatanabe)"
+# Time-stamp: "2024-02-08 18:27:31 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -79,7 +79,8 @@ class SQLiteDataset(Dataset):
         split_criteria_val_tes=[],
         balancing_criteria_tra=[],
         ratios={"tra": 0.6, "val": 0.2, "tes": 0.2},
-        show=False,
+        apply_sliding_window=True,
+        verbose=False,
     ):
         # Attributes
         self.lpath_db = lpath_db
@@ -87,27 +88,28 @@ class SQLiteDataset(Dataset):
         self.meta_all = (
             self.gen_meta_all(self.lpath_db) if meta_all is None else meta_all
         )
-
         self.inclusion_criteria_tra = inclusion_criteria_tra
         self.inclusion_criteria_val = inclusion_criteria_val
         self.inclusion_criteria_tes = inclusion_criteria_tes
+        self.split_criteria_tra_val = split_criteria_tra_val
+        self.split_criteria_val_tes = split_criteria_val_tes
+        self.balancing_criteria_tra = balancing_criteria_tra
+        self.ratios = ratios
+        self.apply_sliding_window = apply_sliding_window
+
+        # Combines criteria
         self.inclusion_criteria_combined = combine_inclusion_criteria(
             self.inclusion_criteria_tra,
             self.inclusion_criteria_val,
             self.inclusion_criteria_tes,
         )
-        self.split_criteria_tra_val = split_criteria_tra_val
-        self.split_criteria_val_tes = split_criteria_val_tes
 
-        self.balancing_criteria_tra = balancing_criteria_tra
-        self.ratios = ratios
-
-        # Map variables to int representations
+        # Maps variables to int representations
         self.meta_map = self.gen_meta_included(
             self.meta_all, self.inclusion_criteria_combined
         )
 
-        # Determine indices according to various criteria
+        # Determines indices according to various criteria
         self.indi_tra, self.indi_val, self.indi_tes = get_indi(
             self.df,
             CONFIG,
@@ -127,8 +129,14 @@ class SQLiteDataset(Dataset):
 
         self.length = self.__len__()
 
-        # if show:
-        #     self.print_db()
+        if verbose:
+            print(
+                f"\nThe metadata of the entire database, {self.lpath_db}, is as follows:\n{self.df}"
+            )
+            print(
+                f"\nIn the current analysis, metadata is mapped as follows:\n"
+            )
+            pprint(self.meta_map)
 
     @classmethod
     def load_meta_as_df(cls, lpath_db):
@@ -157,8 +165,8 @@ class SQLiteDataset(Dataset):
         df = pd.DataFrame(data_dicts).set_index("id")
         return df
 
-    @staticmethod
-    def gen_meta_all(lpath_db):
+    @classmethod
+    def gen_meta_all(cls, lpath_db):
         """
         Generates independent mappings for each metadata tag from a SQLite database.
 
@@ -203,35 +211,6 @@ class SQLiteDataset(Dataset):
                 print(f"  (ID: {index}) {value}")
 
         return metadata_mapping
-
-    # @staticmethod
-    # def gen_meta_included(metadata_mapping, allow_dict):
-    #     """
-    #     Allows the metadata mapping based on the allowed values and maximum number of subjects.
-
-    #     Parameters:
-    #     - metadata_mapping (dict): The original metadata mapping.
-    #     - allow_dict (dict): A dictionary specifying allowed values for each metadata field.
-
-    #     Returns:
-    #     - allowed_metadata_mapping (dict): The limited metadata mapping.
-    #     """
-    #     allowed_metadata_mapping = {}
-    #     for key, mapping in metadata_mapping.items():
-    #         if key in allow_dict:
-    #             # Filter the mapping based on the allowed values
-    #             allowed_values = allow_dict[key]
-    #             limited_mapping = {
-    #                 value: idx
-    #                 for value, idx in mapping.items()
-    #                 if value in allowed_values
-    #             }
-    #             allowed_metadata_mapping[key] = limited_mapping
-    #         else:
-    #             # If the key is not in the allow_dict, copy the mapping as is
-    #             allowed_metadata_mapping[key] = mapping
-
-    #     return allowed_metadata_mapping
 
     @staticmethod
     def gen_meta_included(metadata_mapping, allow_dict):
@@ -328,18 +307,6 @@ class SQLiteDataset(Dataset):
         metadata_json = json.dumps(metadata_dict)
         return metadata_json
 
-    # def _tensor2meta(self, tensor_row):
-    #     reverse_meta_map = {
-    #         key: {v: k for k, v in value_map.items()}
-    #         for key, value_map in self.meta_map.items()
-    #     }
-    #     indices = tensor_row.tolist()
-    #     metadata_dict = {}
-    #     for key, index in zip(self.meta_map.keys(), indices):
-    #         metadata_value = reverse_meta_map[key][index]
-    #         metadata_dict[key] = metadata_value
-    #     return metadata_dict
-
     def decode_meta(self, MM):
         meta_dicts = [json.loads(self._tensor2meta(row)) for row in MM]
         meta_srs = [
@@ -380,6 +347,9 @@ class SQLiteDataset(Dataset):
                     batch_size=batch_size,
                     shuffle=shuffle if split == "tra" else False,
                     num_workers=num_workers,
+                    collate_fn=custom_collate_fn
+                    if self.apply_sliding_window
+                    else None,
                 )
             except Exception as e:
                 print(e)
@@ -394,6 +364,26 @@ def apply_sliding_window_data_augmentation(segment_tensor):
     end = start + WINDOW_SIZE_PTS
     segment_tensor = segment_tensor[..., start:end]
     return segment_tensor
+
+
+# Define the custom collate function
+def custom_collate_fn(batch):
+    augmented_batch = []
+    for sample in batch:
+        dataset_id, subject_id, segment_tensor, metadata_tensor = sample
+        # Apply sliding window data augmentation to the segment_tensor
+        augmented_segment_tensor = apply_sliding_window_data_augmentation(
+            segment_tensor
+        )
+        augmented_sample = (
+            dataset_id,
+            subject_id,
+            augmented_segment_tensor,
+            metadata_tensor,
+        )
+        augmented_batch.append(augmented_sample)
+    # Use the default collate function to merge the augmented samples into a batch
+    return torch.utils.data.dataloader.default_collate(augmented_batch)
 
 
 def combine_inclusion_criteria(*criteria):
@@ -590,7 +580,7 @@ if __name__ == "__main__":
     ]
     RATIOS = {"tra": 0.6, "val": 0.2, "tes": 0.2}
     BALANCING_CRITERIA_TRA = ["disease_type"]
-    
+
     ds = SQLiteDataset(
         lpath_db=LPATH_DB,
         inclusion_criteria_tra=INCLUSION_CRITERIA_TRA,
@@ -600,11 +590,11 @@ if __name__ == "__main__":
         split_criteria_val_tes=SPLIT_CRITERIA_VAL_TES,
         balancing_criteria_tra=BALANCING_CRITERIA_TRA,
         ratios=RATIOS,
-        show=False,
+        verbose=True,
+        apply_sliding_window=False,
     )
     dataloaders = ds.to_dataloaders()
 
-    print(f"\nMetadata are mapped as follows:\n{ds.meta_map}")
     # Main
     DS_epoch = []
     S_epoch = []
@@ -612,7 +602,7 @@ if __name__ == "__main__":
     DT_epoch = []
     C_epoch = []
     I_epoch = []
-    for i_epoch in tqdm(range(100)):
+    for i_epoch in tqdm(range(5)):
         for i_batch, batch in tqdm(enumerate(dataloaders["tra"])):
             """
             batch = next(iter(dataloaders["tra"]))
@@ -621,7 +611,8 @@ if __name__ == "__main__":
             # Batched dataset ids, subject ids, EEG signals, and metadatas
             DSb, Sb, Xb, _Mb = batch
 
-            Xb = apply_sliding_window_data_augmentation(Xb)
+            # Xb = apply_sliding_window_data_augmentation(Xb)
+            print(Xb.shape)
 
             DTb = _Mb[:, 0]  # Disease type
             Cb = _Mb[:, 1]  # Cognitive level
@@ -663,4 +654,3 @@ if __name__ == "__main__":
     """
     ./scripts/data/database/SQLiteDataset.py
     """
-which is better, json or yaml?

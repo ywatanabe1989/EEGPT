@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-06 08:57:48 (ywatanabe)"
+# Time-stamp: "2024-02-08 18:28:43 (ywatanabe)"
 
 import json
 import random
 
 import mngs
 import numpy as np
-from scripts.data.preprocessing.get_metadata import get_metadata
-
-# from scripts.data.preprocessing.load import _load_an_eeg_file
-from scripts.data.preprocessing.preprocess import (
-    preprocess_raw,
-    segment_processed_raw,
-)
+from scripts.data.load.get_metadata import get_metadata
+from scripts.data.load.preprocess import preprocess_raw, segment_processed_raw
 
 CONFIG = mngs.io.load_configs(show=False)
 

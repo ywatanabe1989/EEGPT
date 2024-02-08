@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-05 08:47:21 (ywatanabe)"
+# Time-stamp: "2024-02-08 18:30:09 (ywatanabe)"
 
 import os
 import random
@@ -12,9 +12,10 @@ import numpy as np
 import pandas as pd
 import torch
 from models.EEGPT import EEGPT
-from scripts.utils.SQLiteDataset import SQLiteDataset
+from scripts.data.database.SQLiteDataset import SQLiteDataset
 from torch.optim import SGD, Adam
-from torch.utils.data import DataLoader, Dataset, random_split
+
+# from torch.utils.data import DataLoader, Dataset, random_split
 
 # Configurations
 CONFIG, sys.stdout, sys.stderr, plt, cc = mngs.gen.start(
