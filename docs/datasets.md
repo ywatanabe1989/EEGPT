@@ -1,24 +1,24 @@
 ## Dementia Datasets
 
-$ du data/Dementia/raw # 53G
-$ du data/Dementia/raw/ds* | wc -l # 3
-$ du data/Dementia/raw/ds*
+$ du -sh data/Dementia/raw # 53G
+$ find data/Dementia/raw -maxdepth 1 -type d -name 'ds*' | wc -l # 3
+$ du -sh data/Dementia/raw/ds*
 37G	data/Dementia/raw/ds_BIDS_dataset_Osk_v5.3
 11G	data/Dementia/raw/ds_BIDS_dataset_Nissei_v1.1
 5.8G	data/Dementia/raw/ds_BIDS_dataset_Kochi_v1.1
 
 ## MotorMovementImagery Datasets
 
-$ du data/MotorMovementImagery/raw # 3.4G
-$ du data/MotorMovementImagery/raw/ds* | wc -l # 1
-$ du data/MotorMovementImagery/raw/ds*
+$ du -sh data/MotorMovementImagery/raw # 3.4G
+$ find data/MotorMovementImagery/raw -maxdepth 1 -type d -name 'ds*' | wc -l # 1
+$ du -sh data/MotorMovementImagery/raw/ds*
 3.4G	data/MotorMovementImagery/raw/ds_eeg-motor-movementimagery-dataset-1.0.0
 
 ## OpenNeuro Datasets
 
-$ du data/OpenNeuro/raw # 3.1T
-$ du data/OpenNeuro/raw/ds* | wc -l # 47
-$ du data/OpenNeuro/raw/ds*
+$ du -sh data/OpenNeuro/raw # 3.1T
+$ find data/OpenNeuro/raw -maxdepth 1 -type d -name 'ds*' | wc -l # 47
+$ du -sh data/OpenNeuro/raw/ds*
 1.2T	data/OpenNeuro/raw/ds004395-download
 303G	data/OpenNeuro/raw/ds004120-download
 254G	data/OpenNeuro/raw/ds003838-download
@@ -69,16 +69,16 @@ $ du data/OpenNeuro/raw/ds*
 
 ## WorkingMemory Datasets
 
-$ du data/WorkingMemory/raw # 38G
-$ du data/WorkingMemory/raw/ds* | wc -l # 1
-$ du data/WorkingMemory/raw/ds*
+$ du -sh data/WorkingMemory/raw # 38G
+$ find data/WorkingMemory/raw -maxdepth 1 -type d -name 'ds*' | wc -l # 1
+$ du -sh data/WorkingMemory/raw/ds*
 38G	data/WorkingMemory/raw/ds004395-download
 
 ## Epilepsy Datasets
 
-$ du data/Epilepsy/raw # 27G
-$ du data/Epilepsy/raw/ds* | wc -l # 2
-$ du data/Epilepsy/raw/ds*
+$ du -sh data/Epilepsy/raw # 27G
+$ find data/Epilepsy/raw -maxdepth 1 -type d -name 'ds*' | wc -l # 2
+$ du -sh data/Epilepsy/raw/ds*
 21G	data/Epilepsy/raw/ds_siena-scalp-eeg-database-1.0.0
 6.6G	data/Epilepsy/raw/ds_bids_epilepsy_pros_adult_v1.1
 
