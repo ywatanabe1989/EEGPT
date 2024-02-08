@@ -1,0 +1,46 @@
+LPATH_DB: ./data/Dementia/dbs/eeg_data.db
+INCLUSION_CRITERIA_TRA:
+    disease_type:
+        - AD
+        - DLB
+        - NPH
+        - HV
+    cognitive_level:
+        - Normal
+        - Dementia
+    institution:
+        - Osaka University
+INCLUSION_CRITERIA_VAL:
+    disease_type:
+        - AD
+        - DLB
+        - NPH
+        - HV
+    cognitive_level:
+        - Normal
+        - Dementia
+    institution:
+        - Osaka University
+INCLUSION_CRITERIA_TES:
+    disease_type:
+        - AD
+        - DLB
+        - NPH
+        - HV
+    cognitive_level:
+        - Normal
+        - Dementia
+    institution:
+        - Nippon Life Hospital
+        - Kochi University
+SPLIT_CRITERIA_TRA_VAL:
+    - subject_id
+SPLIT_CRITERIA_VAL_TES:
+    - subject_id
+    - institution
+SPLIT_RATIOS:
+    tra: 0.6
+    val: 0.2
+    tes: 0.2
+BALANCING_CRITERIA_TRA:
+    - disease_type

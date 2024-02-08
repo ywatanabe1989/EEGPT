@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 14:11:58 (ywatanabe)"
+# Time-stamp: "2024-02-08 17:14:58 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -23,6 +23,398 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm
 
 torch.multiprocessing.set_sharing_strategy("file_system")
+
+
+class SQLiteDataset(Dataset):
+    """
+    Example:
+        # Construct dataset
+        LPATH_DB = "./data/Dementia/dbs/eeg_data.db"
+
+        INCLUSION_CRITERIA_TRA = {
+            "disease_type": ["AD", "DLB", "NPH", "HV"],
+            "cognitive_level": ["Normal", "Dementia"],
+            "institution": ["Osaka University"],
+        }
+        INCLUSION_CRITERIA_VAL = {
+            "disease_type": ["AD", "DLB", "NPH", "HV"],
+            "cognitive_level": ["Normal", "Dementia"],
+            "institution": ["Osaka University"],
+        }
+        INCLUSION_CRITERIA_TES = {
+            "disease_type": ["AD", "DLB", "NPH", "HV"],
+            "cognitive_level": ["Normal", "Dementia"],
+            "institution": ["Nippon Life Hospital", "Kochi University"],
+        }
+        SPLIT_CRITERIA_TRA_VAL = ["subject_id"]
+        SPLIT_CRITERIA_VAL_TES = [
+            "subject_id",
+            "institution",
+        ]
+        RATIOS = {"tra": 0.6, "val": 0.2, "tes": 0.2}
+        BALANCING_CRITERIA_TRA = ["disease_type"]
+
+        ds = SQLiteDataset(
+            lpath_db=LPATH_DB,
+            inclusion_criteria_tra=INCLUSION_CRITERIA_TRA,
+            inclusion_criteria_val=INCLUSION_CRITERIA_VAL,
+            inclusion_criteria_tes=INCLUSION_CRITERIA_TES,
+            split_criteria_tra_val=SPLIT_CRITERIA_TRA_VAL,
+            split_criteria_val_tes=SPLIT_CRITERIA_VAL_TES,
+            balancing_criteria_tra=BALANCING_CRITERIA_TRA,
+            ratios=RATIOS,
+            show=False,
+        )
+        dataloaders = ds.to_dataloaders()
+    """
+
+    def __init__(
+        self,
+        lpath_db,
+        meta_all=None,
+        inclusion_criteria_tra={},
+        inclusion_criteria_val={},
+        inclusion_criteria_tes={},
+        split_criteria_tra_val=[],
+        split_criteria_val_tes=[],
+        balancing_criteria_tra=[],
+        ratios={"tra": 0.6, "val": 0.2, "tes": 0.2},
+        show=False,
+    ):
+        # Attributes
+        self.lpath_db = lpath_db
+        self.df = self.load_meta_as_df(self.lpath_db)
+        self.meta_all = (
+            self.gen_meta_all(self.lpath_db) if meta_all is None else meta_all
+        )
+
+        self.inclusion_criteria_tra = inclusion_criteria_tra
+        self.inclusion_criteria_val = inclusion_criteria_val
+        self.inclusion_criteria_tes = inclusion_criteria_tes
+        self.inclusion_criteria_combined = combine_inclusion_criteria(
+            self.inclusion_criteria_tra,
+            self.inclusion_criteria_val,
+            self.inclusion_criteria_tes,
+        )
+        self.split_criteria_tra_val = split_criteria_tra_val
+        self.split_criteria_val_tes = split_criteria_val_tes
+
+        self.balancing_criteria_tra = balancing_criteria_tra
+        self.ratios = ratios
+
+        # Map variables to int representations
+        self.meta_map = self.gen_meta_included(
+            self.meta_all, self.inclusion_criteria_combined
+        )
+
+        # Determine indices according to various criteria
+        self.indi_tra, self.indi_val, self.indi_tes = get_indi(
+            self.df,
+            CONFIG,
+            self.inclusion_criteria_tra,
+            self.inclusion_criteria_val,
+            self.inclusion_criteria_tes,
+            self.balancing_criteria_tra,
+            self.split_criteria_tra_val,
+            self.split_criteria_val_tes,
+            self.ratios,
+        )
+        self.allowed_indices = self.indi_tra + self.indi_val + self.indi_tes
+
+        # Split dataset
+        self.datasets = {"tra": [], "val": [], "tes": []}
+        self.split_dataset()
+
+        self.length = self.__len__()
+
+        # if show:
+        #     self.print_db()
+
+    @classmethod
+    def load_meta_as_df(cls, lpath_db):
+        """
+        Load data from the SQLite database as a pandas DataFrame.
+
+        Parameters:
+        - lpath_db (str): The file path to the SQLite database.
+
+        Returns:
+        - df (pandas.DataFrame): DataFrame containing data.
+        """
+        print("\nLoading metadata as a DataFrame...")
+        with cls.get_cursor(lpath_db) as cursor:
+            cursor.execute(
+                "SELECT id, dataset_id, subject_id, metadata FROM eeg_data"
+            )
+            rows = cursor.fetchall()
+        data_dicts = []
+        for row in rows:
+            data_dict = json.loads(row[3])
+            data_dict["id"] = row[0]
+            data_dict["dataset_id"] = row[1]
+            data_dict["subject_id"] = row[2]
+            data_dicts.append(data_dict)
+        df = pd.DataFrame(data_dicts).set_index("id")
+        return df
+
+    @staticmethod
+    def gen_meta_all(lpath_db):
+        """
+        Generates independent mappings for each metadata tag from a SQLite database.
+
+        Parameters:
+        - lpath_db (str): The file path to the SQLite database.
+
+        Returns:
+        - metadata_mapping (OrderedDict of OrderedDict): An ordered dictionary containing mappings for each metadata tag.
+        """
+        print(f"\nGenerating metadata mapping...\n")
+
+        # Fetch unique metadata values
+        conn = sqlite3.connect(lpath_db)
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT metadata FROM eeg_data")
+        unique_metadata_values = cursor.fetchall()
+        conn.close()
+
+        # Initialize an OrderedDict to collect values for each metadata tag
+        metadata_values = OrderedDict()
+
+        # Iterate over unique metadata values and populate the metadata_values dictionary
+        for (json_string,) in unique_metadata_values:
+            metadata = json.loads(json_string)
+            for key in metadata:
+                if key not in metadata_values:
+                    metadata_values[key] = set()
+                metadata_values[key].add(metadata[key])
+
+        # Create independent mappings for each metadata tag using OrderedDict
+        metadata_mapping = OrderedDict()
+        for key, values in metadata_values.items():
+            metadata_mapping[key] = OrderedDict(
+                (value, index) for index, value in enumerate(sorted(values))
+            )
+
+        # Print the metadata mapping
+        print("\nMetadata mapping:")
+        for metadata_key, mapping in metadata_mapping.items():
+            print(f"\n{metadata_key.capitalize()}:")
+            for value, index in mapping.items():
+                print(f"  (ID: {index}) {value}")
+
+        return metadata_mapping
+
+    # @staticmethod
+    # def gen_meta_included(metadata_mapping, allow_dict):
+    #     """
+    #     Allows the metadata mapping based on the allowed values and maximum number of subjects.
+
+    #     Parameters:
+    #     - metadata_mapping (dict): The original metadata mapping.
+    #     - allow_dict (dict): A dictionary specifying allowed values for each metadata field.
+
+    #     Returns:
+    #     - allowed_metadata_mapping (dict): The limited metadata mapping.
+    #     """
+    #     allowed_metadata_mapping = {}
+    #     for key, mapping in metadata_mapping.items():
+    #         if key in allow_dict:
+    #             # Filter the mapping based on the allowed values
+    #             allowed_values = allow_dict[key]
+    #             limited_mapping = {
+    #                 value: idx
+    #                 for value, idx in mapping.items()
+    #                 if value in allowed_values
+    #             }
+    #             allowed_metadata_mapping[key] = limited_mapping
+    #         else:
+    #             # If the key is not in the allow_dict, copy the mapping as is
+    #             allowed_metadata_mapping[key] = mapping
+
+    #     return allowed_metadata_mapping
+
+    @staticmethod
+    def gen_meta_included(metadata_mapping, allow_dict):
+        """
+        Allows the metadata mapping based on the allowed values and maximum number of subjects.
+
+        Parameters:
+        - metadata_mapping (dict): The original metadata mapping.
+        - allow_dict (dict): A dictionary specifying allowed values for each metadata field.
+
+        Returns:
+        - allowed_metadata_mapping (dict): The limited metadata mapping.
+        """
+        allowed_metadata_mapping = {}
+        for key, mapping in metadata_mapping.items():
+            if key in allow_dict:
+                # Filter the mapping based on the allowed values
+                allowed_values = allow_dict[key]
+                limited_mapping = {
+                    value: idx
+                    for value, idx in mapping.items()
+                    if value in allowed_values
+                }
+                # Reallocate values from zero
+                limited_mapping = {
+                    value: ii
+                    for ii, (value, idx) in enumerate(limited_mapping.items())
+                }
+                allowed_metadata_mapping[key] = limited_mapping
+            else:
+                # If the key is not in the allow_dict, copy the mapping as is
+                allowed_metadata_mapping[key] = mapping
+
+        return allowed_metadata_mapping
+
+    @staticmethod
+    @contextlib.contextmanager
+    def get_cursor(lpath_db):
+        conn = sqlite3.connect(lpath_db)
+        try:
+            yield conn.cursor()
+        except sqlite3.DatabaseError as e:
+            print(f"An error occurred: {e}")
+        finally:
+            conn.close()
+
+    def __getitem__(self, index):
+        index = self.allowed_indices[index]
+
+        # The index here is a direct index into the dataset.
+        query = "SELECT dataset_id, subject_id, segment, metadata FROM eeg_data WHERE id = ?"
+        # params = [index + 1]  # Assuming that the database IDs start at 1
+        params = [index]  # Assuming that the database IDs start at 1
+
+        with self.get_cursor(self.lpath_db) as cursor:
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+
+        if not row:
+            raise IndexError(f"Index {index} does not have data.")
+
+        dataset_id, subject_id, segment, metadata_json = row
+        segment_tensor = torch.from_numpy(
+            np.frombuffer(segment, dtype=np.float64)
+            .astype(np.float32)
+            .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
+            .copy()
+        ).float()
+        metadata_tensor = self._meta2tensor(metadata_json)
+        return dataset_id, subject_id, segment_tensor, metadata_tensor
+        # return dataset_id, subject_id, segment_tensor, metadata_json
+
+    def __len__(self):
+        return len(self.allowed_indices)
+
+    def _meta2tensor(self, metadata_json):
+        metadata_dict = json.loads(metadata_json)
+        encoded_features = []
+        for key, value in metadata_dict.items():
+            encoded_value = self.meta_map[key][value]
+            encoded_features.append(encoded_value)
+        return torch.tensor(encoded_features, dtype=torch.long)
+
+    def _tensor2meta(self, tensor):
+        reverse_meta_map = {
+            key: {v: k for k, v in value_map.items()}
+            for key, value_map in self.meta_map.items()
+        }
+        indices = tensor.tolist()
+        metadata_dict = {}
+        for key, index in zip(self.meta_map.keys(), indices):
+            metadata_value = reverse_meta_map[key][index]
+            metadata_dict[key] = metadata_value
+        metadata_json = json.dumps(metadata_dict)
+        return metadata_json
+
+    # def _tensor2meta(self, tensor_row):
+    #     reverse_meta_map = {
+    #         key: {v: k for k, v in value_map.items()}
+    #         for key, value_map in self.meta_map.items()
+    #     }
+    #     indices = tensor_row.tolist()
+    #     metadata_dict = {}
+    #     for key, index in zip(self.meta_map.keys(), indices):
+    #         metadata_value = reverse_meta_map[key][index]
+    #         metadata_dict[key] = metadata_value
+    #     return metadata_dict
+
+    def decode_meta(self, MM):
+        meta_dicts = [json.loads(self._tensor2meta(row)) for row in MM]
+        meta_srs = [
+            pd.Series(data=md.values(), index=md.keys()) for md in meta_dicts
+        ]
+        meta_df = pd.concat(meta_srs, axis=1).T
+        return meta_df
+
+    def split_dataset(
+        self,
+    ):
+        print("\nSplitting the dataset for training, validation, and test...")
+
+        # Revert index of each dataset
+        revert_dict = {
+            ii: i_ii for i_ii, ii in enumerate(self.allowed_indices)
+        }
+        indi_tra_cvted = [revert_dict[ii] for ii in self.indi_tra]
+        indi_val_cvted = [revert_dict[ii] for ii in self.indi_val]
+        indi_tes_cvted = [revert_dict[ii] for ii in self.indi_tes]
+        # Convert index lists to Subset objects
+        self.datasets["tra"] = torch.utils.data.Subset(self, indi_tra_cvted)
+        self.datasets["val"] = torch.utils.data.Subset(self, indi_val_cvted)
+        self.datasets["tes"] = torch.utils.data.Subset(self, indi_tes_cvted)
+
+        # Optionally, log subset sizes for verification
+        print(f"\nTraining set size: {len(self.datasets['tra']):,}")
+        print(f"\nValidation set size: {len(self.datasets['val']):,}")
+        print(f"\nTest set size: {len(self.datasets['tes']):,}")
+
+    def to_dataloaders(self, batch_size=64, num_workers=1, shuffle=True):
+        # Create DataLoader instances for the dataset splits
+        dataloaders = {}
+        for split in ["tra", "val", "tes"]:
+            try:
+                dataloaders[split] = DataLoader(
+                    self.datasets[split],
+                    batch_size=batch_size,
+                    shuffle=shuffle if split == "tra" else False,
+                    num_workers=num_workers,
+                )
+            except Exception as e:
+                print(e)
+        return dataloaders
+
+
+def apply_sliding_window_data_augmentation(segment_tensor):
+    WINDOW_SIZE_PTS = int(
+        CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"] / CONFIG["OVERLAP_FACTOR"]
+    )
+    start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
+    end = start + WINDOW_SIZE_PTS
+    segment_tensor = segment_tensor[..., start:end]
+    return segment_tensor
+
+
+def combine_inclusion_criteria(*criteria):
+    combined_criteria = {}
+
+    # Iterate over all dictionaries passed to the function
+    for criterion in criteria:
+        # Iterate over key-value pairs in each dictionary
+        for key, values in criterion.items():
+            # If the key is already in the combined dictionary, update it with new values
+            if key in combined_criteria:
+                combined_criteria[key].update(values)
+            # If the key is not in the combined dictionary, add it
+            else:
+                combined_criteria[key] = set(values)
+
+    # Convert sets back to lists for the final output
+    for key in combined_criteria:
+        combined_criteria[key] = list(combined_criteria[key])
+
+    return combined_criteria
 
 
 def get_indi(
@@ -114,6 +506,7 @@ def get_indi(
     df_limited = df_limited.set_index("id")
 
     # Filter the dataframe based on the inclusion criteria for training, validation, and test sets
+    # Note that here, exclusivenes among datasets are not considered yet.
     df_tra = filter_by_criteria(df_limited, INCLUSION_CRITERIA_TRA)
     df_val = filter_by_criteria(df_limited, INCLUSION_CRITERIA_VAL)
     df_tes = filter_by_criteria(df_limited, INCLUSION_CRITERIA_TES)
@@ -125,14 +518,6 @@ def get_indi(
         .drop_duplicates()
         .set_index("id")
     )
-    is_tes_splitted = check_split_criteria(
-        df_tra_val, df_tes, SPLIT_CRITERIA_VAL_TES
-    )
-    if not is_tes_splitted:
-        raise ValueError(
-            "Test data is not exclusive from training and validation datasets"
-        )
-    # assert check_split_criteria(df_tra_val, df_tes, SPLIT_CRITERIA_VAL_TES)
 
     # Further split the training/validation set into training and validation sets
     df_tra, df_val = split_data(
@@ -151,290 +536,22 @@ def get_indi(
     val_indices = df_val.reset_index()["id"]
     tes_indices = df_tes.reset_index()["id"]
 
+    # Confirmation
+    assert set(tra_indices) - set(val_indices) == set(tra_indices)
+    assert set(val_indices) - set(tes_indices) == set(val_indices)
+    assert set(tes_indices) - set(tra_indices) == set(tes_indices)
+
+    if not check_split_criteria(df_tra, df_val, SPLIT_CRITERIA_TRA_VAL):
+        raise ValueError(
+            "Test data is not exclusive from training and validation datasets"
+        )
+
+    if not check_split_criteria(df_tra, df_tes, SPLIT_CRITERIA_VAL_TES):
+        raise ValueError(
+            "Test data is not exclusive from training and validation datasets"
+        )
+
     return list(tra_indices), list(val_indices), list(tes_indices)
-
-
-class SQLiteDataset(Dataset):
-    def __init__(
-        self,
-        lpath_db,
-        meta_all=None,
-        inclusion_criteria_tra={},
-        inclusion_criteria_val={},
-        inclusion_criteria_tes={},
-        split_criteria_tra_val=[],
-        split_criteria_val_tes=[],
-        balancing_criteria_tra=[],
-        show=False,
-    ):
-        # Attributes
-        self.lpath_db = lpath_db
-        self.df = self.load_meta_as_df(self.lpath_db)
-        self.meta_all = (
-            self.gen_meta_all(self.lpath_db) if meta_all is None else meta_all
-        )
-
-        self.inclusion_criteria_tra = inclusion_criteria_tra
-        self.inclusion_criteria_val = inclusion_criteria_val
-        self.inclusion_criteria_tes = inclusion_criteria_tes
-        self.inclusion_criteria_combined = combine_inclusion_criteria(
-            self.inclusion_criteria_tra,
-            self.inclusion_criteria_val,
-            self.inclusion_criteria_tes,
-        )
-        self.split_criteria_tra_val = split_criteria_tra_val
-        self.split_criteria_val_tes = split_criteria_val_tes
-
-        self.balancing_criteria_tra = balancing_criteria_tra
-
-        self.metadata_mapping_included = self.gen_meta_included(
-            self.meta_all, self.inclusion_criteria_combined
-        )
-
-        self.indi_tra, self.indi_val, self.indi_tes = get_indi(
-            self.df,
-            CONFIG,
-            self.inclusion_criteria_tra,
-            self.inclusion_criteria_val,
-            self.inclusion_criteria_tes,
-            self.balancing_criteria_tra,
-            self.split_criteria_tra_val,
-            self.split_criteria_val_tes,
-            ratio_tra=0.6,
-            ratio_val=0.2,
-            ratio_tes=0.2,
-        )
-
-        # self.allowed_indices = self.indi_tra + self.indi_val + self.indi_tes
-        self.allowed_indices = self.indi_tra + self.indi_val + self.indi_tes
-
-        # Split dataset
-        self.datasets = {"tra": [], "val": [], "tes": []}
-        self.split_dataset()
-
-        self.length = self.__len__()
-        # if show:
-        #     self.print_db()
-
-    @classmethod
-    def load_meta_as_df(cls, lpath_db):
-        """
-        Load data from the SQLite database as a pandas DataFrame.
-
-        Parameters:
-        - lpath_db (str): The file path to the SQLite database.
-
-        Returns:
-        - df (pandas.DataFrame): DataFrame containing data.
-        """
-        print("\nLoading metadata as a DataFrame...")
-        with cls.get_cursor(lpath_db) as cursor:
-            cursor.execute(
-                "SELECT id, dataset_id, subject_id, metadata FROM eeg_data"
-            )
-            rows = cursor.fetchall()
-        data_dicts = []
-        for row in rows:
-            data_dict = json.loads(row[3])
-            data_dict["id"] = row[0]
-            data_dict["dataset_id"] = row[1]
-            data_dict["subject_id"] = row[2]
-            data_dicts.append(data_dict)
-        df = pd.DataFrame(data_dicts).set_index("id")
-        return df
-
-    @staticmethod
-    def gen_meta_all(lpath_db):
-        """
-        Generates independent mappings for each metadata tag from a SQLite database.
-
-        Parameters:
-        - lpath_db (str): The file path to the SQLite database.
-
-        Returns:
-        - metadata_mapping (OrderedDict of OrderedDict): An ordered dictionary containing mappings for each metadata tag.
-        """
-        print(f"\nGenerating metadata mapping...\n")
-
-        # Fetch unique metadata values
-        conn = sqlite3.connect(lpath_db)
-        cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT metadata FROM eeg_data")
-        unique_metadata_values = cursor.fetchall()
-        conn.close()
-
-        # Initialize an OrderedDict to collect values for each metadata tag
-        metadata_values = OrderedDict()
-
-        # Iterate over unique metadata values and populate the metadata_values dictionary
-        for (json_string,) in unique_metadata_values:
-            metadata = json.loads(json_string)
-            for key in metadata:
-                if key not in metadata_values:
-                    metadata_values[key] = set()
-                metadata_values[key].add(metadata[key])
-
-        # Create independent mappings for each metadata tag using OrderedDict
-        metadata_mapping = OrderedDict()
-        for key, values in metadata_values.items():
-            metadata_mapping[key] = OrderedDict(
-                (value, index) for index, value in enumerate(sorted(values))
-            )
-
-        # Print the metadata mapping
-        print("\nMetadata mapping:")
-        for metadata_key, mapping in metadata_mapping.items():
-            print(f"\n{metadata_key.capitalize()}:")
-            for value, index in mapping.items():
-                print(f"  (ID: {index}) {value}")
-
-        return metadata_mapping
-
-    @staticmethod
-    def gen_meta_included(metadata_mapping, allow_dict):
-        """
-        Allows the metadata mapping based on the allowed values and maximum number of subjects.
-
-        Parameters:
-        - metadata_mapping (dict): The original metadata mapping.
-        - allow_dict (dict): A dictionary specifying allowed values for each metadata field.
-
-        Returns:
-        - allowed_metadata_mapping (dict): The limited metadata mapping.
-        """
-        allowed_metadata_mapping = {}
-        for key, mapping in metadata_mapping.items():
-            if key in allow_dict:
-                # Filter the mapping based on the allowed values
-                allowed_values = allow_dict[key]
-                limited_mapping = {
-                    value: idx
-                    for value, idx in mapping.items()
-                    if value in allowed_values
-                }
-                allowed_metadata_mapping[key] = limited_mapping
-            else:
-                # If the key is not in the allow_dict, copy the mapping as is
-                allowed_metadata_mapping[key] = mapping
-
-        return allowed_metadata_mapping
-
-    @staticmethod
-    @contextlib.contextmanager
-    def get_cursor(lpath_db):
-        conn = sqlite3.connect(lpath_db)
-        try:
-            yield conn.cursor()
-        except sqlite3.DatabaseError as e:
-            print(f"An error occurred: {e}")
-        finally:
-            conn.close()
-
-    def __getitem__(self, index):
-        index = self.allowed_indices[index]
-
-        # The index here is a direct index into the dataset.
-        query = "SELECT dataset_id, subject_id, segment, metadata FROM eeg_data WHERE id = ?"
-        # params = [index + 1]  # Assuming that the database IDs start at 1
-        params = [index]  # Assuming that the database IDs start at 1
-
-        with self.get_cursor(self.lpath_db) as cursor:
-            cursor.execute(query, params)
-            row = cursor.fetchone()
-
-        if not row:
-            raise IndexError(f"Index {index} does not have data.")
-
-        dataset_id, subject_id, segment, metadata_json = row
-        segment_tensor = (
-            torch.from_numpy(
-                np.frombuffer(segment, dtype=np.float64).astype(np.float32)
-            )
-            .clone()
-            .float()
-        )
-        metadata_tensor = self._metadata2tensor(metadata_json)
-        return dataset_id, subject_id, segment_tensor, metadata_tensor
-        # return dataset_id, subject_id, segment_tensor, metadata_json
-
-    def __len__(self):
-        return len(self.allowed_indices)
-
-    def _metadata2tensor(self, metadata_json):
-        metadata_dict = json.loads(metadata_json)
-        encoded_features = []
-        for key, value in metadata_dict.items():
-            encoded_value = self.metadata_mapping_included[key][value]
-            encoded_features.append(encoded_value)
-        return torch.tensor(encoded_features, dtype=torch.long)
-
-    def split_dataset(
-        self,
-    ):
-        print("\nSplitting the dataset for training, validation, and test...")
-
-        # Revert index of each dataset
-        revert_dict = {
-            ii: i_ii for i_ii, ii in enumerate(self.allowed_indices)
-        }
-        indi_tra_cvted = [revert_dict[ii] for ii in self.indi_tra]
-        indi_val_cvted = [revert_dict[ii] for ii in self.indi_val]
-        indi_tes_cvted = [revert_dict[ii] for ii in self.indi_tes]
-        # Convert index lists to Subset objects
-        self.datasets["tra"] = torch.utils.data.Subset(self, indi_tra_cvted)
-        self.datasets["val"] = torch.utils.data.Subset(self, indi_val_cvted)
-        self.datasets["tes"] = torch.utils.data.Subset(self, indi_tes_cvted)
-
-        # Optionally, log subset sizes for verification
-        print(f"\nTraining set size: {len(self.datasets['tra']):,}")
-        print(f"\nValidation set size: {len(self.datasets['val']):,}")
-        print(f"\nTest set size: {len(self.datasets['tes']):,}")
-
-    def to_dataloaders(self, batch_size=64, num_workers=1, shuffle=True):
-        # Create DataLoader instances for the dataset splits
-        dataloaders = {}
-        for split in ["tra", "val", "tes"]:
-            try:
-                dataloaders[split] = DataLoader(
-                    self.datasets[split],
-                    batch_size=batch_size,
-                    shuffle=shuffle if split == "tra" else False,
-                    num_workers=num_workers,
-                )
-            except Exception as e:
-                print(e)
-        return dataloaders
-
-
-def apply_sliding_window_data_augmentation(segment_tensor):
-    WINDOW_SIZE_PTS = int(
-        CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"] / CONFIG["OVERLAP_FACTOR"]
-    )
-    start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
-    end = start + WINDOW_SIZE_PTS
-    segment_tensor = segment_tensor[..., start:end]
-    return segment_tensor
-
-
-def combine_inclusion_criteria(*criteria):
-    combined_criteria = {}
-
-    # Iterate over all dictionaries passed to the function
-    for criterion in criteria:
-        # Iterate over key-value pairs in each dictionary
-        for key, values in criterion.items():
-            # If the key is already in the combined dictionary, update it with new values
-            if key in combined_criteria:
-                combined_criteria[key].update(values)
-            # If the key is not in the combined dictionary, add it
-            else:
-                combined_criteria[key] = set(values)
-
-    # Convert sets back to lists for the final output
-    for key in combined_criteria:
-        combined_criteria[key] = list(combined_criteria[key])
-
-    return combined_criteria
 
 
 if __name__ == "__main__":
@@ -451,7 +568,6 @@ if __name__ == "__main__":
 
     # Construct dataset
     LPATH_DB = "./data/Dementia/dbs/eeg_data.db"
-
     INCLUSION_CRITERIA_TRA = {
         "disease_type": ["AD", "DLB", "NPH", "HV"],
         "cognitive_level": ["Normal", "Dementia"],
@@ -474,7 +590,7 @@ if __name__ == "__main__":
     ]
     RATIOS = {"tra": 0.6, "val": 0.2, "tes": 0.2}
     BALANCING_CRITERIA_TRA = ["disease_type"]
-
+    
     ds = SQLiteDataset(
         lpath_db=LPATH_DB,
         inclusion_criteria_tra=INCLUSION_CRITERIA_TRA,
@@ -483,10 +599,12 @@ if __name__ == "__main__":
         split_criteria_tra_val=SPLIT_CRITERIA_TRA_VAL,
         split_criteria_val_tes=SPLIT_CRITERIA_VAL_TES,
         balancing_criteria_tra=BALANCING_CRITERIA_TRA,
+        ratios=RATIOS,
         show=False,
     )
     dataloaders = ds.to_dataloaders()
 
+    print(f"\nMetadata are mapped as follows:\n{ds.meta_map}")
     # Main
     DS_epoch = []
     S_epoch = []
@@ -494,25 +612,29 @@ if __name__ == "__main__":
     DT_epoch = []
     C_epoch = []
     I_epoch = []
-    for i_batch, batch in tqdm(enumerate(dataloaders["tes"])):
-        """
-        batch = next(iter(dataloaders["tra"]))
-        batch = next(iter(ds_tra))
-        """
-        # Batched dataset ids, subject ids, EEG signals, and metadatas
-        DSb, Sb, Xb, _Mb = batch
-        Xb = apply_sliding_window_data_augmentation(Xb)
+    for i_epoch in tqdm(range(100)):
+        for i_batch, batch in tqdm(enumerate(dataloaders["tra"])):
+            """
+            batch = next(iter(dataloaders["tra"]))
+            batch = next(iter(ds_tra))
+            """
+            # Batched dataset ids, subject ids, EEG signals, and metadatas
+            DSb, Sb, Xb, _Mb = batch
 
-        DTb = _Mb[:, 0]  # Disease type
-        Cb = _Mb[:, 1]  # Cognitive level
-        Ib = _Mb[:, 2]  # Institution
+            Xb = apply_sliding_window_data_augmentation(Xb)
 
-        DS_epoch.append(DSb)
-        S_epoch.append(Sb)
-        DT_epoch.append(DTb)
-        C_epoch.append(Cb)
-        I_epoch.append(Ib)
-        # M_epoch.append(_Mb)
+            DTb = _Mb[:, 0]  # Disease type
+            Cb = _Mb[:, 1]  # Cognitive level
+            Ib = _Mb[:, 2]  # Institution
+
+            DS_epoch.append(DSb)
+            S_epoch.append(Sb)
+            DT_epoch.append(DTb)
+            C_epoch.append(Cb)
+            I_epoch.append(Ib)
+            # M_epoch.append(_Mb)
+
+    ds.decode_meta(_Mb)
 
     print(
         f"\nLoaded dataset list:\n" f"{mngs.gen.unique(np.hstack(DS_epoch))}"
@@ -541,3 +663,4 @@ if __name__ == "__main__":
     """
     ./scripts/data/database/SQLiteDataset.py
     """
+which is better, json or yaml?
