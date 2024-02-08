@@ -23,7 +23,7 @@ $ ./scripts/utils/print_datasets.sh | tee ./docs/datasets.txt
 $ screen -dmS populate_OpenNeuro ./scripts/data/database/populate_db.py --data_category OpenNeuro
 $ screen -dmS populate_Dementia ./scripts/data/database/populate_db.py --data_category Dementia
 $ screen -dmS populate_Epilepsy ./scripts/data/database/populate_db.py --data_category Epilepsy
-$ screen -dmS populate_MotorMentalMovement ./scripts/data/database/populate_db.py --data_category MotorMentalMovement
+$ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.py --data_category MotorMovementImagery
 ```
 
 
@@ -66,5 +66,3 @@ $ ./scripts/ml/pretrain_EEGPT.py
 Congratulations! SQLite database was created from 41823 files, 19 datasets, and 4450 subjects:
 ./data/OpenNeuro/dbs/eeg_data_v016.db
 ```
-
-
