@@ -5,6 +5,7 @@ $ echo 'export PYTHONPATH=.:$PYTHONPATH' >> ~/.bash_profile # add current direct
 ```
 
 ## Scripts
+
 #### Toggles the debugging state
 ```
 $ ./toggle_debug_status.sh # or manually edit the './config/IS_DEBUG.yaml' file
@@ -14,7 +15,7 @@ $ ./toggle_debug_status.sh # or manually edit the './config/IS_DEBUG.yaml' file
 ``` bash
 $ ./scripts/data/download/download_OpenNeuro_datasets.sh # Takes a significant amount of time
 $ ./scripts/utils/summarize_datasets_as_a_csv.py 
-$ ./scripts/utils/print_datasets.sh | tee ./docs/datasets.txt
+$ ./scripts/utils/print_datasets.sh | tee ./docs/datasets.md
 ```
 
 #### Populates BIDS datasets into SQLite3 databases
@@ -27,25 +28,13 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 ```
 
 
-#### Updates the links to databases
+#### Updates links to databases
 ```
 ls ./data/*/dbs -alht
 
-cd ./data/OpenNeuro/dbs
-ln -s eeg_data_v024.db eeg_data.db --force
-cd ../../..
-
-cd ./data/Dementia/dbs
-ln -s eeg_data_v011.db eeg_data.db --force
-cd ../../..
-
-cd ./data/Epilepsy/dbs
-ln -s eeg_data_v004.db eeg_data.db --force
-cd ../../..
-
-cd ./data/MotorMovementImagery/dbs
-ln -s eeg_data_v001.db eeg_data.db --force
-cd ../../..
+CAT=OpenNeuro
+VER=v024
+ln -sf ./data/"$CAT"/dbs/eeg_data_"$VER".db ./data/"$CAT"/dbs/eeg_data.db
 ```
 
 
