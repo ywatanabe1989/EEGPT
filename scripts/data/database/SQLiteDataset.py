@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 18:27:31 (ywatanabe)"
+# Time-stamp: "2024-02-09 18:48:26 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -23,6 +23,68 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm
 
 torch.multiprocessing.set_sharing_strategy("file_system")
+
+CONFIG = mngs.gen.load_configs(show=False)
+
+
+def adjust_splits_to_meet_criteria(df, split_criteria, split_ratios):
+    """
+    Adjust the data splits to ensure they meet the specified split criteria, handling empty criteria.
+
+    Parameters:
+    - df (pd.DataFrame): Combined dataset including potential training, validation, and test sets.
+    - split_criteria (list): List of criteria for ensuring unique splits; can be empty.
+    - split_ratios (dict): Ratios for splitting datasets into training, validation, and test sets.
+
+    Returns:
+    - df_tra (pd.DataFrame): Adjusted training dataset.
+    - df_val (pd.DataFrame): Adjusted validation dataset.
+    - df_tes (pd.DataFrame): Adjusted test dataset.
+    """
+    if split_criteria:
+        # Create a unique key for each combination of split criteria if criteria are provided
+        df["unique_key"] = df.apply(
+            lambda row: "_".join(
+                [str(row[crit]) for crit in split_criteria if crit in row]
+            ),
+            axis=1,
+        )
+        unique_keys = df["unique_key"].unique()
+    else:
+        # Use row indices as unique keys if no criteria are provided
+        unique_keys = df.index.to_numpy()
+
+    np.random.shuffle(unique_keys)  # Randomize order of keys
+
+    # Determine split indices based on the provided ratios
+    total_keys = len(unique_keys)
+    tra_end = int(total_keys * split_ratios["tra"])
+    val_end = tra_end + int(total_keys * split_ratios["val"])
+
+    # Split the unique keys according to the calculated indices
+    tra_keys, val_keys, tes_keys = (
+        unique_keys[:tra_end],
+        unique_keys[tra_end:val_end],
+        unique_keys[val_end:],
+    )
+
+    if split_criteria:
+        # Filter the DataFrame based on these unique keys to create splits
+        df_tra = df[df["unique_key"].isin(tra_keys)]
+        df_val = df[df["unique_key"].isin(val_keys)]
+        df_tes = df[df["unique_key"].isin(tes_keys)]
+
+        # Drop the temporary 'unique_key' column
+        df_tra.drop(columns=["unique_key"], inplace=True)
+        df_val.drop(columns=["unique_key"], inplace=True)
+        df_tes.drop(columns=["unique_key"], inplace=True)
+    else:
+        # Directly split the DataFrame based on indices if no criteria are provided
+        df_tra = df.loc[tra_keys]
+        df_val = df.loc[val_keys]
+        df_tes = df.loc[tes_keys]
+
+    return df_tra, df_val, df_tes
 
 
 class SQLiteDataset(Dataset):
@@ -51,7 +113,7 @@ class SQLiteDataset(Dataset):
             "subject_id",
             "institution",
         ]
-        RATIOS = {"tra": 0.6, "val": 0.2, "tes": 0.2}
+        SPLIT_RATIOS = {"tra": 0.6, "val": 0.2, "tes": 0.2}
         BALANCING_CRITERIA_TRA = ["disease_type"]
 
         ds = SQLiteDataset(
@@ -61,8 +123,8 @@ class SQLiteDataset(Dataset):
             inclusion_criteria_tes=INCLUSION_CRITERIA_TES,
             split_criteria_tra_val=SPLIT_CRITERIA_TRA_VAL,
             split_criteria_val_tes=SPLIT_CRITERIA_VAL_TES,
+            split_ratios=RATIOS,
             balancing_criteria_tra=BALANCING_CRITERIA_TRA,
-            ratios=RATIOS,
             show=False,
         )
         dataloaders = ds.to_dataloaders()
@@ -77,24 +139,22 @@ class SQLiteDataset(Dataset):
         inclusion_criteria_tes={},
         split_criteria_tra_val=[],
         split_criteria_val_tes=[],
+        split_ratios={"tra": 0.6, "val": 0.2, "tes": 0.2},
         balancing_criteria_tra=[],
-        ratios={"tra": 0.6, "val": 0.2, "tes": 0.2},
         apply_sliding_window=True,
         verbose=False,
     ):
         # Attributes
         self.lpath_db = lpath_db
         self.df = self.load_meta_as_df(self.lpath_db)
-        self.meta_all = (
-            self.gen_meta_all(self.lpath_db) if meta_all is None else meta_all
-        )
+        self.meta_all = self.gen_meta_all()
         self.inclusion_criteria_tra = inclusion_criteria_tra
         self.inclusion_criteria_val = inclusion_criteria_val
         self.inclusion_criteria_tes = inclusion_criteria_tes
         self.split_criteria_tra_val = split_criteria_tra_val
         self.split_criteria_val_tes = split_criteria_val_tes
         self.balancing_criteria_tra = balancing_criteria_tra
-        self.ratios = ratios
+        self.split_ratios = split_ratios
         self.apply_sliding_window = apply_sliding_window
 
         # Combines criteria
@@ -119,7 +179,7 @@ class SQLiteDataset(Dataset):
             self.balancing_criteria_tra,
             self.split_criteria_tra_val,
             self.split_criteria_val_tes,
-            self.ratios,
+            self.split_ratios,
         )
         self.allowed_indices = self.indi_tra + self.indi_val + self.indi_tes
 
@@ -150,6 +210,16 @@ class SQLiteDataset(Dataset):
         - df (pandas.DataFrame): DataFrame containing data.
         """
         print("\nLoading metadata as a DataFrame...")
+        if CONFIG["IS_DEBUG"]:
+            # print("Debug mode: Loading a random subset of rows.")
+            # Modify the query to load a random subset of 100 rows
+            N_ROWS = int(
+                CONFIG["N_LPATHS_TO_LOAD"] * CONFIG["MAX_N_WINDOWS_PER_SUB"]
+            )
+            with cls.get_cursor(lpath_db) as cursor:
+                cursor.execute(
+                    f"SELECT id, dataset_id, subject_id, metadata FROM eeg_data ORDER BY RANDOM() LIMIT {N_ROWS}"
+                )
         with cls.get_cursor(lpath_db) as cursor:
             cursor.execute(
                 "SELECT id, dataset_id, subject_id, metadata FROM eeg_data"
@@ -165,52 +235,64 @@ class SQLiteDataset(Dataset):
         df = pd.DataFrame(data_dicts).set_index("id")
         return df
 
-    @classmethod
-    def gen_meta_all(cls, lpath_db):
-        """
-        Generates independent mappings for each metadata tag from a SQLite database.
+    def gen_meta_all(
+        self,
+    ):
+        meta_all = OrderedDict()
+        for col in self.df.columns:
+            if not col in ["dataset_id", "subject_id"]:
+                _meta_dict = OrderedDict(
+                    {key: ii for ii, key in enumerate(self.df[col].unique())}
+                )
+                meta_all[col] = _meta_dict
+        return meta_all
 
-        Parameters:
-        - lpath_db (str): The file path to the SQLite database.
+    # @classmethod
+    # def gen_meta_all(cls, lpath_db):
+    #     """
+    #     Generates independent mappings for each metadata tag from a SQLite database.
 
-        Returns:
-        - metadata_mapping (OrderedDict of OrderedDict): An ordered dictionary containing mappings for each metadata tag.
-        """
-        print(f"\nGenerating metadata mapping...\n")
+    #     Parameters:
+    #     - lpath_db (str): The file path to the SQLite database.
 
-        # Fetch unique metadata values
-        conn = sqlite3.connect(lpath_db)
-        cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT metadata FROM eeg_data")
-        unique_metadata_values = cursor.fetchall()
-        conn.close()
+    #     Returns:
+    #     - metadata_mapping (OrderedDict of OrderedDict): An ordered dictionary containing mappings for each metadata tag.
+    #     """
+    #     print(f"\nGenerating metadata mapping...\n")
 
-        # Initialize an OrderedDict to collect values for each metadata tag
-        metadata_values = OrderedDict()
+    #     # Fetch unique metadata values
+    #     conn = sqlite3.connect(lpath_db)
+    #     cursor = conn.cursor()
+    #     cursor.execute("SELECT DISTINCT metadata FROM eeg_data")
+    #     unique_metadata_values = cursor.fetchall()
+    #     conn.close()
 
-        # Iterate over unique metadata values and populate the metadata_values dictionary
-        for (json_string,) in unique_metadata_values:
-            metadata = json.loads(json_string)
-            for key in metadata:
-                if key not in metadata_values:
-                    metadata_values[key] = set()
-                metadata_values[key].add(metadata[key])
+    #     # Initialize an OrderedDict to collect values for each metadata tag
+    #     metadata_values = OrderedDict()
 
-        # Create independent mappings for each metadata tag using OrderedDict
-        metadata_mapping = OrderedDict()
-        for key, values in metadata_values.items():
-            metadata_mapping[key] = OrderedDict(
-                (value, index) for index, value in enumerate(sorted(values))
-            )
+    #     # Iterate over unique metadata values and populate the metadata_values dictionary
+    #     for (json_string,) in unique_metadata_values:
+    #         metadata = json.loads(json_string)
+    #         for key in metadata:
+    #             if key not in metadata_values:
+    #                 metadata_values[key] = set()
+    #             metadata_values[key].add(metadata[key])
 
-        # Print the metadata mapping
-        print("\nMetadata mapping:")
-        for metadata_key, mapping in metadata_mapping.items():
-            print(f"\n{metadata_key.capitalize()}:")
-            for value, index in mapping.items():
-                print(f"  (ID: {index}) {value}")
+    #     # Create independent mappings for each metadata tag using OrderedDict
+    #     metadata_mapping = OrderedDict()
+    #     for key, values in metadata_values.items():
+    #         metadata_mapping[key] = OrderedDict(
+    #             (value, index) for index, value in enumerate(sorted(values))
+    #         )
 
-        return metadata_mapping
+    #     # Print the metadata mapping
+    #     print("\nMetadata mapping:")
+    #     for metadata_key, mapping in metadata_mapping.items():
+    #         print(f"\n{metadata_key.capitalize()}:")
+    #         for value, index in mapping.items():
+    #             print(f"  (ID: {index}) {value}")
+
+    #     return metadata_mapping
 
     @staticmethod
     def gen_meta_included(metadata_mapping, allow_dict):
@@ -327,6 +409,7 @@ class SQLiteDataset(Dataset):
         indi_tra_cvted = [revert_dict[ii] for ii in self.indi_tra]
         indi_val_cvted = [revert_dict[ii] for ii in self.indi_val]
         indi_tes_cvted = [revert_dict[ii] for ii in self.indi_tes]
+
         # Convert index lists to Subset objects
         self.datasets["tra"] = torch.utils.data.Subset(self, indi_tra_cvted)
         self.datasets["val"] = torch.utils.data.Subset(self, indi_val_cvted)
@@ -357,9 +440,7 @@ class SQLiteDataset(Dataset):
 
 
 def apply_sliding_window_data_augmentation(segment_tensor):
-    WINDOW_SIZE_PTS = int(
-        CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"] / CONFIG["OVERLAP_FACTOR"]
-    )
+    WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
     start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
     end = start + WINDOW_SIZE_PTS
     segment_tensor = segment_tensor[..., start:end]
@@ -416,24 +497,47 @@ def get_indi(
     BALANCING_CRITERIA_TRA,
     SPLIT_CRITERIA_TRA_VAL,
     SPLIT_CRITERIA_VAL_TES,
-    ratios={"tra": 0.6, "val": 0.2, "tes": 0.2},
+    split_ratios={"tra": 0.6, "val": 0.2, "tes": 0.2},
 ):
+    """
+    1. Define the data to be used according to the INCLUSION_CRITERIA.
+    2. Limit the number of samples from each subject to a maximum of CONFIG["MAX_N_WINDOWS_PER_SUB"] to prevent sampling bias.
+    3. Divide the data into training, validation, and test sets based on the respective CRITERIA, disregarding split_ratios.
+    4. Verify that the data splits adhere to the SPLIT_CRITERIA.
+       4-1. If not, adjust the splits to comply with the SPLIT_CRITERIA, using split_ratios if necessary.
+    5. Balance the training dataset to prevent imbalances.
+    6. Identify the indices of datasets
+    7. Confirm the critearia are met.
+    """
+
     def filter_by_criteria(df, criteria):
         mask = pd.Series(True, index=df.index)
         for key, values in criteria.items():
             mask &= df[key].isin(values)
         return df[mask]
 
-    def limit_segments(group):
-        return group.sample(
-            n=min(len(group), CONFIG["MAX_N_WINDOWS_PER_SUB"]), random_state=42
+    def limit_segments_per_sub(df):
+        def _limit_segments_per_sub(group):
+            return group.sample(
+                n=min(len(group), CONFIG["MAX_N_WINDOWS_PER_SUB"]),
+                random_state=42,
+            )
+
+        df_reset = df.reset_index()
+        df_limited = df_reset.groupby("subject_id").apply(
+            _limit_segments_per_sub
         )
+        df_limited = df_limited.set_index("id")
+        return df_limited
 
     def balance_dataset(df, criteria):
-        min_count = df[criteria[0]].value_counts().min()
-        return df.groupby(criteria[0], group_keys=False).apply(
-            lambda x: x.sample(min_count)
-        )
+        if criteria:
+            min_count = df[criteria[0]].value_counts().min()
+            return df.groupby(criteria[0], group_keys=False).apply(
+                lambda x: x.sample(min_count)
+            )
+        else:
+            return df
 
     def check_split_criteria(df1, df2, split_criteria):
         # Check if the split criteria columns are in both dataframes
@@ -465,6 +569,9 @@ def get_indi(
                 f"Split creteria '{split_criteria}' not found in the DataFrame."
             )
 
+        if split_size == 0:
+            return df, None
+
         merged_col = mngs.ml.utils.merge_labels(
             df[valid_split_criteria].squeeze()
         )
@@ -475,14 +582,18 @@ def get_indi(
             merged_uq, test_size=split_size, random_state=random_state
         )
 
-        df_1 = df[mngs.gen.search(uq_1, merged_col, as_bool=True)[0]]
-        df_2 = df[mngs.gen.search(uq_2, merged_col, as_bool=True)[0]]
+        # df_1 = df[mngs.gen.search(uq_1, merged_col, as_bool=True)[0]]
+        # df_2 = df[mngs.gen.search(uq_2, merged_col, as_bool=True)[0]]
+
+        df_1 = df[merged_col.isin(uq_1)]
+        df_2 = df[merged_col.isin(uq_2)]
 
         for col in valid_split_criteria:
-            assert set(df_1[col]) - set(df_2[col]) == set(df_1[col])
+            assert set(df_1[col]).isdisjoint(set(df_2[col]))
 
         return df_1, df_2
 
+    # 1. Define the data to be used according to the INCLUSION_CRITERIA.
     combined_inclusion_criteria = combine_inclusion_criteria(
         INCLUSION_CRITERIA_TRA,
         INCLUSION_CRITERIA_VAL,
@@ -490,50 +601,66 @@ def get_indi(
     )
     df = filter_by_criteria(df, combined_inclusion_criteria)
 
-    # Limit the number of segments per subject for training, validation, and test sets
-    df_reset = df.reset_index()
-    df_limited = df_reset.groupby("subject_id").apply(limit_segments)
-    df_limited = df_limited.set_index("id")
+    # 2. Limit the number of samples from each subject to a maximum of CONFIG["MAX_N_WINDOWS_PER_SUB"] to prevent sampling bias.
+    df = limit_segments_per_sub(df)
 
-    # Filter the dataframe based on the inclusion criteria for training, validation, and test sets
-    # Note that here, exclusivenes among datasets are not considered yet.
-    df_tra = filter_by_criteria(df_limited, INCLUSION_CRITERIA_TRA)
-    df_val = filter_by_criteria(df_limited, INCLUSION_CRITERIA_VAL)
-    df_tes = filter_by_criteria(df_limited, INCLUSION_CRITERIA_TES)
+    # 3. Divide the data into training, validation, and test sets based on the respective CRITERIA, disregarding split_ratios. Note that, exclusivenes is not considered yet.
+    df_tra = filter_by_criteria(df, INCLUSION_CRITERIA_TRA)
+    df_val = filter_by_criteria(df, INCLUSION_CRITERIA_VAL)
+    df_tes = filter_by_criteria(df, INCLUSION_CRITERIA_TES)
 
-    # Combine training and validation data temporarily for splitting
-    df_tra_val = (
-        pd.concat([df_tra, df_val])
-        .reset_index()
-        .drop_duplicates()
-        .set_index("id")
-    )
+    # 4. Verify that the data splits adhere to the SPLIT_CRITERIA.
+    #    4-1. If not, adjust the splits to comply with the SPLIT_CRITERIA, using split_ratios if necessary.
+    if not check_split_criteria(df_tra, df_tes, SPLIT_CRITERIA_TRA_VAL):
+        # Combine training and validation data temporarily for splitting
+        df_tra_val_tes = (
+            pd.concat([df_tra, df_val, df_tes])
+            .reset_index()
+            .drop_duplicates()
+            .set_index("id")
+        )
 
-    # Further split the training/validation set into training and validation sets
-    df_tra, df_val = split_data(
-        df_tra_val,
-        SPLIT_CRITERIA_TRA_VAL,
-        split_size=ratios["val"] / (ratios["tra"] + ratios["val"]),
-    )
+        # Further split the training/validation set into training and validation sets
+        df_tra_val, df_tes = split_data(
+            df_tra_val_tes,
+            SPLIT_CRITERIA_VAL_TES,
+            split_size=split_ratios["tes"],
+        )
 
-    # Balance the training dataset
-    df_tra_balanced = balance_dataset(
-        df_tra, BALANCING_CRITERIA_TRA
-    )  # disease_type is not found
+    if not check_split_criteria(df_tra, df_val, SPLIT_CRITERIA_TRA_VAL):
+        # Combine training and validation data temporarily for splitting
+        df_tra_val = (
+            pd.concat([df_tra, df_val])
+            .reset_index()
+            .drop_duplicates()
+            .set_index("id")
+        )
 
-    # Return the indices of the filtered, limited, and balanced datasets
-    tra_indices = df_tra_balanced.reset_index()["id"]
-    val_indices = df_val.reset_index()["id"]
-    tes_indices = df_tes.reset_index()["id"]
+        # Further split the training/validation set into training and validation sets
+        df_tra, df_val = split_data(
+            df_tra_val,
+            SPLIT_CRITERIA_TRA_VAL,
+            split_size=split_ratios["val"]
+            / (split_ratios["tra"] + split_ratios["val"]),
+        )
 
+    # 5. Balance the training dataset to prevent imbalances.
+    df_tra = balance_dataset(df_tra, BALANCING_CRITERIA_TRA)
+
+    # 6. Identify the indices of datasets
+    tra_indices = df_tra.reset_index()["id"] if df_tra is not None else [None]
+    val_indices = df_val.reset_index()["id"] if df_val is not None else [None]
+    tes_indices = df_tes.reset_index()["id"] if df_tes is not None else [None]
+
+    # 7. Confirm the critearia are met.
     # Confirmation
-    assert set(tra_indices) - set(val_indices) == set(tra_indices)
-    assert set(val_indices) - set(tes_indices) == set(val_indices)
-    assert set(tes_indices) - set(tra_indices) == set(tes_indices)
+    assert set(tra_indices).isdisjoint(set(val_indices))
+    assert set(val_indices).isdisjoint(set(tes_indices))
+    assert set(tes_indices).isdisjoint(set(tra_indices))
 
     if not check_split_criteria(df_tra, df_val, SPLIT_CRITERIA_TRA_VAL):
         raise ValueError(
-            "Test data is not exclusive from training and validation datasets"
+            "Validation data is not exclusive from training dataset"
         )
 
     if not check_split_criteria(df_tra, df_tes, SPLIT_CRITERIA_VAL_TES):
@@ -542,6 +669,14 @@ def get_indi(
         )
 
     return list(tra_indices), list(val_indices), list(tes_indices)
+
+
+def load_ds_dls(lpath_ds_config, **kwargs):
+    ds_config = mngs.io.load(lpath_ds_config, lower=True)
+    # ds_config_lower = {key.lower(): value for key, value in ds_config.items()}
+    ds = SQLiteDataset(**ds_config, **kwargs)
+    dls = ds.to_dataloaders()
+    return ds, dls
 
 
 if __name__ == "__main__":
@@ -557,55 +692,20 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Construct dataset
-    LPATH_DB = "./data/Dementia/dbs/eeg_data.db"
-    INCLUSION_CRITERIA_TRA = {
-        "disease_type": ["AD", "DLB", "NPH", "HV"],
-        "cognitive_level": ["Normal", "Dementia"],
-        "institution": ["Osaka University"],
-    }
-    INCLUSION_CRITERIA_VAL = {
-        "disease_type": ["AD", "DLB", "NPH", "HV"],
-        "cognitive_level": ["Normal", "Dementia"],
-        "institution": ["Osaka University"],
-    }
-    INCLUSION_CRITERIA_TES = {
-        "disease_type": ["AD", "DLB", "NPH", "HV"],
-        "cognitive_level": ["Normal", "Dementia"],
-        "institution": ["Nippon Life Hospital", "Kochi University"],
-    }
-    SPLIT_CRITERIA_TRA_VAL = ["subject_id"]
-    SPLIT_CRITERIA_VAL_TES = [
-        "subject_id",
-        "institution",
-    ]
-    RATIOS = {"tra": 0.6, "val": 0.2, "tes": 0.2}
-    BALANCING_CRITERIA_TRA = ["disease_type"]
-
-    ds = SQLiteDataset(
-        lpath_db=LPATH_DB,
-        inclusion_criteria_tra=INCLUSION_CRITERIA_TRA,
-        inclusion_criteria_val=INCLUSION_CRITERIA_VAL,
-        inclusion_criteria_tes=INCLUSION_CRITERIA_TES,
-        split_criteria_tra_val=SPLIT_CRITERIA_TRA_VAL,
-        split_criteria_val_tes=SPLIT_CRITERIA_VAL_TES,
-        balancing_criteria_tra=BALANCING_CRITERIA_TRA,
-        ratios=RATIOS,
-        verbose=True,
-        apply_sliding_window=False,
-    )
-    dataloaders = ds.to_dataloaders()
+    lpath_ds_config = "./config/DownStream/Dementia.yaml"
+    ds, dls = load_ds_dls(lpath_ds_config)
 
     # Main
-    DS_epoch = []
-    S_epoch = []
-    # M_epoch = []
-    DT_epoch = []
-    C_epoch = []
-    I_epoch = []
     for i_epoch in tqdm(range(5)):
-        for i_batch, batch in tqdm(enumerate(dataloaders["tra"])):
+        DS_epoch = []
+        S_epoch = []
+        # M_epoch = []
+        DT_epoch = []
+        C_epoch = []
+        I_epoch = []
+        for i_batch, batch in tqdm(enumerate(dls["tra"])):
             """
-            batch = next(iter(dataloaders["tra"]))
+            batch = next(iter(dls["tra"]))
             batch = next(iter(ds_tra))
             """
             # Batched dataset ids, subject ids, EEG signals, and metadatas
@@ -627,26 +727,17 @@ if __name__ == "__main__":
 
     ds.decode_meta(_Mb)
 
-    print(
-        f"\nLoaded dataset list:\n" f"{mngs.gen.unique(np.hstack(DS_epoch))}"
-    )
+    DS_uq = mngs.gen.unique(np.hstack(DS_epoch))
+    S_uq = mngs.gen.unique(np.hstack(S_epoch))
+    DT_uq = mngs.gen.unique(np.hstack(DT_epoch))
+    C_uq = mngs.gen.unique(np.hstack(C_epoch))
+    I_uq = mngs.gen.unique(np.hstack(I_epoch))
 
-    print(f"\nLoaded subject list:\n" f"{mngs.gen.unique(np.hstack(S_epoch))}")
-
-    print(
-        f"\nLoaded disease_type list:\n"
-        f"{mngs.gen.unique(np.hstack(DT_epoch))}"
-    )
-
-    print(
-        f"\nLoaded cognitive_level list:\n"
-        f"{mngs.gen.unique(np.hstack(C_epoch))}"
-    )
-
-    print(
-        f"\nLoaded institution list:\n"
-        f"{mngs.gen.unique(np.hstack(I_epoch))}"
-    )
+    print(f"\nLoaded dataset list:\n{DS_uq}")
+    print(f"\nLoaded subject list:\n{S_uq}")
+    print(f"\nLoaded disease_type list:\n{DT_uq}")
+    print(f"\nLoaded cognitive_level list:\n{C_uq}")
+    print(f"\nLoaded institution list:\n{I_uq}")
 
     # END
     mngs.gen.close(CONFIG)

@@ -9,7 +9,7 @@ declare -A categories=(
     [MotorMovementImagery]="data/MotorMovementImagery/raw"
 )
 
-Function to summarize disk usage for a given dataset
+# Function to summarize disk usage for a given dataset
 print_dataset() {
     local dataset_path=$1
     local dataset_name=$2

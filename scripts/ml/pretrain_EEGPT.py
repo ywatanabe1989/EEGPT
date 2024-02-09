@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 18:30:09 (ywatanabe)"
+# Time-stamp: "2024-02-09 09:07:56 (ywatanabe)"
 
 import os
 import random
@@ -12,10 +12,8 @@ import numpy as np
 import pandas as pd
 import torch
 from models.EEGPT import EEGPT
-from scripts.data.database.SQLiteDataset import SQLiteDataset
+from scripts.data.database.SQLiteDataset import load_ds_dls  # SQLiteDataset
 from torch.optim import SGD, Adam
-
-# from torch.utils.data import DataLoader, Dataset, random_split
 
 # Configurations
 CONFIG, sys.stdout, sys.stderr, plt, cc = mngs.gen.start(
@@ -93,77 +91,7 @@ def base_step(
     return metrics
 
 
-def split_to_datasets(sqlite_dataset):
-    # Get unique dataset IDs
-    dataset_ids = sqlite_dataset.get_dataset_ids()
-
-    # Shuffle dataset IDs
-    random.shuffle(dataset_ids)
-
-    # Split dataset IDs into non-overlapping groups
-    num_datasets = len(dataset_ids)
-    num_tra = int(num_datasets * 0.6)
-    num_val = int(num_datasets * 0.2)
-    datasets_tra = dataset_ids[:num_tra]
-    datasets_val = dataset_ids[num_tra : num_tra + num_val]
-    datasets_tes = dataset_ids[num_tra + num_val :]
-
-    # Check if datasets are mutually exclusive among datasets
-    assert len(set(datasets_tra) & set(datasets_val)) == 0
-    assert len(set(datasets_tra) & set(datasets_tes)) == 0
-    assert len(set(datasets_val) & set(datasets_tes)) == 0
-
-    # Create datasets based on dataset IDs
-    ds_tra = sqlite_dataset.get_subset_by_dataset_ids(datasets_tra)
-    ds_val = sqlite_dataset.get_subset_by_dataset_ids(datasets_val)
-    ds_tes = sqlite_dataset.get_subset_by_dataset_ids(datasets_tes)
-
-    print(f"\n{'-'*40}\n")
-    print(
-        f"\nTraining dataset:\n"
-        f"n = {len(ds_tra):,} samples from n = {len(datasets_tra):,} datasets"
-    )
-    print(
-        f"\nValidation dataset:\n"
-        f"n = {len(ds_val):,} samples from n = {len(datasets_val):,} datasets"
-    )
-    print(
-        f"\nTest dataset:\n"
-        f"n = {len(ds_tes):,} samples from n = {len(datasets_tes):,} datasets"
-    )
-    print(f"\n{'-'*40}\n")
-
-    return ds_tra, ds_val, ds_tes
-
-
-def to_DataLoaders(ds_tra, ds_val, ds_tes):
-    dl_tra = DataLoader(
-        ds_tra,
-        batch_size=CONFIG["BATCH_SIZE"],
-        shuffle=True,
-        num_workers=10,
-        drop_last=True,
-    )
-
-    dl_val = DataLoader(
-        ds_val,
-        batch_size=CONFIG["BATCH_SIZE"],
-        shuffle=True,
-        num_workers=10,
-        drop_last=False,
-    )
-
-    dl_tes = DataLoader(
-        ds_tes,
-        batch_size=CONFIG["BATCH_SIZE"],
-        shuffle=True,
-        num_workers=10,
-        drop_last=False,
-    )
-    return dl_tra, dl_val, dl_tes
-
-
-def train_and_eval(dl_tra, dl_val, dl_tes):
+def train_and_eval(dls):
     # Model
     model = EEGPT().cuda()
     optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
@@ -174,7 +102,7 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
     for i_epoch, epoch in enumerate(range(CONFIG["N_EPOCHS"])):
 
         # Training
-        for i_batch, batch in enumerate(dl_tra):
+        for i_batch, batch in enumerate(dls["tra"]):
             base_step(
                 model,
                 optimizer,
@@ -188,7 +116,7 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
             i_global += 1
 
         # Validating
-        for i_batch, batch in enumerate(dl_val):
+        for i_batch, batch in enumerate(dls["val"]):
             base_step(
                 model,
                 optimizer,
@@ -201,7 +129,7 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
             )
 
     # Testing
-    for i_batch, batch in enumerate(dl_tes):
+    for i_batch, batch in enumerate(dls["tes"]):
         base_step(
             model,
             optimizer,
@@ -217,20 +145,13 @@ def train_and_eval(dl_tra, dl_val, dl_tes):
 
 
 def main():
-    lpath_db_latest = mngs.gen.find_latest(
-        CONFIG["DIR_OPENNEURO"] + "dbs/", "eeg_data", ".db"
-    )
     # Loads
-    sqlite_dataset = SQLiteDataset(lpath_db=lpath_db_latest, show=True)
-    dl_tra, dl_val, dl_tes = to_DataLoaders(*split_to_datasets(sqlite_dataset))
+    ds, dls = load_ds_dls("./config/Pretrain/OpenNeuro.yaml")
 
     # Main
-    model, metrics_df = train_and_eval(dl_tra, dl_val, dl_tes)
+    model, metrics_df = train_and_eval(dls)
     fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
     # *** ValueError: Source ('src') and target ('tgt') must have the same number of elements.
-
-    # Closes the database
-    sqlite_dataset.close()
 
     # Saves
     mngs.io.save(model, CONFIG["SDIR"] + "checkpoint.pth")

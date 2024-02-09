@@ -1,0 +1,2876 @@
+box with connection dots and lines that says openneuro next to it OpenNeuro
+SEARCH
+SUPPORT
+DOCUMENTATION
+Sign in
+×
+OpenNeuro Support
+Please email issues or questions to
+support@openneuro.freshdesk.com
+or use the form below.
+
+
+Close
+×
+Upload Dataset
+Step 1: Select Files
+Step 2: Validation
+Step 3: Metadata
+Step 4: Accept Terms
+close
+OpenNeuro EEG
+OpenNeuro added support for EEG datasets in 2019 when EEG was incorporated into the BIDS standard.
+7,325 Participants
+185 Public Datasets
+Search EEG Portal
+Keywords
+?
+Enter Keyword(s) to Search
+
+Choose Modality
+Age of Participants
+
+
+0100
+Number of Participants
+
+
+0200+
+Diagnosis
+Task
+Authors / PI
+Sex
+
+
+
+Publication Date
+
+
+
+
+Species
+Study Type
+Study Domain
+Showing all available EEG datasets
+MODALITY:
+EEG
+×
+SORT BY: Newest
+A Resting-state EEG Dataset for Sleep Deprivation
+Uploaded by:Chuqin Xiang on 2023-12-20 - about 2 months ago
+|
+Updated:2023-12-20 - about 2 months ago
+
+MODALITY:
+EEG
+TASKS:
+eyesclosedeyesopen
+OPENNEURO ACCESSION NUMBER:ds004902
+SESSIONS:2
+PARTICIPANTS:71
+PARTICIPANTS' AGES: N/A
+SIZE:8.07GB
+FILES:1,059
+Registerd Report of ERN During Three Versions of a Flanker Task
+Uploaded by:Peter Clayson on 2023-12-14 - about 2 months ago
+|
+Updated:2023-12-21 - about 2 months ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds004883
+SESSIONS:1
+PARTICIPANTS:172
+PARTICIPANTS' AGES: N/A
+SIZE:122.8GB
+FILES:3,618
+Investigating the cognitive conflict triggered by moral judgment of accidental harm : an event-related potentials study
+Uploaded by:Flora Schwartz on 2023-11-23 - 3 months ago
+|
+Updated:2023-11-23 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+HarmN400
+OPENNEURO ACCESSION NUMBER:ds004860
+SESSIONS:1
+PARTICIPANTS:31
+PARTICIPANTS' AGES: 19 - 45
+SIZE:3.79GB
+FILES:99
+FT
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004855
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+TX18
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004854
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+TX17
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004853
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+InsurgentCivilian
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004852
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+HID
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004851
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+ODE
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004850
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+STRONG
+Uploaded by:Kevin King on 2023-11-14 - 3 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004849
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:79.21MB
+FILES:10
+T22
+Uploaded by:Kevin King on 2023-11-13 - 3 months ago
+|
+Updated:2023-11-13 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+Drive
+OPENNEURO ACCESSION NUMBER:ds004844
+SESSIONS:4
+PARTICIPANTS:17
+PARTICIPANTS' AGES: N/A
+SIZE:22.33GB
+FILES:481
+T16
+Uploaded by:Kevin King on 2023-11-13 - 3 months ago
+|
+Updated:2023-11-13 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+VisualSituationalAwareness
+OPENNEURO ACCESSION NUMBER:ds004843
+SESSIONS:1
+PARTICIPANTS:14
+PARTICIPANTS' AGES: N/A
+SIZE:7.66GB
+FILES:649
+TX15
+Uploaded by:Kevin King on 2023-11-13 - 3 months ago
+|
+Updated:2023-11-13 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+DriveOnMission
+OPENNEURO ACCESSION NUMBER:ds004842
+SESSIONS:2
+PARTICIPANTS:14
+PARTICIPANTS' AGES: N/A
+SIZE:5.21GB
+FILES:719
+TX14
+Uploaded by:Kevin King on 2023-11-13 - 3 months ago
+|
+Updated:2023-11-13 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+DriveOnMission
+OPENNEURO ACCESSION NUMBER:ds004841
+SESSIONS:2
+PARTICIPANTS:20
+PARTICIPANTS' AGES: N/A
+SIZE:7.31GB
+FILES:1,034
+Dataset of electrophysiological signals (EEG, ECG, EMG) during Music therapy with adult burn patients in the Intensive Care Unit.
+Uploaded by:Jose Gabriel on 2023-11-12 - 3 months ago
+|
+Updated:2023-11-12 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+task-musicTherapytask-postMusicTherapytask-preMusicTherapy
+OPENNEURO ACCESSION NUMBER:ds004840
+SESSIONS:2
+PARTICIPANTS:9
+PARTICIPANTS' AGES: 18 - 65
+SIZE:599.5MB
+FILES:107
+EEG-attention-rsvp-exp2
+Uploaded by:Tijl Grootswagers on 2023-10-24 - 4 months ago
+|
+Updated:2023-10-26 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+rsvp
+OPENNEURO ACCESSION NUMBER:ds004817
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 19 - 36
+SIZE:10.07GB
+FILES:83
+EEG-attention-rsvp-exp1
+Uploaded by:Tijl Grootswagers on 2023-10-24 - 4 months ago
+|
+Updated:2023-10-26 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+rsvp
+OPENNEURO ACCESSION NUMBER:ds004816
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 19 - 41
+SIZE:9.06GB
+FILES:84
+Pilot data for Loneliness in the Brain: Distinguishing Between Hypersensitivity and Hyperalertness
+Uploaded by:Joe Bathelt on 2023-10-17 - 4 months ago
+|
+Updated:2023-10-17 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+RovingOddball
+OPENNEURO ACCESSION NUMBER:ds004802
+SESSIONS:1
+PARTICIPANTS:38
+PARTICIPANTS' AGES: N/A
+SIZE:10.07GB
+FILES:139
+EEG data for paper titled - Precise cortical contributions to feedback sensorimotor control during reactive balance
+Uploaded by:Scott Boebinger on 2023-09-29 - 4 months ago
+|
+Updated:2023-10-02 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+unnamed
+OPENNEURO ACCESSION NUMBER:ds004785
+SESSIONS:1
+PARTICIPANTS:17
+PARTICIPANTS' AGES: N/A
+SIZE:351.17MB
+FILES:74
+Phantom EEG Dataset with Motion, Muscle, and Eye Artifacts and Example Scripts
+Uploaded by:Annalisa Salazar on 2023-09-29 - 4 months ago
+|
+Updated:2023-12-21 - about 2 months ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds004784
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:1.01GB
+FILES:51
+EEG/ERP data from a Python Reading Task
+Uploaded by:Iris Kuo on 2023-09-25 - 5 months ago
+|
+Updated:2023-09-25 - 5 months ago
+
+MODALITY:
+EEG
+TASKS:
+PY
+OPENNEURO ACCESSION NUMBER:ds004771
+SESSIONS:1
+PARTICIPANTS:61
+PARTICIPANTS' AGES: 18 - 33
+SIZE:1.36GB
+FILES:327
+Dataset of intracranial EEG, scalp EEG and beamforming sources from epilepsy patients performing a verbal working memory task
+Uploaded by:Vasileios S. Dimakopoulos on 2023-09-13 - 5 months ago
+|
+Updated:2023-09-20 - 5 months ago
+
+MODALITIES:
+iEEGEEG
+TASKS:
+verbalWM
+OPENNEURO ACCESSION NUMBER:ds004752
+SESSIONS:8
+PARTICIPANTS:15
+PARTICIPANTS' AGES: 18 - 56
+SIZE:10.23GB
+FILES:904
+8-Channel SSVEP EEG Dataset with Artifact Trials
+Uploaded by:Velu Prabhakar Kumaravel on 2023-09-08 - 5 months ago
+|
+Updated:2023-09-08 - 5 months ago
+
+MODALITY:
+EEG
+TASKS:
+unnamed
+OPENNEURO ACCESSION NUMBER:ds004745
+SESSIONS:1
+PARTICIPANTS:6
+PARTICIPANTS' AGES: N/A
+SIZE:242.08MB
+FILES:30
+Le Petit Prince Hong Kong: Naturalistic fMRI and EEG dataset from older Cantonese speakers
+Uploaded by:Zhengwu Ma on 2023-08-27 - 6 months ago
+|
+Updated:2023-12-26 - about 1 month ago
+
+MODALITIES:
+MRIEEG
+TASKS:
+lppHK
+OPENNEURO ACCESSION NUMBER:ds004718
+SESSIONS:1
+PARTICIPANTS:52
+PARTICIPANTS' AGES: 65 - 77
+SIZE:37.24GB
+FILES:762
+Spatial memory and non-invasive closed-loop stimulus timing
+Uploaded by:Joseph Rudoler on 2023-08-16 - 6 months ago
+|
+Updated:2023-08-22 - 6 months ago
+
+MODALITY:
+EEG
+TASKS:
+NiclsCourierClosedLoopNiclsCourierReadOnly
+OPENNEURO ACCESSION NUMBER:ds004706
+SESSIONS:9
+PARTICIPANTS:34
+PARTICIPANTS' AGES: N/A
+SIZE:1.3TB
+FILES:2,711
+ANDI
+Uploaded by:Kevin King on 2023-08-05 - 6 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+nback
+OPENNEURO ACCESSION NUMBER:ds004661
+SESSIONS:1
+PARTICIPANTS:17
+PARTICIPANTS' AGES: N/A
+SIZE:1.4GB
+FILES:90
+TNO
+Uploaded by:Kevin King on 2023-08-05 - 6 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+P300
+OPENNEURO ACCESSION NUMBER:ds004660
+SESSIONS:1
+PARTICIPANTS:21
+PARTICIPANTS' AGES: N/A
+SIZE:7.25GB
+FILES:299
+Driving with Autonomous Aids
+Uploaded by:Kevin King on 2023-08-05 - 6 months ago
+|
+Updated:2023-11-14 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+Drive
+OPENNEURO ACCESSION NUMBER:ds004657
+SESSIONS:6
+PARTICIPANTS:24
+PARTICIPANTS' AGES: N/A
+SIZE:43.06GB
+FILES:838
+Gaffrey Lab Infant Microstates Reliability
+Uploaded by:Gaffrey Lab on 2023-07-11 - 7 months ago
+|
+Updated:2024-01-25 - 14 days ago
+
+MODALITY:
+EEG
+TASKS:
+resting
+OPENNEURO ACCESSION NUMBER:ds004635
+SESSIONS:1
+PARTICIPANTS:48
+PARTICIPANTS' AGES: N/A
+SIZE:26.05GB
+FILES:292
+Can we dissociate hypervigilance to social threats from altered perceptual decision-making processes in lonely individuals? An exploration with Drift Diffusion Modelling and event-related potentials.
+Uploaded by:Łukasz Okruszek on 2023-07-06 - 7 months ago
+|
+Updated:2023-08-07 - 6 months ago
+
+MODALITY:
+EEG
+TASKS:
+DotProbe
+OPENNEURO ACCESSION NUMBER:ds004626
+SESSIONS:1
+PARTICIPANTS:52
+PARTICIPANTS' AGES: 19 - 35
+SIZE:19.87GB
+FILES:266
+Mind in Motion Young Adults Walking Over Uneven Terrain
+Uploaded by:Chang Liu on 2023-07-02 - 7 months ago
+|
+Updated:2023-07-04 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds004625
+SESSIONS:1
+PARTICIPANTS:32
+PARTICIPANTS' AGES: 20 - 35
+SIZE:62.46GB
+FILES:3,435
+The Nencki-Symfonia EEG/ERP dataset
+Uploaded by:Patrycja Dzianok on 2023-06-26 - 8 months ago
+|
+Updated:2023-10-12 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+Extended Multi-Source Interference Task (MSIT+)OddballResting state protocol (REST)Simple reaction time task (SRT)
+OPENNEURO ACCESSION NUMBER:ds004621
+SESSIONS:1
+PARTICIPANTS:42
+PARTICIPANTS' AGES: 20 - 34
+SIZE:77.38GB
+FILES:848
+Visual Attribute-Specific Contextual Trajectory Paradigm
+Uploaded by:Benjamin G. Lowe on 2023-06-13 - 8 months ago
+|
+Updated:2023-09-21 - 5 months ago
+
+MODALITY:
+EEG
+TASKS:
+CTP
+OPENNEURO ACCESSION NUMBER:ds004603
+SESSIONS:1
+PARTICIPANTS:37
+PARTICIPANTS' AGES: 17 - 30
+SIZE:27.37GB
+FILES:338
+Registered Replication Report of ERN/Pe Psychometrics
+Uploaded by:Peter Clayson on 2023-06-12 - 8 months ago
+|
+Updated:2023-08-27 - 6 months ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds004602
+SESSIONS:1
+PARTICIPANTS:182
+PARTICIPANTS' AGES: N/A
+SIZE:73.91GB
+FILES:3,828
+LFP during linear track in 6-month old TgF344-AD rats
+Uploaded by:Monica van den Berg on 2023-06-12 - 8 months ago
+|
+Updated:2023-07-10 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+Lineartrack
+OPENNEURO ACCESSION NUMBER:ds004598
+SESSIONS:3
+PARTICIPANTS:9
+PARTICIPANTS' AGES: N/A
+SIZE:9.94GB
+FILES:63
+EEG: RL Task (3-Armed Bandit) with alcohol cues in hazardous drinkers and ctls
+Uploaded by:James F Cavanagh on 2023-06-09 - 8 months ago
+|
+Updated:2023-06-09 - 8 months ago
+
+MODALITY:
+EEG
+TASKS:
+ThreeArmedBandit
+OPENNEURO ACCESSION NUMBER:ds004595
+SESSIONS:1
+PARTICIPANTS:53
+PARTICIPANTS' AGES: 18 - 55
+SIZE:7.81GB
+FILES:569
+Neuma
+Uploaded by:Kostas Georgiadis on 2023-06-01 - 8 months ago
+|
+Updated:2023-06-01 - 8 months ago
+
+MODALITY:
+EEG
+TASKS:
+unnamed
+OPENNEURO ACCESSION NUMBER:ds004588
+SESSIONS:1
+PARTICIPANTS:42
+PARTICIPANTS' AGES: N/A
+SIZE:534.06MB
+FILES:216
+Rest eyes open
+Uploaded by:Nandakumar Narayanan on 2023-05-31 - 8 months ago
+|
+Updated:2023-05-31 - 8 months ago
+
+MODALITY:
+EEG
+TASKS:
+Rest
+OPENNEURO ACCESSION NUMBER:ds004584
+SESSIONS:1
+PARTICIPANTS:149
+PARTICIPANTS' AGES: N/A
+SIZE:2.87GB
+FILES:1,049
+Simon-conflict Task.
+Uploaded by:Nandakumar Narayanan on 2023-05-25 - 9 months ago
+|
+Updated:2023-05-25 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+Simon
+OPENNEURO ACCESSION NUMBER:ds004580
+SESSIONS:1
+PARTICIPANTS:147
+PARTICIPANTS' AGES: N/A
+SIZE:15.84GB
+FILES:1,182
+Interval Timing Task
+Uploaded by:Nandakumar Narayanan on 2023-05-25 - 9 months ago
+|
+Updated:2023-05-25 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+IntervalTiming
+OPENNEURO ACCESSION NUMBER:ds004579
+SESSIONS:1
+PARTICIPANTS:139
+PARTICIPANTS' AGES: N/A
+SIZE:24.12GB
+FILES:979
+Dataset containing resting EEG for a sample of 103 normal infants in the first year of life
+Uploaded by:Thalia Harmony on 2023-05-24 - 9 months ago
+|
+Updated:2023-05-25 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+EEG
+OPENNEURO ACCESSION NUMBER:ds004577
+SESSIONS:4
+PARTICIPANTS:103
+PARTICIPANTS' AGES: N/A
+SIZE:652.67MB
+FILES:914
+Cross-modal Oddball Task.
+Uploaded by:Nandakumar Narayanan on 2023-05-24 - 9 months ago
+|
+Updated:2023-05-24 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+Oddball
+OPENNEURO ACCESSION NUMBER:ds004574
+SESSIONS:1
+PARTICIPANTS:146
+PARTICIPANTS' AGES: N/A
+SIZE:13.48GB
+FILES:1,174
+OTKA PLB-HYP Study1
+Uploaded by:Yeganeh Farahzadi on 2023-05-20 - 9 months ago
+|
+Updated:2024-01-18 - 21 days ago
+
+MODALITY:
+EEG
+TASKS:
+baseline1baseline2experience1experience2experience3experience4induction1induction2induction3induction4
+OPENNEURO ACCESSION NUMBER:ds004572
+SESSIONS:1
+PARTICIPANTS:52
+PARTICIPANTS' AGES: N/A
+SIZE:43.56GB
+FILES:3,153
+Vicarious touch: overlapping neural patterns between seeing and feeling touch
+Uploaded by:Sophie Smit on 2023-05-10 - 9 months ago
+|
+Updated:2023-07-06 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+Touch decoding
+OPENNEURO ACCESSION NUMBER:ds004563
+SESSIONS:3
+PARTICIPANTS:40
+PARTICIPANTS' AGES: 17 - 40
+SIZE:100.89GB
+FILES:377
+Illusion of Agency over Electrically-Actuated Movements
+Uploaded by:John Veillette on 2023-05-03 - 9 months ago
+|
+Updated:2023-05-03 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+agencyRT
+OPENNEURO ACCESSION NUMBER:ds004561
+SESSIONS:1
+PARTICIPANTS:23
+PARTICIPANTS' AGES: 19 - 24
+SIZE:97.67GB
+FILES:212
+Forced Picture Naming Task
+Uploaded by:Binbin XU on 2023-04-21 - 10 months ago
+|
+Updated:2023-04-28 - 10 months ago
+
+MODALITY:
+EEG
+TASKS:
+picturenaming
+OPENNEURO ACCESSION NUMBER:ds004554
+SESSIONS:1
+PARTICIPANTS:16
+PARTICIPANTS' AGES: N/A
+SIZE:8.78GB
+FILES:101
+EEG: Probabilistic Selection Task (PST) + PST with Cabergoline Challenge
+Uploaded by:James F Cavanagh on 2023-03-15 - 11 months ago
+|
+Updated:2023-05-18 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+PST
+OPENNEURO ACCESSION NUMBER:ds004532
+SESSIONS:2
+PARTICIPANTS:110
+PARTICIPANTS' AGES: 18 - 30
+SIZE:21.76GB
+FILES:1,009
+Changes in behavioral priority influence the accessibility of working memory content - Experiment 1
+Uploaded by:Edward Ester on 2023-03-05 - 11 months ago
+|
+Updated:2023-03-07 - 11 months ago
+
+MODALITY:
+EEG
+TASKS:
+Postcues
+OPENNEURO ACCESSION NUMBER:ds004521
+SESSIONS:1
+PARTICIPANTS:34
+PARTICIPANTS' AGES: N/A
+SIZE:10.68GB
+FILES:242
+Changes in behavioral priority influence the accessibility of working memory content - Experiment 2
+Uploaded by:Edward Ester on 2023-03-04 - 11 months ago
+|
+Updated:2023-03-06 - 11 months ago
+
+MODALITY:
+EEG
+TASKS:
+Retrocue
+OPENNEURO ACCESSION NUMBER:ds004520
+SESSIONS:1
+PARTICIPANTS:33
+PARTICIPANTS' AGES: N/A
+SIZE:10.41GB
+FILES:235
+Internal selective attention is delayed by competition between endogenous and exogenous factors
+Uploaded by:Edward Ester on 2023-03-03 - 11 months ago
+|
+Updated:2023-03-04 - 11 months ago
+
+MODALITY:
+EEG
+TASKS:
+ProAntiCue
+OPENNEURO ACCESSION NUMBER:ds004519
+SESSIONS:1
+PARTICIPANTS:40
+PARTICIPANTS' AGES: N/A
+SIZE:12.56GB
+FILES:286
+EEG: Alcohol imagery reinforcement learning task with light and heavy drinker participants
+Uploaded by:James F Cavanagh on 2023-03-01 - 11 months ago
+|
+Updated:2023-03-15 - 11 months ago
+
+MODALITY:
+EEG
+TASKS:
+ProbabilisticSelection
+OPENNEURO ACCESSION NUMBER:ds004515
+SESSIONS:1
+PARTICIPANTS:54
+PARTICIPANTS' AGES: 18 - 55
+SIZE:9.48GB
+FILES:1,076
+Deception_data
+Uploaded by:Anshu Te on 2023-02-22 - 12 months ago
+|
+Updated:2023-06-05 - 8 months ago
+
+MODALITY:
+EEG
+TASKS:
+CCGGRest
+OPENNEURO ACCESSION NUMBER:ds004511
+SESSIONS:2
+PARTICIPANTS:45
+PARTICIPANTS' AGES: 20 - 43
+SIZE:202.28GB
+FILES:993
+Real World Table Tennis
+Uploaded by:Amanda Studnicki on 2023-02-17 - 12 months ago
+|
+Updated:2023-06-28 - 8 months ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+TableTennis
+OPENNEURO ACCESSION NUMBER:ds004505
+SESSIONS:1
+PARTICIPANTS:25
+PARTICIPANTS' AGES: N/A
+SIZE:34.57GB
+FILES:230
+A dataset of EEG recordings from: Alzheimer's disease, Frontotemporal dementia and Healthy subjects
+Uploaded by:ΑΝΔΡΕΑΣ ΜΙΛΤΙΑΔΟΥΣ on 2023-02-17 - 12 months ago
+|
+Updated:2023-07-13 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+eyesclosed
+OPENNEURO ACCESSION NUMBER:ds004504
+SESSIONS:1
+PARTICIPANTS:88
+PARTICIPANTS' AGES: N/A
+SIZE:2.64GB
+FILES:269
+Anticipatory differences between Attention and Expectation
+Uploaded by:José M. G. Peñalver on 2023-02-16 - 12 months ago
+|
+Updated:2023-03-06 - 11 months ago
+
+MODALITY:
+EEG
+TASKS:
+attexp
+OPENNEURO ACCESSION NUMBER:ds004502
+SESSIONS:1
+PARTICIPANTS:48
+PARTICIPANTS' AGES: 18 - 28
+SIZE:59.44GB
+FILES:319
+PES - Pandemic Emergency Scenario
+Uploaded by:Rodrigo Ramele on 2023-02-08 - about 1 year ago
+|
+Updated:2023-10-29 - 3 months ago
+
+MODALITY:
+EEG
+TASKS:
+PES
+OPENNEURO ACCESSION NUMBER:ds004477
+SESSIONS:1
+PARTICIPANTS:9
+PARTICIPANTS' AGES: N/A
+SIZE:22.34GB
+FILES:68
+Mobile EEG split-belt walking study
+Uploaded by:Noelle Jacobsen on 2023-02-08 - about 1 year ago
+|
+Updated:2023-07-31 - 6 months ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+task
+OPENNEURO ACCESSION NUMBER:ds004475
+SESSIONS:1
+PARTICIPANTS:30
+PARTICIPANTS' AGES: N/A
+SIZE:48.54GB
+FILES:246
+EEG and motion capture data set for a full-body/joystick rotation task
+Uploaded by:Sein Jeung on 2023-02-02 - about 1 year ago
+|
+Updated:2024-02-08 - about 6 hours ago
+
+MODALITY:
+EEG
+TASKS:
+Rotation
+OPENNEURO ACCESSION NUMBER:ds004460
+SESSIONS:2
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 21 - 34
+SIZE:59.07GB
+FILES:346
+The BMI-HDEEG dataset 4
+Uploaded by:Seitaro Iwama on 2023-01-25 - about 1 year ago
+|
+Updated:2023-09-22 - 5 months ago
+
+MODALITY:
+EEG
+TASKS:
+smrbmi
+OPENNEURO ACCESSION NUMBER:ds004448
+SESSIONS:5
+PARTICIPANTS:56
+PARTICIPANTS' AGES: 19 - 58
+SIZE:38.17GB
+FILES:1,407
+The BMI-HDEEG dataset 3
+Uploaded by:Seitaro Iwama on 2023-01-25 - about 1 year ago
+|
+Updated:2023-07-20 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+smrbmi
+OPENNEURO ACCESSION NUMBER:ds004447
+SESSIONS:20
+PARTICIPANTS:22
+PARTICIPANTS' AGES: 18 - 27
+SIZE:20.73GB
+FILES:2,094
+The BMI-HDEEG dataset 2
+Uploaded by:Seitaro Iwama on 2023-01-25 - about 1 year ago
+|
+Updated:2023-07-20 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+smrbmi
+OPENNEURO ACCESSION NUMBER:ds004446
+SESSIONS:8
+PARTICIPANTS:30
+PARTICIPANTS' AGES: 18 - 27
+SIZE:29.23GB
+FILES:1,192
+The BMI-HDEEG dataset 1
+Uploaded by:Seitaro Iwama on 2023-01-25 - about 1 year ago
+|
+Updated:2023-07-20 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+smrbmi
+OPENNEURO ACCESSION NUMBER:ds004444
+SESSIONS:16
+PARTICIPANTS:30
+PARTICIPANTS' AGES: 18 - 27
+SIZE:48.62GB
+FILES:2,332
+EEG responses to continuous naturalistic speech
+Uploaded by:Ole Bialas on 2023-01-17 - about 1 year ago
+|
+Updated:2023-08-01 - 6 months ago
+
+MODALITY:
+EEG
+TASKS:
+listening
+OPENNEURO ACCESSION NUMBER:ds004408
+SESSIONS:1
+PARTICIPANTS:19
+PARTICIPANTS' AGES: N/A
+SIZE:18.7GB
+FILES:1,946
+Penn Electrophysiology of Encoding and Retrieval Study (PEERS)
+Uploaded by:Joseph Rudoler on 2023-01-10 - about 1 year ago
+|
+Updated:2023-06-01 - 8 months ago
+
+MODALITY:
+EEG
+TASKS:
+ltpFRltpFR2VFFR
+OPENNEURO ACCESSION NUMBER:ds004395
+SESSIONS:24
+PARTICIPANTS:364
+PARTICIPANTS' AGES: N/A
+SIZE:8.72TB
+FILES:62,638
+Intraoperative SEP with stimulation rates 2.7-28.7 Hz
+Uploaded by:Vasileios S. Dimakopoulos on 2022-12-20 - about 1 year ago
+|
+Updated:2023-04-13 - 10 months ago
+
+MODALITY:
+EEG
+TASKS:
+sepRate
+OPENNEURO ACCESSION NUMBER:ds004381
+SESSIONS:4
+PARTICIPANTS:14
+PARTICIPANTS' AGES: 29 - 87
+SIZE:4.64GB
+FILES:1,069
+Blink-Pause-Relation (Competing Speaker Paradigm)
+Uploaded by:Björn Holtze on 2022-12-16 - about 1 year ago
+|
+Updated:2023-02-06 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+attendedSpeakerParadigm
+OPENNEURO ACCESSION NUMBER:ds004369
+SESSIONS:1
+PARTICIPANTS:41
+PARTICIPANTS' AGES: 18 - 33
+SIZE:2.03GB
+FILES:345
+Meta-rdk: Preprocessed EEG data
+Uploaded by:Martin Rouy on 2022-12-15 - about 1 year ago
+|
+Updated:2022-12-15 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+task
+OPENNEURO ACCESSION NUMBER:ds004368
+SESSIONS:2
+PARTICIPANTS:39
+PARTICIPANTS' AGES: N/A
+SIZE:997.14MB
+FILES:206
+Meta-rdk: Raw EEG data
+Uploaded by:Martin Rouy on 2022-12-15 - about 1 year ago
+|
+Updated:2022-12-15 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+rdk
+OPENNEURO ACCESSION NUMBER:ds004367
+SESSIONS:1
+PARTICIPANTS:40
+PARTICIPANTS' AGES: N/A
+SIZE:27.98GB
+FILES:206
+EEG Motor Movement/Imagery Dataset
+Uploaded by:Liana Pakingan on 2022-12-12 - about 1 year ago
+|
+Updated:2022-12-15 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+motion
+OPENNEURO ACCESSION NUMBER:ds004362
+SESSIONS:1
+PARTICIPANTS:109
+PARTICIPANTS' AGES: N/A
+SIZE:7.77GB
+FILES:9,162
+Features-EEG
+Uploaded by:Tijl Grootswagers on 2022-12-08 - about 1 year ago
+|
+Updated:2024-01-10 - 30 days ago
+
+MODALITY:
+EEG
+TASKS:
+rsvp
+OPENNEURO ACCESSION NUMBER:ds004357
+SESSIONS:1
+PARTICIPANTS:16
+PARTICIPANTS' AGES: N/A
+SIZE:19.34GB
+FILES:71
+Subcortical responses to music and speech are alike while cortical responses diverge
+Uploaded by:Tong Shan (TeenagingCu) on 2022-12-06 - about 1 year ago
+|
+Updated:2024-01-18 - 21 days ago
+
+MODALITY:
+EEG
+TASKS:
+MusicvsSpeech
+OPENNEURO ACCESSION NUMBER:ds004356
+SESSIONS:1
+PARTICIPANTS:22
+PARTICIPANTS' AGES: 19 - 37
+SIZE:213.08GB
+FILES:639
+Executive Functioning Data
+Uploaded by:Liana Pakingan on 2022-12-04 - about 1 year ago
+|
+Updated:2022-12-09 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+LGNBSART
+OPENNEURO ACCESSION NUMBER:ds004350
+SESSIONS:2
+PARTICIPANTS:24
+PARTICIPANTS' AGES: N/A
+SIZE:21.37GB
+FILES:960
+Ear-EEG Sleep Monitoring 2017 (EESM17)
+Uploaded by:kaare mikkelsen on 2022-11-29 - about 1 year ago
+|
+Updated:2023-10-16 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+Sleep
+OPENNEURO ACCESSION NUMBER:ds004348
+SESSIONS:1
+PARTICIPANTS:9
+PARTICIPANTS' AGES: N/A
+SIZE:8.19GB
+FILES:113
+Symmetry perception and affective responses: a combined EEG/EMG study
+Uploaded by:John Tyson-Carr on 2022-11-28 - about 1 year ago
+|
+Updated:2022-11-28 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+jacobsen
+OPENNEURO ACCESSION NUMBER:ds004347
+SESSIONS:1
+PARTICIPANTS:24
+PARTICIPANTS' AGES: N/A
+SIZE:2.4GB
+FILES:173
+ToonFaces
+Uploaded by:Alberto Barradas on 2022-11-02 - over 1 year ago
+|
+Updated:2023-03-08 - 11 months ago
+
+MODALITY:
+EEG
+TASKS:
+RSVP
+OPENNEURO ACCESSION NUMBER:ds004324
+SESSIONS:1
+PARTICIPANTS:26
+PARTICIPANTS' AGES: N/A
+SIZE:2.46GB
+FILES:161
+Mood Manipulation and PST, Experiment 2
+Uploaded by:Trevor Clinton James Jackson on 2022-10-27 - over 1 year ago
+|
+Updated:2022-10-27 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+PST
+OPENNEURO ACCESSION NUMBER:ds004317
+SESSIONS:1
+PARTICIPANTS:50
+PARTICIPANTS' AGES: 18 - 53
+SIZE:18.29GB
+FILES:425
+Mood Manipulation and PST, Experiment 1
+Uploaded by:Trevor Clinton James Jackson on 2022-10-27 - over 1 year ago
+|
+Updated:2022-10-27 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+PST
+OPENNEURO ACCESSION NUMBER:ds004315
+SESSIONS:1
+PARTICIPANTS:50
+PARTICIPANTS' AGES: 19 - 55
+SIZE:9.81GB
+FILES:463
+EEG Semantic Imagination and Perception Dataset
+Uploaded by:Holly Wilson on 2022-10-25 - over 1 year ago
+|
+Updated:2023-09-27 - 4 months ago
+
+MODALITY:
+EEG
+TASKS:
+experiment
+OPENNEURO ACCESSION NUMBER:ds004306
+SESSIONS:3
+PARTICIPANTS:12
+PARTICIPANTS' AGES: N/A
+SIZE:654.95MB
+FILES:514
+Reward gain and punishment avoidance reversal learning
+Uploaded by:Christopher Stolz on 2022-10-15 - over 1 year ago
+|
+Updated:2022-10-15 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+task
+OPENNEURO ACCESSION NUMBER:ds004295
+SESSIONS:1
+PARTICIPANTS:26
+PARTICIPANTS' AGES: N/A
+SIZE:31.51GB
+FILES:158
+eeg-neuroforecasting
+Uploaded by:John Veillette on 2022-10-03 - over 1 year ago
+|
+Updated:2022-10-03 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+kickstarter
+OPENNEURO ACCESSION NUMBER:ds004284
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: N/A
+SIZE:16.36GB
+FILES:167
+Large Spanish EEG
+Uploaded by:CARLOS VALLE ARAYA on 2022-09-26 - over 1 year ago
+|
+Updated:2023-08-31 - 5 months ago
+
+MODALITY:
+EEG
+TASKS:
+sentences
+OPENNEURO ACCESSION NUMBER:ds004279
+SESSIONS:4
+PARTICIPANTS:56
+PARTICIPANTS' AGES: 19 - 29
+SIZE:25.22GB
+FILES:305
+Steer the Ship
+Uploaded by:Cameron Hassall on 2022-09-13 - over 1 year ago
+|
+Updated:2022-10-06 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+steertheship
+OPENNEURO ACCESSION NUMBER:ds004264
+SESSIONS:1
+PARTICIPANTS:21
+PARTICIPANTS' AGES: 21 - 41
+SIZE:3.3GB
+FILES:194
+Continuous Feedback Processing
+Uploaded by:Cameron Hassall on 2022-09-07 - over 1 year ago
+|
+Updated:2022-09-07 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+gnomes
+OPENNEURO ACCESSION NUMBER:ds004262
+SESSIONS:1
+PARTICIPANTS:21
+PARTICIPANTS' AGES: 21 - 41
+SIZE:3.47GB
+FILES:194
+Encoding of Sound Source Elevation in Human Cortex
+Uploaded by:Ole Bialas on 2022-08-29 - over 1 year ago
+|
+Updated:2022-09-24 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+deviantdetectiononeback
+OPENNEURO ACCESSION NUMBER:ds004256
+SESSIONS:1
+PARTICIPANTS:53
+PARTICIPANTS' AGES: N/A
+SIZE:18.18GB
+FILES:584
+Rotation-tolerant representations elucidate the time course of high-level object processing
+Uploaded by:Denise Moerel on 2022-08-16 - over 1 year ago
+|
+Updated:2022-08-17 - over 1 year ago
+
+MODALITY:
+EEG
+OPENNEURO ACCESSION NUMBER:ds004252
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANTS' AGES: N/A
+SIZE:1.3GB
+FILES:7
+Temporal Scaling
+Uploaded by:Cameron Hassall on 2022-07-11 - over 1 year ago
+|
+Updated:2022-10-06 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+temporalscaling
+OPENNEURO ACCESSION NUMBER:ds004200
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 20 - 77
+SIZE:7.21GB
+FILES:166
+Bimodal dataset on Inner speech
+Uploaded by:Foteini Simistira Liwicki on 2022-07-07 - over 1 year ago
+|
+Updated:2023-06-16 - 8 months ago
+
+MODALITIES:
+MRIEEG
+TASKS:
+InnerSpeechInner Speech
+OPENNEURO ACCESSION NUMBER:ds004196
+SESSIONS:3
+PARTICIPANTS:4
+PARTICIPANTS' AGES: N/A
+SIZE:9.33GB
+FILES:109
+HBN EO/EC task
+Uploaded by:Arnaud Delorme on 2022-07-01 - over 1 year ago
+|
+Updated:2022-07-15 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds004186
+SESSIONS:1
+PARTICIPANTS:2,951
+PARTICIPANTS' AGES: 5 - 21
+SIZE:215.56GB
+FILES:177,065
+Effects of Forward and Backward Span Trainings on Working Memory: Evidence from a Randomized, Controlled Trial
+Uploaded by:Jun Li on 2022-06-17 - over 1 year ago
+|
+Updated:2022-06-17 - over 1 year ago
+
+MODALITY:
+EEG
+OPENNEURO ACCESSION NUMBER:ds004166
+SESSIONS:3
+PARTICIPANTS:71
+PARTICIPANTS' AGES: 18 - 27
+SIZE:77.37GB
+FILES:431
+Drum Trainer
+Uploaded by:Cameron Hassall on 2022-06-14 - over 1 year ago
+|
+Updated:2022-09-07 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+drumtrainer
+OPENNEURO ACCESSION NUMBER:ds004152
+SESSIONS:1
+PARTICIPANTS:21
+PARTICIPANTS' AGES: 21 - 41
+SIZE:4.77GB
+FILES:194
+Effect of obesity on inhibitory control in preadolescents during stop-signal task. An event-related potentials study
+Uploaded by:Graciela Catalina Alatorre Cruz on 2022-06-13 - over 1 year ago
+|
+Updated:2022-06-14 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+Stop-signal task
+OPENNEURO ACCESSION NUMBER:ds004151
+SESSIONS:1
+PARTICIPANTS:57
+PARTICIPANTS' AGES: N/A
+SIZE:23.14GB
+FILES:408
+A test-retest resting and cognitive state EEG dataset
+Uploaded by:Yulin Wang on 2022-06-08 - over 1 year ago
+|
+Updated:2022-06-13 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+eyes closedmathematiceyes openmemorymusic
+OPENNEURO ACCESSION NUMBER:ds004148
+SESSIONS:3
+PARTICIPANTS:60
+PARTICIPANTS' AGES: 18 - 28
+SIZE:30.67GB
+FILES:5,585
+Average Task Value
+Uploaded by:Cameron Hassall on 2022-06-07 - over 1 year ago
+|
+Updated:2024-01-24 - 15 days ago
+
+MODALITY:
+EEG
+TASKS:
+casinos
+OPENNEURO ACCESSION NUMBER:ds004147
+SESSIONS:1
+PARTICIPANTS:12
+PARTICIPANTS' AGES: 22 - 77
+SIZE:4GB
+FILES:113
+BCIT Traffic Complexity
+Uploaded by:Kay Robbins on 2022-05-03 - almost 2 years ago
+|
+Updated:2022-05-04 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+DriveWithComplexity
+OPENNEURO ACCESSION NUMBER:ds004123
+SESSIONS:1
+PARTICIPANTS:29
+PARTICIPANTS' AGES: N/A
+SIZE:17.52GB
+FILES:273
+BCIT Speed Control
+Uploaded by:Kay Robbins on 2022-05-03 - almost 2 years ago
+|
+Updated:2022-05-04 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Drive
+OPENNEURO ACCESSION NUMBER:ds004122
+SESSIONS:1
+PARTICIPANTS:32
+PARTICIPANTS' AGES: N/A
+SIZE:36.16GB
+FILES:450
+BCIT Mind Wandering
+Uploaded by:Kay Robbins on 2022-05-03 - almost 2 years ago
+|
+Updated:2022-05-03 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+DriveWithTaskAudio
+OPENNEURO ACCESSION NUMBER:ds004121
+SESSIONS:1
+PARTICIPANTS:21
+PARTICIPANTS' AGES: N/A
+SIZE:23.91GB
+FILES:391
+BCIT Baseline Driving
+Uploaded by:Kay Robbins on 2022-05-03 - almost 2 years ago
+|
+Updated:2022-05-04 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+DriveWithSpeedChange
+OPENNEURO ACCESSION NUMBER:ds004120
+SESSIONS:3
+PARTICIPANTS:109
+PARTICIPANTS' AGES: N/A
+SIZE:302.49GB
+FILES:1,266
+BCIT Basic Guard Duty
+Uploaded by:Kay Robbins on 2022-05-02 - almost 2 years ago
+|
+Updated:2022-05-04 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+GuardDuty
+OPENNEURO ACCESSION NUMBER:ds004119
+SESSIONS:1
+PARTICIPANTS:21
+PARTICIPANTS' AGES: N/A
+SIZE:55.14GB
+FILES:201
+BCIT Calibration Driving
+Uploaded by:Kay Robbins on 2022-05-02 - almost 2 years ago
+|
+Updated:2022-05-04 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Drive
+OPENNEURO ACCESSION NUMBER:ds004118
+SESSIONS:7
+PARTICIPANTS:156
+PARTICIPANTS' AGES: N/A
+SIZE:124.34GB
+FILES:2,294
+Sternberg Working Memory
+Uploaded by:Kay Robbins on 2022-05-01 - almost 2 years ago
+|
+Updated:2022-06-16 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+WorkingMemory
+OPENNEURO ACCESSION NUMBER:ds004117
+SESSIONS:1
+PARTICIPANTS:23
+PARTICIPANTS' AGES: 19 - 40
+SIZE:5.8GB
+FILES:601
+BCIT Advanced Guard Duty
+Uploaded by:Kay Robbins on 2022-04-21 - almost 2 years ago
+|
+Updated:2022-04-29 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+GuardDuty
+OPENNEURO ACCESSION NUMBER:ds004106
+SESSIONS:1
+PARTICIPANTS:27
+PARTICIPANTS' AGES: N/A
+SIZE:67.61GB
+FILES:260
+BCIT Auditory Cueing
+Uploaded by:Kay Robbins on 2022-04-21 - almost 2 years ago
+|
+Updated:2022-05-04 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+DriveRandomSound
+OPENNEURO ACCESSION NUMBER:ds004105
+SESSIONS:1
+PARTICIPANTS:17
+PARTICIPANTS' AGES: N/A
+SIZE:20.37GB
+FILES:245
+what_are_we_talking_about
+Uploaded by:Adam Boncz on 2022-03-18 - almost 2 years ago
+|
+Updated:2022-03-18 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+context03context09context10context11
+OPENNEURO ACCESSION NUMBER:ds004075
+SESSIONS:1
+PARTICIPANTS:29
+PARTICIPANTS' AGES: N/A
+SIZE:7.39GB
+FILES:466
+Moral conviction and metacognitive ability shape multiple stages of information processing
+Uploaded by:Keith Yoder on 2022-03-13 - almost 2 years ago
+|
+Updated:2022-03-13 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Sociopolitical Judgment Task
+OPENNEURO ACCESSION NUMBER:ds004067
+SESSIONS:1
+PARTICIPANTS:80
+PARTICIPANTS' AGES: N/A
+SIZE:100.79GB
+FILES:257
+The time-course of feature-based attention effects dissociated from temporal expectation and target-related processes
+Uploaded by:Tijl Grootswagers on 2022-02-25 - almost 2 years ago
+|
+Updated:2022-02-25 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Temporal expectation
+OPENNEURO ACCESSION NUMBER:ds004043
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: N/A
+SIZE:15.44GB
+FILES:84
+Trance channeling EEG study
+Uploaded by:Arnaud Delorme on 2022-02-23 - almost 2 years ago
+|
+Updated:2022-02-24 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+trance
+OPENNEURO ACCESSION NUMBER:ds004040
+SESSIONS:2
+PARTICIPANTS:13
+PARTICIPANTS' AGES: N/A
+SIZE:11.59GB
+FILES:160
+Electrode walking study
+Uploaded by:Joanna Scanlon on 2022-02-18 - almost 2 years ago
+|
+Updated:2022-02-09 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds004033
+SESSIONS:2
+PARTICIPANTS:18
+PARTICIPANTS' AGES: 20 - 28
+SIZE:19.81GB
+FILES:293
+TMS-EEG-MRI-fMRI-DWI data on paired associative stimulation and connectivity (Shirley Ryan AbilityLab, Chicago, IL)
+Uploaded by:Tommi Raij on 2022-02-11 - almost 2 years ago
+|
+Updated:2022-10-19 - over 1 year ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+ccPASrestspTMSRest
+OPENNEURO ACCESSION NUMBER:ds004024
+SESSIONS:4
+PARTICIPANTS:13
+PARTICIPANTS' AGES: N/A
+SIZE:1021.22GB
+FILES:3,141
+Multimodal EEG and fNIRS Biosignal Acquisition during Motor Imagery Tasks in Patients with Orthopedic Impairment
+Uploaded by:‍김동주[ 부교수 / 뇌공학과 ] on 2022-02-11 - almost 2 years ago
+|
+Updated:2022-02-09 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Motor Imagery
+OPENNEURO ACCESSION NUMBER:ds004022
+SESSIONS:1
+PARTICIPANTS:7
+PARTICIPANTS' AGES: 48 - 83
+SIZE:616.57MB
+FILES:89
+Effect of obesity on arithmetic processing in preteens with high and low math skills. An event-related potentials study
+Uploaded by:Graciela Catalina Alatorre Cruz on 2022-02-09 - almost 2 years ago
+|
+Updated:2022-02-09 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Math task
+OPENNEURO ACCESSION NUMBER:ds004019
+SESSIONS:1
+PARTICIPANTS:62
+PARTICIPANTS' AGES: N/A
+SIZE:17.28GB
+FILES:441
+EEG recordings for 200 object images presented in RSVP sequences at 5Hz or 20Hz
+Uploaded by:Tijl Grootswagers on 2022-02-09 - almost 2 years ago
+|
+Updated:2022-02-01 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+rsvp
+OPENNEURO ACCESSION NUMBER:ds004018
+SESSIONS:1
+PARTICIPANTS:16
+PARTICIPANTS' AGES: 18 - 38
+SIZE:10.56GB
+FILES:350
+Embodied Learning for Literacy EEG
+Uploaded by:Marta Topor on 2022-02-08 - about 2 years ago
+|
+Updated:2023-03-20 - 11 months ago
+
+MODALITY:
+EEG
+OPENNEURO ACCESSION NUMBER:ds004017
+SESSIONS:3
+PARTICIPANTS:21
+PARTICIPANTS' AGES: N/A
+SIZE:20.93GB
+FILES:382
+Attended speaker paradigm (cEEGrid data)
+Uploaded by:Björn Holtze on 2022-02-03 - about 2 years ago
+|
+Updated:2022-10-04 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+AttendedSpeakerParadigmcEEGridAttention
+OPENNEURO ACCESSION NUMBER:ds004015
+SESSIONS:1
+PARTICIPANTS:36
+PARTICIPANTS' AGES: 18 - 33
+SIZE:6.03GB
+FILES:305
+MAVIS
+Uploaded by:Arnaud Delorme on 2022-01-24 - about 2 years ago
+|
+Updated:2022-01-11 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+MAVIS
+OPENNEURO ACCESSION NUMBER:ds004010
+SESSIONS:1
+PARTICIPANTS:24
+PARTICIPANTS' AGES: N/A
+SIZE:23.14GB
+FILES:102
+Fribourg Ultimatum Game in Schizophrenia Study
+Uploaded by:Anna Padée on 2022-01-19 - about 2 years ago
+|
+Updated:2022-01-11 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+responder
+OPENNEURO ACCESSION NUMBER:ds004000
+SESSIONS:1
+PARTICIPANTS:43
+PARTICIPANTS' AGES: N/A
+SIZE:22.5GB
+FILES:392
+EEG: Amphetamine trials 5CCPT and Probabilistic Learning
+Uploaded by:James F Cavanagh on 2022-01-10 - about 2 years ago
+|
+Updated:2022-01-09 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+5CCPTxPSTxAmphetamine
+OPENNEURO ACCESSION NUMBER:ds003987
+SESSIONS:3
+PARTICIPANTS:23
+PARTICIPANTS' AGES: 18 - 35
+SIZE:25.57GB
+FILES:557
+Meditation vs thinking task
+Uploaded by:Arnaud Delorme on 2021-12-23 - about 2 years ago
+|
+Updated:2021-12-10 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds003969
+SESSIONS:1
+PARTICIPANTS:98
+PARTICIPANTS' AGES: 22 - 74
+SIZE:54.46GB
+FILES:1,181
+EEG: First Episode Psychosis vs. Control Resting Task 2
+Uploaded by:Arnaud Delorme on 2021-12-01 - about 2 years ago
+|
+Updated:2022-08-12 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+rest
+OPENNEURO ACCESSION NUMBER:ds003947
+SESSIONS:1
+PARTICIPANTS:61
+PARTICIPANTS' AGES: 14 - 38
+SIZE:12.54GB
+FILES:267
+EEG: First Episode Psychosis vs. Control Resting Task 1
+Uploaded by:Arnaud Delorme on 2021-12-01 - about 2 years ago
+|
+Updated:2022-08-12 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+Rest
+OPENNEURO ACCESSION NUMBER:ds003944
+SESSIONS:1
+PARTICIPANTS:82
+PARTICIPANTS' AGES: 12 - 35
+SIZE:6.15GB
+FILES:351
+Capacity for movement is an organisational principle in object representations: EEG data from Experiment 2
+Uploaded by:Sophia Shatek on 2021-11-11 - about 2 years ago
+|
+Updated:2023-05-24 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+movement
+OPENNEURO ACCESSION NUMBER:ds003887
+SESSIONS:1
+PARTICIPANTS:24
+PARTICIPANTS' AGES: 18 - 26
+SIZE:45.73GB
+FILES:526
+Capacity for movement is an organisational principle in object representations: EEG data from Experiment 1
+Uploaded by:Sophia Shatek on 2021-11-11 - about 2 years ago
+|
+Updated:2023-05-24 - 9 months ago
+
+MODALITY:
+EEG
+TASKS:
+movement
+OPENNEURO ACCESSION NUMBER:ds003885
+SESSIONS:1
+PARTICIPANTS:24
+PARTICIPANTS' AGES: 18 - 26
+SIZE:46.15GB
+FILES:526
+Prediction Error
+Uploaded by:Lukas Gehrke on 2021-10-18 - over 2 years ago
+|
+Updated:2021-10-19 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+PredError
+OPENNEURO ACCESSION NUMBER:ds003846
+SESSIONS:4
+PARTICIPANTS:19
+PARTICIPANTS' AGES: 18 - 34
+SIZE:10.55GB
+FILES:366
+EEG, pupillometry, ECG and photoplethysmography, and behavioral data in the digit span task and rest
+Uploaded by:Yuri Pavlov on 2021-10-15 - over 2 years ago
+|
+Updated:2022-12-11 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds003838
+SESSIONS:1
+PARTICIPANTS:65
+PARTICIPANTS' AGES: 18 - 44
+SIZE:100.21GB
+FILES:947
+Human electroencephalography recordings from 50 subjects for 22,248 images from 1,854 object concepts
+Uploaded by:Tijl Grootswagers on 2021-09-30 - over 2 years ago
+|
+Updated:2022-10-10 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+rsvp
+OPENNEURO ACCESSION NUMBER:ds003825
+SESSIONS:1
+PARTICIPANTS:50
+PARTICIPANTS' AGES: 17 - 30
+SIZE:41.22GB
+FILES:257
+EEG: Probabilistic Learning with Affective Feedback: Exp #1
+Uploaded by:James F Cavanagh on 2021-09-29 - over 2 years ago
+|
+Updated:2021-09-27 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+ProbabilisticSelection
+OPENNEURO ACCESSION NUMBER:ds003822
+SESSIONS:1
+PARTICIPANTS:25
+PARTICIPANTS' AGES: 18 - 36
+SIZE:5.82GB
+FILES:259
+Motor Imagery vs Rest - Low-Cost EEG System
+Uploaded by:María Paula Saavedra on 2021-09-20 - over 2 years ago
+|
+Updated:2021-11-09 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+MIvsRestRUN2MIvsRestRUN3MIvsRestRUN0MIvsRestRUN1MIvsRestRUN4
+OPENNEURO ACCESSION NUMBER:ds003810
+SESSIONS:1
+PARTICIPANTS:10
+PARTICIPANTS' AGES: 20 - 30
+SIZE:69.01MB
+FILES:158
+Multisensory Gamma Entrainment
+Uploaded by:Mojtaba Lahijanian on 2021-09-15 - over 2 years ago
+|
+Updated:2021-09-27 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+MultisensoryGammaEntrainment
+OPENNEURO ACCESSION NUMBER:ds003805
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANT'S AGE: N/A
+SIZE:8.8MB
+FILES:10
+Neural Tracking to go
+Uploaded by:Lisa Straetmans on 2021-09-13 - over 2 years ago
+|
+Updated:2021-11-09 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+NeuralTrackingToGo
+OPENNEURO ACCESSION NUMBER:ds003801
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 20 - 40
+SIZE:1.15GB
+FILES:165
+Auditory Gamma Entrainment
+Uploaded by:Mojtaba Lahijanian on 2021-09-12 - over 2 years ago
+|
+Updated:2021-09-27 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+AuditoryGammaEntrainmentRest
+OPENNEURO ACCESSION NUMBER:ds003800
+SESSIONS:1
+PARTICIPANTS:13
+PARTICIPANTS' AGES: N/A
+SIZE:189.25MB
+FILES:118
+SRM Resting-state EEG
+Uploaded by:Christoffer Hatlestad-Hall on 2021-08-25 - over 2 years ago
+|
+Updated:2022-11-23 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+resteyesc
+OPENNEURO ACCESSION NUMBER:ds003775
+SESSIONS:2
+PARTICIPANTS:111
+PARTICIPANTS' AGES: 17 - 71
+SIZE:4.49GB
+FILES:617
+Music Listening- Genre EEG dataset (MUSIN-G)
+Uploaded by:Krishna Miyapuram on 2021-08-23 - over 2 years ago
+|
+Updated:2022-08-25 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+MusicListening
+OPENNEURO ACCESSION NUMBER:ds003774
+SESSIONS:12
+PARTICIPANTS:20
+PARTICIPANTS' AGES: N/A
+SIZE:10.12GB
+FILES:1,685
+Simultaneous EEG and fMRI signals during sleep from humans
+Uploaded by:yameng gu on 2021-08-16 - over 2 years ago
+|
+Updated:2023-09-11 - 5 months ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+restsleep
+OPENNEURO ACCESSION NUMBER:ds003768
+SESSIONS:1
+PARTICIPANTS:33
+PARTICIPANTS' AGES: N/A
+SIZE:86.56GB
+FILES:1,344
+EEG: Probabilistic Learning with Affective Feedback: Exp #2
+Uploaded by:James F Cavanagh on 2021-07-30 - over 2 years ago
+|
+Updated:2021-09-27 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+ProbabilisticSelection
+OPENNEURO ACCESSION NUMBER:ds003753
+SESSIONS:1
+PARTICIPANTS:25
+PARTICIPANTS' AGES: 18 - 27
+SIZE:4.62GB
+FILES:589
+Dataset on Emotion with Naturalistic Stimuli (DENS)
+Uploaded by:SUDHAKAR MISHRA on 2021-07-30 - over 2 years ago
+|
+Updated:2023-07-08 - 7 months ago
+
+MODALITY:
+EEG
+TASKS:
+Emotion
+OPENNEURO ACCESSION NUMBER:ds003751
+SESSIONS:1
+PARTICIPANTS:40
+PARTICIPANTS' AGES: 19 - 26
+SIZE:4.71GB
+FILES:200
+Perturbed beam-walking task
+Uploaded by:Steven Peterson on 2021-07-22 - over 2 years ago
+|
+Updated:2021-11-26 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+mixed
+OPENNEURO ACCESSION NUMBER:ds003739
+SESSIONS:4
+PARTICIPANTS:30
+PARTICIPANTS' AGES: 18 - 34
+SIZE:10.94GB
+FILES:965
+APPLESEED Example Dataset
+Uploaded by:Meghan Puglia on 2021-06-28 - over 2 years ago
+|
+Updated:2022-10-20 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+APPLESEED example
+OPENNEURO ACCESSION NUMBER:ds003710
+SESSIONS:4
+PARTICIPANTS:13
+PARTICIPANTS' AGES: N/A
+SIZE:10.18GB
+FILES:293
+Social Memory cuing
+Uploaded by:Samantha Gregory on 2021-06-15 - over 2 years ago
+|
+Updated:2021-06-18 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Social Memory cuing
+OPENNEURO ACCESSION NUMBER:ds003702
+SESSIONS:1
+PARTICIPANTS:47
+PARTICIPANTS' AGES: N/A
+SIZE:17.49GB
+FILES:240
+EEG, ECG and pupil data from young and older adults: rest and auditory cued reaction time tasks
+Uploaded by:Maria José Ribeiro on 2021-06-09 - over 2 years ago
+|
+Updated:2021-06-10 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+gonogopassivesimpleRT
+OPENNEURO ACCESSION NUMBER:ds003690
+SESSIONS:1
+PARTICIPANTS:75
+PARTICIPANTS' AGES: 19 - 70
+SIZE:21.46GB
+FILES:2,630
+Dataset of Concurrent EEG, ECG, and Behavior with Multiple Doses of transcranial Electrical Stimulation - BIDS
+Uploaded by:Nigel Gebodh on 2021-05-29 - over 2 years ago
+|
+Updated:2021-06-17 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+GXtESCTT
+OPENNEURO ACCESSION NUMBER:ds003670
+SESSIONS:6
+PARTICIPANTS:25
+PARTICIPANTS' AGES: 19 - 43
+SIZE:72.22GB
+FILES:512
+VerbalWorkingMemory
+Uploaded by:Yuri Pavlov on 2021-05-17 - over 2 years ago
+|
+Updated:2023-05-31 - 8 months ago
+
+MODALITY:
+EEG
+TASKS:
+VerbalWorkingMemory
+OPENNEURO ACCESSION NUMBER:ds003655
+SESSIONS:1
+PARTICIPANTS:156
+PARTICIPANTS' AGES: N/A
+SIZE:20.26GB
+FILES:1,253
+Face processing MEEG dataset with HED annotation
+Uploaded by:Dung Truong on 2021-05-04 - almost 3 years ago
+|
+Updated:2023-04-14 - 10 months ago
+
+MODALITIES:
+EEGMEGMRI
+TASKS:
+FacePerception
+OPENNEURO ACCESSION NUMBER:ds003645
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: 23 - 37
+SIZE:106.32GB
+FILES:1,137
+EEG: Electrophysiological biomarkers of behavioral dimensions from cross-species paradigms
+Uploaded by:James F Cavanagh on 2021-04-26 - almost 3 years ago
+|
+Updated:2021-08-25 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+5CCPTPSTPRBP
+OPENNEURO ACCESSION NUMBER:ds003638
+SESSIONS:1
+PARTICIPANTS:57
+PARTICIPANTS' AGES: 18 - 35
+SIZE:15.27GB
+FILES:404
+Inner Speech
+Uploaded by:Nicolás Nieto on 2021-04-17 - almost 3 years ago
+|
+Updated:2022-03-14 - almost 2 years ago
+
+MODALITY:
+EEG
+OPENNEURO ACCESSION NUMBER:ds003626
+SESSIONS:3
+PARTICIPANTS:10
+PARTICIPANTS' AGES: N/A
+SIZE:18.28GB
+FILES:33
+Runabout: A mobile EEG study of auditory oddball processing in laboratory and real-world conditions
+Uploaded by:Andrew W Corcoran on 2021-04-15 - almost 3 years ago
+|
+Updated:2021-11-09 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Oddball
+OPENNEURO ACCESSION NUMBER:ds003620
+SESSIONS:1
+PARTICIPANTS:44
+PARTICIPANTS' AGES: 18 - 39
+SIZE:17.04GB
+FILES:370
+Childhood Sexual Abuse and problem drinking in women: Neurobehavioral mechanisms
+Uploaded by:Arnaud Delorme on 2021-04-02 - almost 3 years ago
+|
+Updated:2022-07-27 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+Experiment
+OPENNEURO ACCESSION NUMBER:ds003602
+SESSIONS:1
+PARTICIPANTS:118
+PARTICIPANTS' AGES: 32 - 43
+SIZE:73.21GB
+FILES:4,247
+Reward biases spontaneous neural reactivation during sleep
+Uploaded by:Virginie Sterpenich on 2021-03-25 - almost 3 years ago
+|
+Updated:2021-06-07 - over 2 years ago
+
+MODALITIES:
+MRIEEG
+TASKS:
+restgameFace-Maze gameRest during sleep with simultaneous EEG
+OPENNEURO ACCESSION NUMBER:ds003574
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: 18 - 26
+SIZE:17.95GB
+FILES:315
+EEG: Improvisation and Musical Structures
+Uploaded by:Josef Faller on 2021-03-19 - almost 3 years ago
+|
+Updated:2021-03-19 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+AuditoryOddballChords
+OPENNEURO ACCESSION NUMBER:ds003570
+SESSIONS:1
+PARTICIPANTS:40
+PARTICIPANTS' AGES: 18 - 42
+SIZE:47.62GB
+FILES:323
+Dataset of EEG recordings of pediatric patients with epilepsy based on the 10-20 system
+Uploaded by:Dorottya Cserpan on 2021-03-05 - almost 3 years ago
+|
+Updated:2021-03-08 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+hfo
+OPENNEURO ACCESSION NUMBER:ds003555
+SESSIONS:1
+PARTICIPANTS:30
+PARTICIPANTS' AGES: 1 - 17
+SIZE:15.07GB
+FILES:96
+EEG: Visual Working Memory in Acute TBI
+Uploaded by:James F Cavanagh on 2021-02-22 - almost 3 years ago
+|
+Updated:2021-02-22 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+VisualWorkingMemory
+OPENNEURO ACCESSION NUMBER:ds003523
+SESSIONS:3
+PARTICIPANTS:91
+PARTICIPANTS' AGES: 18 - 55
+SIZE:37.54GB
+FILES:1,802
+EEG: Three-Stim Auditory Oddball and Rest in Acute and Chronic TBI
+Uploaded by:James F Cavanagh on 2021-02-19 - almost 3 years ago
+|
+Updated:2021-02-19 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+ThreeStimAuditoryOddball
+OPENNEURO ACCESSION NUMBER:ds003522
+SESSIONS:3
+PARTICIPANTS:96
+PARTICIPANTS' AGES: 18 - 55
+SIZE:25.36GB
+FILES:1,631
+EEG: Visual Working Memory + Cabergoline Challenge
+Uploaded by:James F Cavanagh on 2021-02-17 - almost 3 years ago
+|
+Updated:2021-02-17 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+VisualWorkingMemory
+OPENNEURO ACCESSION NUMBER:ds003519
+SESSIONS:2
+PARTICIPANTS:27
+PARTICIPANTS' AGES: 18 - 26
+SIZE:8.96GB
+FILES:439
+EEG: Simon Conflict w/ Reinforcement + Cabergoline Challenge
+Uploaded by:James F Cavanagh on 2021-02-15 - almost 3 years ago
+|
+Updated:2021-02-16 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+SimonConflict
+OPENNEURO ACCESSION NUMBER:ds003518
+SESSIONS:2
+PARTICIPANTS:110
+PARTICIPANTS' AGES: 18 - 30
+SIZE:39.51GB
+FILES:1,265
+EEG: Continuous gameplay of an 8-bit style video game
+Uploaded by:James F Cavanagh on 2021-02-15 - almost 3 years ago
+|
+Updated:2021-02-15 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+ContinuousVideoGamePlay
+OPENNEURO ACCESSION NUMBER:ds003517
+SESSIONS:1
+PARTICIPANTS:17
+PARTICIPANTS' AGES: 18 - 39
+SIZE:5.83GB
+FILES:389
+EEG: Attended Speaker Paradigm (Own Name in Ignored Stream)
+Uploaded by:Björn Holtze on 2021-02-12 - almost 3 years ago
+|
+Updated:2022-10-04 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+AttendedSpeakerParadigmOwnName
+OPENNEURO ACCESSION NUMBER:ds003516
+SESSIONS:1
+PARTICIPANTS:25
+PARTICIPANTS' AGES: 18 - 50
+SIZE:7.59GB
+FILES:219
+EEG: Simon Conflict in Parkinson's
+Uploaded by:James F Cavanagh on 2021-02-08 - almost 3 years ago
+|
+Updated:2021-02-08 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+SimonConflict
+OPENNEURO ACCESSION NUMBER:ds003509
+SESSIONS:2
+PARTICIPANTS:56
+PARTICIPANTS' AGES: 48 - 84
+SIZE:22.34GB
+FILES:1,080
+EEG: Reinforcement Learning in Parkinson's
+Uploaded by:James F Cavanagh on 2021-02-05 - about 3 years ago
+|
+Updated:2021-02-05 - about 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+ReinforcementLearning
+OPENNEURO ACCESSION NUMBER:ds003506
+SESSIONS:2
+PARTICIPANTS:56
+PARTICIPANTS' AGES: 48 - 84
+SIZE:16.2GB
+FILES:724
+VEPCON: Source imaging of high-density visual evoked potentials with multi-scale brain parcellations and connectomes
+Uploaded by:Sinergia Consortium on 2021-02-04 - about 3 years ago
+|
+Updated:2022-11-02 - over 1 year ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+facesmotion
+OPENNEURO ACCESSION NUMBER:ds003505
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 20 - 32
+SIZE:28.97GB
+FILES:310
+EEG: 3-Stim Auditory Oddball and Rest in Parkinson's
+Uploaded by:James F Cavanagh on 2021-01-27 - about 3 years ago
+|
+Updated:2021-01-27 - about 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+Rest
+OPENNEURO ACCESSION NUMBER:ds003490
+SESSIONS:2
+PARTICIPANTS:50
+PARTICIPANTS' AGES: 48 - 84
+SIZE:5.85GB
+FILES:607
+EEG: Depression rest
+Uploaded by:James F Cavanagh on 2021-01-18 - about 3 years ago
+|
+Updated:2021-01-18 - about 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+Rest
+OPENNEURO ACCESSION NUMBER:ds003478
+SESSIONS:1
+PARTICIPANTS:122
+PARTICIPANTS' AGES: 18 - 24
+SIZE:10.65GB
+FILES:1,959
+EEG: Probabilistic Selection and Depression
+Uploaded by:James F Cavanagh on 2021-01-15 - about 3 years ago
+|
+Updated:2021-01-15 - about 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+ProbabilisticSelection
+OPENNEURO ACCESSION NUMBER:ds003474
+SESSIONS:1
+PARTICIPANTS:122
+PARTICIPANTS' AGES: 18 - 24
+SIZE:16.64GB
+FILES:1,014
+EEG: Three armed bandit gambling task
+Uploaded by:James F Cavanagh on 2021-01-04 - about 3 years ago
+|
+Updated:2021-01-04 - about 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+ThreeArmedBandit
+OPENNEURO ACCESSION NUMBER:ds003458
+SESSIONS:1
+PARTICIPANTS:23
+PARTICIPANTS' AGES: 18 - 24
+SIZE:4.72GB
+FILES:201
+HD-EEGtask(Dataset 2)
+Uploaded by:EBN Lab on 2020-12-04 - about 3 years ago
+|
+Updated:2020-12-13 - about 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+PicturesNaming
+OPENNEURO ACCESSION NUMBER:ds003421
+SESSIONS:4
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 20 - 40
+SIZE:39.58GB
+FILES:938
+HD-EEGtask(Dataset 1)
+Uploaded by:EBN Lab on 2020-12-04 - about 3 years ago
+|
+Updated:2020-12-13 - about 3 years ago
+
+MODALITY:
+EEG
+OPENNEURO ACCESSION NUMBER:ds003420
+SESSIONS:2
+PARTICIPANTS:23
+PARTICIPANTS' AGES: 19 - 40
+SIZE:47.09GB
+FILES:875
+Corticothalamic communication under analgesia, sedation and gradual ischemia: a multimodal model of controlled gradual cerebral ischemia in pig
+Uploaded by:Martin Frasch on 2020-11-13 - about 3 years ago
+|
+Updated:2020-11-13 - about 3 years ago
+
+MODALITY:
+EEG
+OPENNEURO ACCESSION NUMBER:ds003380
+SESSIONS:1
+PARTICIPANTS:1
+PARTICIPANTS' AGES: N/A
+SIZE:19.66MB
+FILES:5
+Disentangling the percepts of illusory movement and sensory stimulation during tendon vibration in the EEG
+Uploaded by:Christoph Schneider on 2020-10-25 - over 3 years ago
+|
+Updated:2021-05-05 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+fps
+OPENNEURO ACCESSION NUMBER:ds003343
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 20 - 32
+SIZE:663.36MB
+FILES:320
+Placebo Neuroepo multisession
+Uploaded by:Carlos López on 2020-09-28 - over 3 years ago
+|
+Updated:2022-09-20 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+task placebo 6mtask placebo pre
+OPENNEURO ACCESSION NUMBER:ds003195
+SESSIONS:2
+PARTICIPANTS:10
+PARTICIPANTS' AGES: N/A
+SIZE:121.08MB
+FILES:104
+Neuroepo multisession
+Uploaded by:Carlos López on 2020-09-28 - over 3 years ago
+|
+Updated:2022-09-20 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+task pre nepotask 6m nepo
+OPENNEURO ACCESSION NUMBER:ds003194
+SESSIONS:2
+PARTICIPANTS:15
+PARTICIPANTS' AGES: N/A
+SIZE:189.15MB
+FILES:149
+EEG data from an auditory oddball task
+Uploaded by:Arnaud Delorme on 2020-08-08 - over 3 years ago
+|
+Updated:2022-08-26 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+P300
+OPENNEURO ACCESSION NUMBER:ds003061
+SESSIONS:1
+PARTICIPANTS:13
+PARTICIPANTS' AGES: 24 - 58
+SIZE:2.26GB
+FILES:282
+free walking study
+Uploaded by:Nadine Jacobsen on 2020-07-29 - over 3 years ago
+|
+Updated:2022-05-06 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+neurCorrYoung
+OPENNEURO ACCESSION NUMBER:ds003039
+SESSIONS:1
+PARTICIPANTS:19
+PARTICIPANTS' AGES: 19 - 32
+SIZE:7.82GB
+FILES:157
+Imagined Emotion Study
+Uploaded by:Dung Truong on 2020-07-09 - over 3 years ago
+|
+Updated:2022-08-23 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+ImaginedEmotion
+OPENNEURO ACCESSION NUMBER:ds003004
+SESSIONS:1
+PARTICIPANTS:34
+PARTICIPANTS' AGES: N/A
+SIZE:36.05GB
+FILES:277
+Auditory-Visual Shift Study
+Uploaded by:Dung Truong on 2020-06-15 - over 3 years ago
+|
+Updated:2022-06-18 - over 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+AuditoryVisualShift
+OPENNEURO ACCESSION NUMBER:ds002893
+SESSIONS:1
+PARTICIPANTS:49
+PARTICIPANTS' AGES: 20 - 78
+SIZE:7.7GB
+FILES:370
+A Multimodal Neuroimaging Dataset to Study Spatiotemporal Dynamics of Visual Processing in Humans
+Uploaded by:morteza mahdiani on 2020-05-20 - over 3 years ago
+|
+Updated:2021-12-10 - about 2 years ago
+
+MODALITIES:
+MRIEEG
+TASKS:
+task-categorySelectivitycategorySelectivityTODO: full task name for categorySelectivity
+OPENNEURO ACCESSION NUMBER:ds002814
+SESSIONS:2
+PARTICIPANTS:21
+PARTICIPANTS' AGES: 19 - 32
+SIZE:27.73GB
+FILES:1,139
+UC San Diego Resting State EEG Data from Patients with Parkinson's Disease
+Uploaded by:Alexander Rockhill on 2020-05-05 - almost 4 years ago
+|
+Updated:2021-12-10 - about 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+rest
+OPENNEURO ACCESSION NUMBER:ds002778
+SESSIONS:3
+PARTICIPANTS:31
+PARTICIPANTS' AGES: 47 - 82
+SIZE:545MB
+FILES:328
+An EEG dataset recorded during affective music listening
+Uploaded by:Ian Daly on 2020-04-22 - almost 4 years ago
+|
+Updated:2021-10-05 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+Run
+OPENNEURO ACCESSION NUMBER:ds002721
+SESSIONS:1
+PARTICIPANTS:31
+PARTICIPANTS' AGES: 18 - 66
+SIZE:3.35GB
+FILES:929
+A dataset recorded during development of a tempo-based brain-computer music interface
+Uploaded by:Ian Daly on 2020-04-22 - almost 4 years ago
+|
+Updated:2020-04-23 - almost 4 years ago
+
+MODALITY:
+EEG
+TASKS:
+Run
+OPENNEURO ACCESSION NUMBER:ds002720
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: 18 - 28
+SIZE:2.39GB
+FILES:828
+Face processing EEG dataset for EEGLAB
+Uploaded by:Dung Truong on 2020-04-21 - almost 4 years ago
+|
+Updated:2021-08-03 - over 2 years ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+FaceRecognition
+OPENNEURO ACCESSION NUMBER:ds002718
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: 23 - 31
+SIZE:4.31GB
+FILES:582
+Internal attention study
+Uploaded by:Arnaud Delorme on 2020-04-08 - almost 4 years ago
+|
+Updated:2021-10-19 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+internalattention
+OPENNEURO ACCESSION NUMBER:ds002691
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 23 - 66
+SIZE:776.75MB
+FILES:146
+Go-nogo categorization and detection task
+Uploaded by:Arnaud Delorme on 2020-04-02 - almost 4 years ago
+|
+Updated:2021-10-19 - over 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+gonogo
+OPENNEURO ACCESSION NUMBER:ds002680
+SESSIONS:2
+PARTICIPANTS:14
+PARTICIPANTS' AGES: N/A
+SIZE:9.22GB
+FILES:4,977
+Visual Oddball Task (256 channels)
+Uploaded by:Arnaud Delorme on 2020-02-19 - almost 4 years ago
+|
+Updated:2021-10-26 - over 2 years ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+attention
+OPENNEURO ACCESSION NUMBER:ds002578
+SESSIONS:1
+PARTICIPANTS:2
+PARTICIPANTS' AGES: 30 - 30
+SIZE:1.33GB
+FILES:22
+A multi-modal human neuroimaging dataset for data integration: simultaneous EEG and fMRI acquisition during a motor imagery neurofeedback task: XP2
+Uploaded by:Claire Cury on 2019-12-03 - about 4 years ago
+|
+Updated:2022-03-31 - almost 2 years ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+1dNFMIpostMIpre2dNF1dNF_run-012dNF_run-02
+OPENNEURO ACCESSION NUMBER:ds002338
+SESSIONS:1
+PARTICIPANTS:17
+PARTICIPANTS' AGES: 18 - 66
+SIZE:24.24GB
+FILES:484
+A multi-modal human neuroimaging dataset for data integration: simultaneous EEG and fMRI acquisition during a motor imagery neurofeedback task: XP1
+Uploaded by:Claire Cury on 2019-12-02 - about 4 years ago
+|
+Updated:2021-06-07 - over 2 years ago
+
+MODALITIES:
+EEGMRI
+TASKS:
+fmriNFeegfmriNFMIposteegNFmotorlocMIpre
+OPENNEURO ACCESSION NUMBER:ds002336
+SESSIONS:1
+PARTICIPANTS:10
+PARTICIPANTS' AGES: 19 - 39
+SIZE:16.81GB
+FILES:325
+Auditory and Visual Rhythm Omission EEG
+Uploaded by:Daniel C Comstock on 2019-10-03 - over 4 years ago
+|
+Updated:2019-10-03 - over 4 years ago
+
+MODALITY:
+EEG
+TASKS:
+Experiment
+OPENNEURO ACCESSION NUMBER:ds002218
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: N/A
+SIZE:1.95GB
+FILES:133
+Disentangling the origins of confidence in speeded perceptual judgments through multimodal imaging
+Uploaded by:Michael Pereira on 2019-09-04 - over 4 years ago
+|
+Updated:2020-04-25 - almost 4 years ago
+
+MODALITIES:
+MRIEEG
+TASKS:
+mainrest
+OPENNEURO ACCESSION NUMBER:ds002158
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: 20 - 32
+SIZE:76.54GB
+FILES:949
+Real-time EEG feedback on alpha power lateralization leads to behavioral improvements in a covert attention task
+Uploaded by:Michael Pereira on 2019-07-13 - over 4 years ago
+|
+Updated:2022-04-08 - almost 2 years ago
+
+MODALITY:
+EEG
+TASKS:
+task-offlinetask-offlinecatchtask-onlineshamtask-onlinereal
+OPENNEURO ACCESSION NUMBER:ds002034
+SESSIONS:3
+PARTICIPANTS:14
+PARTICIPANTS' AGES: 21 - 27
+SIZE:10.1GB
+FILES:882
+Audiocue walking study
+Uploaded by:Johanna Wagner on 2019-06-06 - over 4 years ago
+|
+Updated:2019-06-12 - over 4 years ago
+
+MODALITY:
+EEG
+TASKS:
+AudioCueWalkingStudy
+OPENNEURO ACCESSION NUMBER:ds001971
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: N/A
+SIZE:31.98GB
+FILES:1,917
+RS_TMSEEG_Data
+Uploaded by:Jack Reeves on 2019-04-11 - almost 5 years ago
+|
+Updated:2020-07-22 - over 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+tmseegrest
+OPENNEURO ACCESSION NUMBER:ds001849
+SESSIONS:1
+PARTICIPANTS:20
+PARTICIPANTS' AGES: N/A
+SIZE:44.51GB
+FILES:363
+EEG meditation study
+Uploaded by:Arnaud Delorme on 2019-03-09 - almost 5 years ago
+|
+Updated:2022-12-14 - about 1 year ago
+
+MODALITY:
+EEG
+TASKS:
+meditation
+OPENNEURO ACCESSION NUMBER:ds001787
+SESSIONS:3
+PARTICIPANTS:24
+PARTICIPANTS' AGES: 29 - 78
+SIZE:5.69GB
+FILES:141
+Evidence accumulation relates to perceptual consciousness and monitoring
+Uploaded by:Michael Pereira on 2019-03-08 - almost 5 years ago
+|
+Updated:2021-04-28 - almost 3 years ago
+
+MODALITY:
+EEG
+TASKS:
+tactile detection
+OPENNEURO ACCESSION NUMBER:ds001785
+SESSIONS:1
+PARTICIPANTS:18
+PARTICIPANTS' AGES: 18 - 34
+SIZE:24.87GB
+FILES:242
+OpenNeuro v4.21.3
+OpenNeuro's Privacy Policy
+© 2024 Stanford Center for Reproducible Neuroscience
+×
+box with connection dots and lines that says openneuro next to it 
+Sign in
+
+Google
+ORCIDORCID
+What is this?

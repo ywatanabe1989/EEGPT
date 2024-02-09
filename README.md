@@ -30,11 +30,11 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 
 #### Updates links to databases
 ```
-ls ./data/*/dbs -alht
+ls ./data/O*/dbs -alht
 
 CAT=OpenNeuro
-VER=v024
-ln -sf ./data/"$CAT"/dbs/eeg_data_"$VER".db ./data/"$CAT"/dbs/eeg_data.db
+VER=v028
+cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..`
 ```
 
 
