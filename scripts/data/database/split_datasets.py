@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-10 23:35:52 (ywatanabe)"
+# Time-stamp: "2024-02-11 08:01:34 (ywatanabe)"
 
 from pprint import pprint
 
 import mngs
+import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
+CONFIG = mngs.gen.load_configs(show=False)
 
 # Functions
 def limit_segments_per_sub(df):
@@ -42,7 +45,9 @@ def filter_by_criteria(df, criteria):
     return df[mask]
 
 
-def define_df_tes(df, df_tra_val_not_exclusive_yet, df_tes_not_exclusive_yet):
+def define_df_tes(
+    df, df_tra_val_not_exclusive_yet, df_tes_not_exclusive_yet, ds_config
+):
     # find overlaps between tra-val and tes
     indi_c = list(
         set(df_tra_val_not_exclusive_yet.index)
@@ -81,7 +86,10 @@ def define_df_tes(df, df_tra_val_not_exclusive_yet, df_tes_not_exclusive_yet):
 
 
 def define_df_tra_and_df_val(
-    df_tra_val, df_tra_not_exclusive_yet, df_val_not_exclusive_yet
+    df_tra_val,
+    df_tra_not_exclusive_yet,
+    df_val_not_exclusive_yet,
+    ds_config,
 ):
     # find overlaps between tra-val and tes
     indi_c = list(
@@ -124,6 +132,106 @@ def define_df_tra_and_df_val(
     return df_tra, df_val
 
 
+def balance_tra(df_tra, ds_config):
+    # Assuming balancing criteria is based on a specific column, e.g., 'disease_type'
+    balance_col = ds_config.get("BALANCING_CRITERIA_TRA", None)
+    if not balance_col:
+        return df_tra  # No balancing criteria specified
+
+    # Perform undersampling
+    min_count = df_tra[balance_col].value_counts().min()
+    df_balanced = df_tra.groupby(balance_col).sample(
+        n=min_count, random_state=42
+    )
+    return df_balanced
+
+
+def validate_datasets(df_tra, df_val, df_tes, ds_config):
+    # Validates inclusion criteria for each set
+    for df_split, criteria in zip(
+        [df_tra, df_val, df_tes],
+        [
+            ds_config["INCLUSION_CRITERIA_TRA"],
+            ds_config["INCLUSION_CRITERIA_VAL"],
+            ds_config["INCLUSION_CRITERIA_TES"],
+        ],
+    ):
+        for key, values in criteria.items():
+            if not df_split[key].isin(values).all():
+                raise ValueError(
+                    f"Dataset does not meet inclusion criteria for {key}"
+                )
+
+    # Validates exclusiveness among datasets
+    is_exclusive = (
+        set(df_tra.index) & set(df_val.index) & set(df_tes.index) == set()
+    )
+    if not is_exclusive:
+        raise ValueError(
+            f"Training, Validation, or Test datasets are not mutually exclusive"
+        )
+
+    # Validates N samples per subject
+    for df_split, split in zip([df_tra, df_val, df_tes], ds_config["SPLITS"]):
+        _, counts = np.unique(df_split["subject_id"], return_counts=True)
+        if (counts > CONFIG["MAX_N_WINDOWS_PER_SUB"]).any():
+            raise ValueError(
+                f"The number of samples in {split.capitalize()} dataset exceeds {CONFIG['MAX_N_WINDOWS_PER_SUB']}"
+            )
+
+    # Validates test split criteria
+    col_split_tra = set(
+        mngs.ml.utils.merge_labels(
+            *[df_tra[k] for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+        )
+    )
+    col_split_val = set(
+        mngs.ml.utils.merge_labels(
+            *[df_val[k] for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+        )
+    )
+    col_split_tes = set(
+        mngs.ml.utils.merge_labels(
+            *[df_tes[k] for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+        )
+    )
+    if not set(col_split_tes) & set(col_split_tra) == set():
+        raise ValueError(
+            f"Test dataset is not split from training dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+        )
+    if not set(col_split_tes) & set(col_split_val) == set():
+        raise ValueError(
+            f"Test dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+        )
+
+    # Validates train-vaild split criteria
+    col_split_tra = set(
+        mngs.ml.utils.merge_labels(
+            *[df_tra[k] for k in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+        )
+    )
+    col_split_val = set(
+        mngs.ml.utils.merge_labels(
+            *[df_val[k] for k in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+        )
+    )
+    if not set(col_split_tra) & set(col_split_val) == set():
+        raise ValueError(
+            f"Validation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+        )
+
+    # Balancing checks and operations would be more complex and are better handled separately
+    uqs, counts = np.unique(
+        df_tra[ds_config["BALANCING_CRITERIA_TRA"]], return_counts=True
+    )
+    if not counts.all():
+        raise ValueError(
+            f"Training dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
+        )
+
+    print(f"Dataset splitting is validated.")
+
+
 def main(df, ds_config):
     # Combine inclusion criteria
     # Limit the number of samples per subject to reduce sampling biases
@@ -143,7 +251,10 @@ def main(df, ds_config):
 
     # Split tra&val vs tes
     df_tra_val, df_tes = define_df_tes(
-        df, df_tra_val_not_exclusive_yet, df_tes_not_exclusive_yet
+        df,
+        df_tra_val_not_exclusive_yet,
+        df_tes_not_exclusive_yet,
+        ds_config,
     )
     # Split tra vs val
     df_tra_not_exclusive_yet = filter_by_criteria(
@@ -154,7 +265,10 @@ def main(df, ds_config):
     )
 
     df_tra, df_val = define_df_tra_and_df_val(
-        df_tra_val, df_tra_not_exclusive_yet, df_val_not_exclusive_yet
+        df_tra_val,
+        df_tra_not_exclusive_yet,
+        df_val_not_exclusive_yet,
+        ds_config,
     )
 
     df_tra = balance_tra(df_tra, ds_config)
@@ -164,50 +278,11 @@ def main(df, ds_config):
     return df_tra, df_val, df_tes
 
 
-def balance_tra(df_tra, ds_config):
-    # Assuming balancing criteria is based on a specific column, e.g., 'disease_type'
-    balance_col = ds_config.get("BALANCING_CRITERIA_TRA", None)
-    if not balance_col:
-        return df_tra  # No balancing criteria specified
-
-    # Perform undersampling
-    min_count = df_tra[balance_col].value_counts().min()
-    df_balanced = df_tra.groupby(balance_col).sample(
-        n=min_count, random_state=42
-    )
-    return df_balanced
-
-
-def validate_datasets(df_tra, df_val, df_tes, ds_config):
-    # Validate inclusion criteria for each set
-    for df, criteria in zip(
-        [df_tra, df_val, df_tes],
-        [
-            ds_config["INCLUSION_CRITERIA_TRA"],
-            ds_config["INCLUSION_CRITERIA_VAL"],
-            ds_config["INCLUSION_CRITERIA_TES"],
-        ],
-    ):
-        for key, values in criteria.items():
-            if not df[key].isin(values).all():
-                raise ValueError(
-                    f"Dataset does not meet inclusion criteria for {key}"
-                )
-
-    # Example for validating number of samples (if applicable)
-    # if len(df_tra) > MAX_SAMPLES_TRA:
-    #     raise ValueError("Training dataset exceeds maximum number of samples")
-
-    # Validate splits (more complex, depends on exact criteria and dataset structure)
-    # This is an example placeholder for how you might start this:
-    # if not set(df_tra["subject_id"]).isdisjoint(df_tes["subject_id"]):
-    #     raise ValueError("Training and test datasets share subjects, contrary to split criteria")
-
-    # Balancing checks and operations would be more complex and are better handled separately
-    print("Validation passed")
-
+split_datasets = main
 
 if __name__ == "__main__":
+    from scripts.data.database.SQLiteDataset import SQLiteDataset
+
     CONFIG = mngs.io.load_configs(show=False)
     ds_config = mngs.io.load("./config/DownStream/Dementia.yaml")
     # pprint(ds_config)
@@ -236,7 +311,8 @@ if __name__ == "__main__":
     #     "institution": ["Osaka University"],
     # }
     # Loads metadata from a sqlite database
-    df = mngs.io.load("./df.pkl")
-    print(df.columns)
+    df = SQLiteDataset.load_meta_as_df(lpath_db=ds_config["LPATH_DB"])
+    # df = mngs.io.load("./df.pkl")
+    # print(df.columns)
 
     df_tra, df_val, df_tes = main(df, ds_config)
