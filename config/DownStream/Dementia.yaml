@@ -1,4 +1,5 @@
 LPATH_DB: ./data/Dementia/dbs/eeg_data.db
+SPLITS: ["tra", "val", "tes"]
 INCLUSION_CRITERIA_TRA:
     disease_type:
         - AD
@@ -10,6 +11,7 @@ INCLUSION_CRITERIA_TRA:
         - Dementia
     institution:
         - Osaka University
+        
 INCLUSION_CRITERIA_VAL:
     disease_type:
         - AD
@@ -21,6 +23,7 @@ INCLUSION_CRITERIA_VAL:
         - Dementia
     institution:
         - Osaka University
+        
 INCLUSION_CRITERIA_TES:
     disease_type:
         - AD
@@ -33,14 +36,18 @@ INCLUSION_CRITERIA_TES:
     institution:
         - Nippon Life Hospital
         - Kochi University
-SPLIT_CRITERIA_TRA_VAL:
+        
+SPLIT_CRITERIA_TRA_vs_VAL:
     - subject_id
-SPLIT_CRITERIA_VAL_TES:
+    
+SPLIT_CRITERIA_TRA_VAL_vs_TES:
     - subject_id
     - institution
+    
 SPLIT_RATIOS:
     tra: 0.6
     val: 0.2
     tes: 0.2
+    
 BALANCING_CRITERIA_TRA:
     - disease_type
