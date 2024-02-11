@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-09 09:07:56 (ywatanabe)"
+# Time-stamp: "2024-02-11 08:45:48 (ywatanabe)"
 
 import os
 import random
@@ -49,7 +49,7 @@ def base_step(
         model.eval()
 
     # Batched Dataset ID, Subject ID, and EEG signal
-    Db, Sb, Xb = batch
+    Db, Sb, Xb, _Mb = batch
 
     # Sliding window as a data augumentation method
     start = random.randint(0, Xb.shape[-1] - WINDOW_SIZE_PTS)

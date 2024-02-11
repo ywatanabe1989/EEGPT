@@ -1,13 +1,14 @@
 LPATH_DB: ./data/OpenNeuro/dbs/eeg_data.db
+SPLITS: ["tra", "val", "tes"]
 INCLUSION_CRITERIA_TRA: {}
 INCLUSION_CRITERIA_VAL: {}
 INCLUSION_CRITERIA_TES: {}
-SPLIT_CRITERIA_TRA_VAL:
-    - dataset_id
-SPLIT_CRITERIA_VAL_TES:
-    - dataset_id
+SPLIT_CRITERIA_TRA_VAL_vs_TES:
+    ["dataset_id", "subject_id"]
+SPLIT_CRITERIA_TRA_vs_VAL:
+    ["dataset_id", "subject_id"]  
 SPLIT_RATIOS:
     tra: .6
     val: .2
     tes: .2
-BALANCING_CRITERIA_TRA: {}
+BALANCING_CRITERIA_TRA: []
