@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 11:33:36 (ywatanabe)"
+# Time-stamp: "2024-02-12 07:31:30 (ywatanabe)"
 
 import torch
 import torch.nn as nn
@@ -50,8 +50,10 @@ class VectorQuantizer(nn.Module):
 
     def forward(self, x):
         distances = self.calc_distances(x, self.embedding.weight)
-        softmax_distances = F.softmax(-distances, dim=1)
-        x_quantized = torch.matmul(softmax_distances, self.embedding.weight)
+        self.softmax_distances = F.softmax(-distances, dim=1)
+        x_quantized = torch.matmul(
+            self.softmax_distances, self.embedding.weight
+        )
         return x_quantized
 
     @staticmethod
@@ -75,4 +77,22 @@ if __name__ == "__main__":
     out = m(x)  # (BATCH_SIZE, VEC_LEN)
 
     # Differentiability check
-    out.sum().backward()
+
+    #     out.sum().backward()
+    # In [13]:     m.softmax_distances
+    # Out[13]:
+    # tensor([[0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
+    #          0.0000e+00],
+    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
+    #          1.9517e-31],
+    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
+    #          0.0000e+00],
+    #         ...,
+    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 4.3993e-36,
+    #          1.3132e-10],
+    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 1.0521e-01, 0.0000e+00,
+    #          0.0000e+00],
+    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
+    #          0.0000e+00]], device='cuda:0', grad_fn=<SoftmaxBackward0>)
+
+    m.softmax_distances

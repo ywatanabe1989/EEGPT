@@ -5,7 +5,8 @@ DEBUG_BATCH_SIZE:
   32
 
 N_EPOCHS:
-  300
+  30
+  # 300  
 DEBUG_N_EPOCHS:
   2
 

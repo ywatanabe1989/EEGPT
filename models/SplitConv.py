@@ -1,10 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-01-25 12:25:33 (ywatanabe)"
+# Time-stamp: "2024-02-12 06:36:02 (ywatanabe)"
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchinfo import summary
+
+
+class SplitConv(nn.Module):
+    def __init__(self, model_config):
+        super().__init__()
+        self.model_config = model_config
+        self.Conv2DNet = Conv2DNet()  # [-1, 14, 32] -> [-1, 64]
+
+    def forward(self, x):
+        xs = [
+            x[
+                ...,
+                ii
+                * self.model_config["window_size"] : (ii + 1)
+                * self.model_config["window_size"],
+            ]
+            for ii in range(x.shape[-1] // self.model_config["window_size"])
+        ]
+        xs = [self.Conv2DNet(x.unsqueeze(1)) for x in xs]
+        return xs
 
 
 class Conv2DNet(nn.Module):
@@ -93,6 +114,5 @@ if __name__ == "__main__":
     model = Conv2DNet()
     y = model(x)  # (16, 16)
     print(y.shape)
-    from torchinfo import summary
 
     print(summary(model, x.shape))

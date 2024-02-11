@@ -1,112 +1,103 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-11 13:23:32 (ywatanabe)"
+# Time-stamp: "2024-02-12 07:30:25 (ywatanabe)"
 
 """"To tokenize EEG signals and process them in a manner similar to GPT (Generative Pre-trained Transformer) used in Natural Language Processing (NLP)"""
 
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.Conv2DNet import Conv2DNet
-from models.MNet import MNet
+
+# from models.MNet import MNet
+from models.PositionalEncodingLayer import PositionalEncodingLayer
+from models.SplitConv import SplitConv
+from models.TransformerModel import TransformerModel
 from models.VectorQuantizer import VectorQuantizer
-from torch.nn import Transformer
 from torchinfo import summary
 
 
-class TransformerModel(nn.Module):
-    def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        nheads,
-        num_encoder_layers,
-        num_decoder_layers,
-    ):
-        super(TransformerModel, self).__init__()
-        self.transformer = Transformer(
-            d_model=input_dim,
-            nhead=nheads,
-            num_encoder_layers=num_encoder_layers,
-            num_decoder_layers=num_decoder_layers,
-        )
-        self.fc_out = nn.Linear(input_dim, input_dim)
-
-    def forward(self, src):
-        # src: (sequence length, batch size, input dimension)
-        src = src.permute(
-            1, 0, 2
-        )  # Transformer expects src to be of shape (S, N, E)
-        output = self.transformer(src, src)
-        output = self.fc_out(output)
-        return output[-1, :, :].unsqueeze(1)
-
-
 class EEGPT(nn.Module):
-    def __init__(self):
+    def __init__(self, model_config={}):  # fixme
         super().__init__()
+        model_config = dict(
+            num_embeddings=2,
+            embedding_dim=64,
+            window_size=32,
+        )
+        CONFIG = mngs.io.load_configs(show=False)
 
-        self.config = {}
-        self.config["window_size"] = 32
-        self.Conv2DNet = Conv2DNet()
+        self.model_config = model_config
 
-        # placeholder, this is defined in the first forward pass
-        self.VQ = None
-        self.is_VQ_set = False
+        # Convolutional Layer
+        self.split_conv = SplitConv(self.model_config)
 
-        # Model instantiation
-        input_dim = 64  # Assuming each element in your sequence is of size 64
-        hidden_dim = 256  # Hidden dimension size
-        nheads = 4  # Number of heads in multi-head attention
-        num_encoder_layers = 3  # Number of encoder layers
-        num_decoder_layers = 3  # Number of decoder layers
+        # Vector Quantizer
+        self.VQ = VectorQuantizer(
+            num_embeddings=self.model_config["num_embeddings"],
+            embedding_dim=self.model_config["embedding_dim"],
+        )  # [-1, 8*64]
 
-        self.transformer = TransformerModel(
-            input_dim,
-            hidden_dim,
-            nheads,
-            num_encoder_layers,
-            num_decoder_layers,
+        # Positional Encoding
+        n_steps = int(
+            CONFIG["WINDOW_SIZE_SEC"]
+            * CONFIG["TGT_FS"]
+            / self.model_config["window_size"]
         )
 
-        n_steps = int(self.config["window_size"] / self.config["window_size"])
-        self.PE = self.generate_positional_encodings(n_steps, input_dim)
+        # self.PE = self.generate_positional_encodings(n_steps, input_dim)
+        self.PE = PositionalEncodingLayer(
+            n_steps, self.model_config["embedding_dim"]
+        )
 
+        # Transformer layers
+        self.transformer = TransformerModel(
+            input_dim=64,
+            hidden_dim=32,
+            nheads=1,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+        )
+
+        # To trap latent features
         self.activation = {}
 
     def forward(self, x, get_latent=False):
+        # x.shape # [-1, 14, 256]
+        # conv
+        xs = self.split_conv(x)
+        # len(xs) # 8; xs[0].shape # [32, 64]
 
-        if get_latent:
-            self.transformer.transformer.encoder.norm.register_forward_hook(
-                self.get_latent("encoder_norm")
-            )
+        xs = [self.VQ(x) for x in xs]
+        # len(xs) # 8; xs[0].shape # [32, 64]
 
-        x = self.conv_and_vq(x).transpose(1, 2)
+        x = torch.stack(xs, axis=1)  # (32, 8, 64) # seq_len = 8
 
-        x += self.PE.to(x.device)
+        # positional encoding
+        x += self.PE()
 
+        # Split x to two parts for self-supervised training
         x1 = x[:, :-1, :]  # (64, 7, 64)
         x2 = x[:, -1, :].unsqueeze(1)  # (64, 1, 64)
 
-        y = self.transformer(x1)  # (7, 64, 64)
-
-        if get_latent:
+        # For transfer learning
+        if not get_latent:
+            y = self.transformer(x1)  # (7, 64, 64)
+        else:
+            self.transformer.transformer.encoder.norm.register_forward_hook(
+                self.get_latent("encoder_norm")
+            )
+            y = self.transformer(x1)
             l1 = (
                 self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
             )
-            return l1
+            return l1  # (-1, 64, 7) = (-1, 448)
 
+        # From the first 7 segments, the last segment is predicted.
         loss = ((y - x2) ** 2).mean()
 
         return loss
-
-    def define_VQ_if_not_defined(self, x):
-        if not self.is_VQ_set:
-            self.VQ = VectorQuantizer(
-                num_embeddings=16, embedding_dim=x.shape[-1]
-            ).to(x.device)
-            self.is_VQ_set = True
 
     def get_latent(self, name):
         def hook(model, input, output):
@@ -114,49 +105,16 @@ class EEGPT(nn.Module):
 
         return hook
 
-    def conv_and_vq(self, x):
-        xs = [
-            x[
-                ...,
-                ii
-                * self.config["window_size"] : (ii + 1)
-                * self.config["window_size"],
-            ]
-            for ii in range(x.shape[-1] // self.config["window_size"])
-        ]
-
-        xs = [self.Conv2DNet(x.unsqueeze(1)) for x in xs]
-
-        self.define_VQ_if_not_defined(xs[0])
-        xs = [self.VQ(x) for x in xs]
-        x = torch.stack(xs, axis=1)  # (64, 8, 64) # seq_len = 8
-        return x.transpose(1, 2)
-
-    @classmethod
-    def generate_positional_encodings(cls, length, d_model):
-        PE = np.zeros((length, d_model))
-        position = np.arange(0, length)[:, np.newaxis]
-        div_term = np.exp(
-            np.arange(0, d_model, 2) * -(np.log(10000.0) / d_model)
-        )
-
-        PE[:, 0::2] = np.sin(position * div_term)
-        PE[:, 1::2] = np.cos(position * div_term)
-
-        PE = torch.tensor(PE).float()
-
-        return PE
-
 
 if __name__ == "__main__":
     m = EEGPT().cuda()
-    # RuntimeError: Unexpected error from cudaGetDeviceCount(). Did you run some cuda functions before calling NumCudaDevices() that might have already set an error? Error 804: forward compatibility was attempted on non supported HW
-
-    for _ in range(10):
-        x = torch.randn(32, 14, 256).cuda()
-        loss = m(x)
-        loss.backward()
-        print(loss)
+    x = torch.randn(32, 14, 256).cuda()
+    loss = m(x)
+    # for _ in range(10):
+    #     x = torch.randn(32, 14, 256).cuda()
+    #     loss = m(x)
+    #     loss.backward()
+    #     print(loss)
 
     # Pretrained model
     # weights_path = (

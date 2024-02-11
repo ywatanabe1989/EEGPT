@@ -56,3 +56,4 @@ rfc3986
 spython
 twine
 Cython    
+catboost
