@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 06:36:02 (ywatanabe)"
+# Time-stamp: "2024-02-12 12:50:43 (ywatanabe)"
 
 import torch
 import torch.nn as nn
@@ -43,26 +43,26 @@ class Conv2DNet(nn.Module):
         self.pool1 = nn.MaxPool2d(2, 2)
         # self.downsample1 = nn.Conv2d(16, 32, kernel_size=1)
 
-        self.conv3 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(32)
+        self.conv3 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
+        self.bn3 = nn.BatchNorm2d(16)
 
-        self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)
-        self.bn4 = nn.BatchNorm2d(32)
+        self.conv4 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
+        self.bn4 = nn.BatchNorm2d(16)
 
         self.pool2 = nn.MaxPool2d(2, 2)
-        # self.downsample2 = nn.Conv2d(32, 64, kernel_size=1)
+        # self.downsample2 = nn.Conv2d(16, 64, kernel_size=1)
 
-        self.conv5 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.bn5 = nn.BatchNorm2d(64)
+        self.conv5 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
+        self.bn5 = nn.BatchNorm2d(16)
 
-        self.conv6 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-        self.bn6 = nn.BatchNorm2d(64)
+        self.conv6 = nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
+        self.bn6 = nn.BatchNorm2d(16)
 
         self.pool3 = nn.MaxPool2d(2, 2)
         # self.downsample3 = nn.Conv2d(64, 128, kernel_size=1)
 
         # self.conv7 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        # self.bn7 = nn.BatchNorm2d(128)
+        self.bn7 = nn.BatchNorm2d(16)
 
         # self.conv8 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1)
         # self.bn8 = nn.BatchNorm2d(128)
@@ -95,6 +95,8 @@ class Conv2DNet(nn.Module):
         )  # (16, 64, 1, 4)
         out = out + residual  # (16, 64, 1, 4)
 
+        # out = F.relu(self.bn6(self.conv6(out)))  # (16, 64, 3, 8)
+
         # residual = out  # (16, 64, 1, 4)
         # out = F.relu(self.bn7(self.conv7(out)))  # (16, 128, 1, 4)
         # out = F.relu(self.bn8(self.conv8(out)))  # (16, 128, 1, 4)
@@ -104,15 +106,21 @@ class Conv2DNet(nn.Module):
         # import ipdb; ipdb.set_trace()
         # out = out.mean(dim=-1).squeeze().mean(dim=-1).squeeze().unsqueeze(-1)
 
-        return out.mean(dim=(-2, -1))  # [REVISED]
+        out = out.mean(dim=(-2, -1), keepdims=True)  # 16, 64
+        out = self.bn7(out)
+        return out.squeeze()
 
 
 if __name__ == "__main__":
     ## Demo data
-    bs, n_chs, seq_len = 16, 14, 32
+    bs, n_chs, seq_len = 128, 14, 32
     x = torch.rand(bs, 1, n_chs, seq_len).float()
     model = Conv2DNet()
     y = model(x)  # (16, 16)
     print(y.shape)
 
     print(summary(model, x.shape))
+
+    print(y.mean(), y.std())
+    # In [16]:     print(y.mean(), y.std())
+    # tensor(4.3365e-08, grad_fn=<MeanBackward0>) tensor(1.0004, grad_fn=<StdBackward0>)

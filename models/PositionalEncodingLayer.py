@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 07:28:14 (ywatanabe)"
+# Time-stamp: "2024-02-12 14:26:57 (ywatanabe)"
 
 import torch
 import torch.nn as nn
@@ -13,8 +13,7 @@ class PositionalEncodingLayer(nn.Module):
         self.d_model = d_model
         PE = self.gen_PE()
         self.register_buffer("PE", PE)
-        self.register_buffer("scale", torch.tensor([1]))
-        # self.amplitude = torch.tensor([1])
+        self.register_buffer("scale", torch.tensor([0.1]))
 
     def forward(
         self,

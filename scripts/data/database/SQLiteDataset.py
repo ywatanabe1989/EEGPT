@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-11 08:11:30 (ywatanabe)"
+# Time-stamp: "2024-02-12 22:25:53 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -292,17 +292,20 @@ class SQLiteDataset(Dataset):
         print(f"\nValidation set size: {len(self.datasets['val']):,}")
         print(f"\nTest set size: {len(self.datasets['tes']):,}")
 
-    def to_dataloaders(self, batch_size=64, num_workers=1, shuffle=True):
+    def to_dataloaders(
+        self,
+    ):
         # Create DataLoader instances for the dataset splits
         dataloaders = {}
         for split in ["tra", "val", "tes"]:
             try:
                 dataloaders[split] = DataLoader(
                     self.datasets[split],
-                    batch_size=batch_size,
-                    shuffle=shuffle if split == "tra" else False,
-                    num_workers=num_workers,
+                    batch_size=self.ds_config["BATCH_SIZE"],
+                    shuffle=True if split == "tra" else False,
+                    num_workers=self.ds_config["NUM_WORKERS"],
                     collate_fn=self.collate_fn,
+                    drop_last=True,
                 )
             except Exception as e:
                 print(e)

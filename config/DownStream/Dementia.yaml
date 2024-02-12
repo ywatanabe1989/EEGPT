@@ -51,3 +51,9 @@ SPLIT_RATIOS:
     
 BALANCING_CRITERIA_TRA:
     - disease_type
+    
+BATCH_SIZE:
+  1024
+  
+NUM_WORKERS:
+  4

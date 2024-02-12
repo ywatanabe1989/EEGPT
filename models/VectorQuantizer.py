@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 07:31:30 (ywatanabe)"
+# Time-stamp: "2024-02-12 23:19:45 (ywatanabe)"
+
+import math
 
 import torch
 import torch.nn as nn
@@ -46,15 +48,40 @@ class VectorQuantizer(nn.Module):
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
         self.embedding = nn.Embedding(num_embeddings, embedding_dim)
-        self.embedding.weight.data.uniform_(-1, 1)
+        # self.embedding.weight.data.uniform_(-1, 1)
+        stdv = 1.0 / math.sqrt(self.embedding_dim)
+        self.embedding.weight.data.normal_(mean=0, std=stdv)
 
     def forward(self, x):
+        # self.embedding.weight.data = F.normalize(
+        #     self.embedding.weight, p=2, dim=1
+        # )
+        # import ipdb; ipdb.set_trace()
         distances = self.calc_distances(x, self.embedding.weight)
-        self.softmax_distances = F.softmax(-distances, dim=1)
-        x_quantized = torch.matmul(
-            self.softmax_distances, self.embedding.weight
-        )
-        return x_quantized
+        # self.softmax_distances = F.softmax(-distances, dim=1)
+        self.q = F.gumbel_softmax(-distances, dim=1, hard=False)
+        # self.q = F.gumbel_softmax(
+        #     distances, dim=1, hard=False
+        # )  # '-' distances would be correct
+        return self.q
+        # x_quantized = torch.matmul(
+        #     self.softmax_distances, self.embedding.weight
+        # )
+        # return x_quantized
+
+    # def forward(self, x):
+    #     self.embedding.weight.data = F.normalize(
+    #         self.embedding.weight, p=2, dim=1
+    #     )
+    #     cos = self.calc_cosine_similarity(x, self.embedding.weight)
+    #     # self.softmax_distances = F.softmax(-distances, dim=1)
+    #     # self.q = F.gumbel_softmax(cos, dim=1, hard=False)
+    #     self.q = F.softmax(cos, dim=1)
+    #     # x_quantized = torch.matmul(
+    #     #     self.softmax_distances, self.embedding.weight
+    #     # )
+    #     # return x_quantized
+    #     return self.q
 
     @staticmethod
     def calc_distances(x, y):
@@ -63,6 +90,32 @@ class VectorQuantizer(nn.Module):
         dot_product = torch.matmul(x, y.t())
         distances = norm_x + norm_embedding - 2 * dot_product
         return distances
+
+    @staticmethod
+    def calc_cosine_similarity(x, y):
+        # Normalize input vectors and embedding vectors to have unit norm
+        x_norm = F.normalize(x, p=2, dim=1)
+        y_norm = F.normalize(y, p=2, dim=1)
+
+        # Calculate cosine similarity
+        cosine_sim = torch.matmul(x_norm, y_norm.t())
+
+        # Transform similarities to 'distances' for softmax
+        distances = 1 - cosine_sim
+        return distances
+
+    # @staticmethod
+    # def calc_cosine_similarity(x, y):
+    #     # Normalize input vectors and embedding vectors to have unit norm
+    #     x_norm = F.normalize(x, p=2, dim=1)
+    #     y_norm = F.normalize(y, p=2, dim=1)
+
+    #     # Calculate cosine similarity
+    #     cosine_sim = torch.matmul(x_norm, y_norm.t())
+
+    #     # Since the softmax function expects 'distances', we can invert the cosine similarities
+    #     # so that higher similarities (closer to 1) are treated as smaller 'distances'.
+    #     return cosine_sim
 
 
 if __name__ == "__main__":
@@ -76,23 +129,7 @@ if __name__ == "__main__":
     m = VectorQuantizer(NUM_EMBEDDINGS, VEC_LEN).cuda()
     out = m(x)  # (BATCH_SIZE, VEC_LEN)
 
-    # Differentiability check
+    out.sum().backward()
 
-    #     out.sum().backward()
-    # In [13]:     m.softmax_distances
-    # Out[13]:
-    # tensor([[0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
-    #          0.0000e+00],
-    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
-    #          1.9517e-31],
-    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
-    #          0.0000e+00],
-    #         ...,
-    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 4.3993e-36,
-    #          1.3132e-10],
-    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 1.0521e-01, 0.0000e+00,
-    #          0.0000e+00],
-    #         [0.0000e+00, 0.0000e+00, 0.0000e+00,  ..., 0.0000e+00, 0.0000e+00,
-    #          0.0000e+00]], device='cuda:0', grad_fn=<SoftmaxBackward0>)
-
-    m.softmax_distances
+    print(m.embedding.weight)
+    print(m.softmax_distances)

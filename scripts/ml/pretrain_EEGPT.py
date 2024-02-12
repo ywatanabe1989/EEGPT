@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-11 20:42:06 (ywatanabe)"
+# Time-stamp: "2024-02-12 22:40:23 (ywatanabe)"
 
+import logging
 import os
 import random
 import sys
@@ -12,6 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 from models.EEGPT import EEGPT
+from models.MultiTaskLoss import MultiTaskLoss
 from scripts.data.database.SQLiteDataset import load_ds_dls  # SQLiteDataset
 from torch.optim import SGD, Adam
 
@@ -62,10 +64,13 @@ def base_step(
     Xb = Xb.float().cuda()
 
     # Remove samples with nan values
-    Xb = Xb[~Xb.isnan().any(-1).any(-1)]
+    indi_nan = Xb.isnan().any(-1).any(-1)
+    has_nan = indi_nan.sum()
+
+    Xb = Xb[~indi_nan]
 
     # Forward pass
-    loss = model(Xb)
+    loss, bacc = model(Xb)
 
     # Backpropagation and weight update
     if step == "Training":
@@ -79,14 +84,25 @@ def base_step(
     metrics["i_epoch"].append(i_epoch)
     metrics["i_batch"].append(i_batch)
     metrics["loss"].append(loss)
+    metrics["bACC"].append(bacc)
 
     # Print
     if i_batch == 0:
         print(f"\n{'-'*40}\n")
-    if i_batch % 10 == 0:
+
+    if i_batch % 100 == 0:
+        # print(f"Embedding weights:\n{model.VQ.embedding.weight}")
+        print(f"model.VQ.q:\n{model.VQ.q[:5]}")
         print(
-            f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
+            f"argmax:\n{mngs.gen.unique(model.VQ.q.argmax(axis=-1).cpu().detach().numpy())}"
         )
+        print(
+            f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}, bACC: {round(bacc, 3)}"
+        )
+
+    #     print(
+    #         f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
+    #     )
 
     return metrics
 
@@ -94,7 +110,9 @@ def base_step(
 def train_and_eval(dls):
     # Model
     model = EEGPT().cuda()
+
     optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
+    # optimizer = Adam(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 
     # Main
     metrics = mngs.gen.listed_dict()
@@ -151,7 +169,6 @@ def main():
     # Main
     model, metrics_df = train_and_eval(dls)
     fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
-    # *** ValueError: Source ('src') and target ('tgt') must have the same number of elements.
 
     # Saves
     mngs.io.save(model, CONFIG["SDIR"] + "checkpoint.pth")
@@ -164,18 +181,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # print(metrics_df)
-    #          step  i_global  i_epoch  i_batch      loss
-    # 0    Training         0        0        0  0.721624
-    # 1    Training         1        0        1  0.715103
-    # 2    Training         2        0        2  0.709523
-    # 3    Training         3        0        3  0.721214
-    # 4    Training         4        0        4  0.731842
-    # ..        ...       ...      ...      ...       ...
-    # 250      Test      5956        1       46  0.739182
-    # 251      Test      5956        1       47  0.742658
-    # 252      Test      5956        1       48  0.720806
-    # 253      Test      5956        1       49  0.740011
-    # 254      Test      5956        1       50  0.720261
-
-    #   [255 rows x 5 columns]

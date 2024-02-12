@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 07:39:16 (ywatanabe)"
+# Time-stamp: "2024-02-12 14:45:58 (ywatanabe)"
 
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import Transformer
 
 
@@ -31,4 +32,6 @@ class TransformerModel(nn.Module):
         )  # Transformer expects src to be of shape (S, N, E)
         output = self.transformer(src, src)
         output = self.fc_out(output)
-        return output[-1, :, :].unsqueeze(1)
+        output = output[-1, :, :].unsqueeze(1)
+        logits = output
+        return logits

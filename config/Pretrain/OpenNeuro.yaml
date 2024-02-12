@@ -12,3 +12,9 @@ SPLIT_RATIOS:
     val: .2
     tes: .2
 BALANCING_CRITERIA_TRA: []
+    
+BATCH_SIZE:
+  1024
+  
+NUM_WORKERS:
+  4
