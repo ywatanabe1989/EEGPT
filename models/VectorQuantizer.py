@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-14 12:22:04 (ywatanabe)"
+# Time-stamp: "2024-02-15 19:51:15 (ywatanabe)"
 
 import math
 
@@ -48,59 +48,42 @@ class VectorQuantizer(nn.Module):
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
         self.embedding = nn.Embedding(num_embeddings, embedding_dim)
-        # self.embedding.weight.data.uniform_(-1, 1)
-        stdv = 1.0 / math.sqrt(self.embedding_dim)
-        self.embedding.weight.data.normal_(mean=0, std=stdv)
+        self.embedding.weight.data.uniform_(-1, 1)
+        # stdv = 1.0 / math.sqrt(self.embedding_dim)
+        # self.embedding.weight.data.normal_(mean=0, std=stdv)
         # self.embedding.weight.requires_grad = False
 
     def forward(self, x):
         # self.embedding.weight.data = F.normalize(
         #     self.embedding.weight, p=2, dim=1
         # )
-        # import ipdb; ipdb.set_trace()
+
         distances = self.calc_distances(x, self.embedding.weight)
-        # self.softmax_distances = F.softmax(-distances, dim=1)
-        self.q = F.gumbel_softmax(-distances, dim=1, hard=False)
-        # self.q = F.gumbel_softmax(
-        #     distances, dim=1, hard=False
-        # )  # '-' distances would be correct
-        # return self.q
-        x_quantized = torch.matmul(self.q, self.embedding.weight)
+        # distances = self.calc_cosine_similarity(x, self.embedding.weight)
 
-        entropy_loss = self.calc_entropy_loss(self.q)
+        self.q = F.softmax(-distances, dim=1)
+        # self.q = F.gumbel_softmax(-distances, dim=1, hard=False)
 
-        commitment_loss = self.calc_commitment_loss(x, x_quantized)
+        xq = torch.matmul(self.q, self.embedding.weight)
 
-        return x_quantized, commitment_loss, entropy_loss
+        self.entropy_loss = self.calc_entropy_loss(self.q)
+
+        self.commitment_loss = F.mse_loss(x, xq)
+
+        if self.commitment_loss == 0:
+            print(x)
+            print(xq)
+            import ipdb
+
+            ipdb.set_trace()
+
+        return xq, self.commitment_loss, self.entropy_loss
 
     @staticmethod
     def calc_entropy_loss(softmax):
-        # Make sure the distribution is normalized (sums to 1)
-        log_q = torch.log(
-            softmax + 1e-10
-        )  # Adding a small epsilon to avoid log(0)
-        entropy = -torch.sum(
-            softmax * log_q, dim=1
-        )  # Entropy for each batch sample
-        return -entropy.mean()  # Mean entropy across the batch
-
-    @staticmethod
-    def calc_commitment_loss(x, q):
-        return F.mse_loss(x, q)
-
-    # def forward(self, x):
-    #     self.embedding.weight.data = F.normalize(
-    #         self.embedding.weight, p=2, dim=1
-    #     )
-    #     cos = self.calc_cosine_similarity(x, self.embedding.weight)
-    #     # self.softmax_distances = F.softmax(-distances, dim=1)
-    #     # self.q = F.gumbel_softmax(cos, dim=1, hard=False)
-    #     self.q = F.softmax(cos, dim=1)
-    #     # x_quantized = torch.matmul(
-    #     #     self.softmax_distances, self.embedding.weight
-    #     # )
-    #     # return x_quantized
-    #     return self.q
+        log_q = torch.log(softmax + 1e-10)
+        entropy = -torch.sum(softmax * log_q, dim=1)
+        return -entropy.mean()
 
     @staticmethod
     def calc_distances(x, y):
@@ -149,10 +132,3 @@ if __name__ == "__main__":
     out = m(x)  # (BATCH_SIZE, VEC_LEN)
 
     out.sum().backward()
-
-    print(m.embedding.weight)
-    print(m.q)
-
-    x.shape
-    out.shape
-    m.q

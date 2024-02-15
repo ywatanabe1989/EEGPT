@@ -40,18 +40,19 @@ cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 
 #### Runs pretraining
 ``` bash
-$ ./scripts/ml/pretrain_EEGPT.py
+$ screen -dmS pretrain_beta_0.0 ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.0 -g 0.0
+$ screen -dmS pretrain_beta_0.1 ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0
+$ screen -dmS pretrain_beta_0.3 ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0
+$ screen -dmS pretrain_beta_1.0 ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 1.0 -g 0.0
+$ screen -dmS pretrain_beta_3.0 ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 3.0 -g 0.0
 ```
 
 
 
 
 ## OpenNeuro Datasets for Pretraining
-47 datasets identified on OpenNeuro under the following conditions:
+Over 100 datasets identified on OpenNeuro under the following conditions:
 - 1. MODALITY: EEG
 - 2. PARTICIPANTS: 50 or more
 
-```
-Congratulations! SQLite database was created from 41823 files, 19 datasets, and 4450 subjects:
-./data/OpenNeuro/dbs/eeg_data_v016.db
-```
+From 78 datasets, EEG data of 6,144 subjects are utilized during pretraining.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 12:50:43 (ywatanabe)"
+# Time-stamp: "2024-02-16 06:57:51 (ywatanabe)"
 
 import torch
 import torch.nn as nn
@@ -70,12 +70,16 @@ class Conv2DNet(nn.Module):
         # self.pool4 = nn.MaxPool2d(2, 2)
         # # self.fc = nn.Linear(128, 16)
 
+        self.dropout = nn.Dropout(p=0.2)
+
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))  # (16, 16, 14, 32)
         out = F.relu(self.bn2(self.conv2(out)))  # (16, 16, 14, 32)
         out = self.pool1(out)  # (16, 1, 7, 16)
         residual = self.pool1(x)  # (16, 16, 19, 64)
         out = out + residual  # (16, 16, 7, 32)
+
+        out = self.dropout(out)
 
         residual = out
         out = F.relu(self.bn3(self.conv3(out)))  # (16, 32, 7, 16)
@@ -86,6 +90,8 @@ class Conv2DNet(nn.Module):
         )  # (16, 32, 3, 8)
         out = out + residual  # (16, 32, 3, 8)
 
+        out = self.dropout(out)
+
         residual = out
         out = F.relu(self.bn5(self.conv5(out)))  # (16, 64, 3, 8)
         out = F.relu(self.bn6(self.conv6(out)))  # (16, 64, 3, 8)
@@ -95,6 +101,7 @@ class Conv2DNet(nn.Module):
         )  # (16, 64, 1, 4)
         out = out + residual  # (16, 64, 1, 4)
 
+        out = self.dropout(out)
         # out = F.relu(self.bn6(self.conv6(out)))  # (16, 64, 3, 8)
 
         # residual = out  # (16, 64, 1, 4)
@@ -108,6 +115,10 @@ class Conv2DNet(nn.Module):
 
         out = out.mean(dim=(-2, -1), keepdims=True)  # 16, 64
         out = self.bn7(out)
+        # out = (out - out.mean(dim=-1, keepdims=True)) / (out.std(dim=-1, keepdims=True) + 1e-8)
+
+        out = self.dropout(out)
+
         return out.squeeze()
 
 

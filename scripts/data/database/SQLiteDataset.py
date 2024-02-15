@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 22:25:53 (ywatanabe)"
+# Time-stamp: "2024-02-15 20:07:22 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -81,7 +81,12 @@ class SQLiteDataset(Dataset):
     ):
         # Attributes
         self.ds_config = ds_config
-        self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+
+        try:
+            self.df = mngs.io.load("./config/Pretrain/OpenNeuro.csv")
+        except Exception as e:
+            print(e)
+            self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
         self.meta_all = self.gen_meta_all()
         # self.apply_sliding_window = apply_sliding_window
         self.collate_fn = collate_fn

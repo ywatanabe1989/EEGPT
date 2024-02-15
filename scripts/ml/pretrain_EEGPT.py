@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-13 11:22:55 (ywatanabe)"
+# Time-stamp: "2024-02-15 20:24:20 (ywatanabe)"
 
 import logging
 import os
@@ -39,6 +39,9 @@ def base_step(
     i_global,
     metrics,
     step="Training",
+    alpha=1,
+    beta=1,
+    gamma=1,
 ):
     if CONFIG["IS_DEBUG"] and (i_batch > 50):
         return None
@@ -70,7 +73,10 @@ def base_step(
     Xb = Xb[~indi_nan]
 
     # Forward pass
-    commitment_loss, entropy_loss, prediction_loss = model(Xb)
+    # alpha, beta, gamma = 1, 0.3, 0
+    commitment_loss, entropy_loss, prediction_loss = model(
+        Xb, alpha=alpha, beta=beta, gamma=gamma
+    )
     loss = commitment_loss + entropy_loss + prediction_loss
 
     # Backpropagation and weight update
@@ -92,13 +98,19 @@ def base_step(
         print(
             f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
         )
+
         print(f"\nprediction loss: {prediction_loss.item():.5f}")
         print(f"\ncommitment loss: {commitment_loss.item():.5f}")
         print(f"\nentropy loss: {entropy_loss.item():.5f}")
 
-        print(f"model.VQ.q:\n{model.VQ.q[:5]}")
         print(
-            f"argmax:\n{mngs.gen.unique(model.VQ.q.argmax(axis=-1).cpu().detach().numpy())}"
+            f"\nmodel.VQ.embedding.weight.data:\n{model.VQ.embedding.weight.data[:5]}"
+        )
+        print(f"\nmodel.VQ.q:\n{model.VQ.q[:5]}")
+        print(f"\nmodel.VQ.q:\n{model.VQ.q[:5]}")
+
+        print(
+            f"\nmodel.VQ.q.argmax:\n{mngs.gen.unique(model.VQ.q.argmax(axis=-1).cpu().detach().numpy())}"
         )
 
     # if i_batch % 100 == 0:
@@ -111,12 +123,12 @@ def base_step(
     return metrics
 
 
-def train_and_eval(dls):
+def train_and_eval(dls, alpha=1, beta=1, gamma=1):
     # Model
     model = EEGPT().cuda()
 
-    # optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
-    optimizer = Adam(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
+    optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
+    # optimizer = Adam(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 
     # Main
     metrics = mngs.gen.listed_dict()
@@ -134,6 +146,9 @@ def train_and_eval(dls):
                 i_global,
                 metrics,
                 step="Training",
+                alpha=alpha,
+                beta=beta,
+                gamma=gamma,
             )
             i_global += 1
 
@@ -148,6 +163,9 @@ def train_and_eval(dls):
                 i_global,
                 metrics,
                 step="Validation",
+                alpha=alpha,
+                beta=beta,
+                gamma=gamma,
             )
 
     # Testing
@@ -161,17 +179,25 @@ def train_and_eval(dls):
             i_global,
             metrics,
             step="Test",
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
         )
 
     return model, pd.DataFrame(metrics)
 
 
-def main():
+def main(alpha=1.0, beta=1.0, gamma=1.0):
     # Loads
     ds, dls = load_ds_dls("./config/Pretrain/OpenNeuro.yaml")
+    len(ds.df["dataset_id"].unique())  # 78
+    len(ds.df["subject_id"].unique())  # 6144
+    mngs.io.save(ds.df, "./config/Pretrain/OpenNeuro.csv")
 
     # Main
-    model, metrics_df = train_and_eval(dls)
+    model, metrics_df = train_and_eval(
+        dls, alpha=alpha, beta=beta, gamma=gamma
+    )
     fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
 
     # Saves
@@ -184,4 +210,42 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Train the EEGPT model with given hyperparameters."
+    )
+    parser.add_argument(
+        "-a",
+        "--alpha",
+        type=float,
+        default=1.0,
+        help="Weight for the commitment loss",
+    )
+    parser.add_argument(
+        "-b",
+        "--beta",
+        type=float,
+        default=1.0,
+        help="Weight for the entropy loss",
+    )
+    parser.add_argument(
+        "-g",
+        "--gamma",
+        type=float,
+        default=1.0,
+        help="Weight for the prediction loss",
+    )
+    args = parser.parse_args()
+
+    print(f"\nargs:\n{args}")
+
+    main(alpha=args.alpha, beta=args.beta, gamma=args.gamma)
+
+    """
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.0 -g 0.0
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 1.0 -g 0.0
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 3.0 -g 0.0        
+    """
