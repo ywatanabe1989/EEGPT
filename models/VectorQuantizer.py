@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 23:19:45 (ywatanabe)"
+# Time-stamp: "2024-02-14 12:22:04 (ywatanabe)"
 
 import math
 
@@ -51,6 +51,7 @@ class VectorQuantizer(nn.Module):
         # self.embedding.weight.data.uniform_(-1, 1)
         stdv = 1.0 / math.sqrt(self.embedding_dim)
         self.embedding.weight.data.normal_(mean=0, std=stdv)
+        # self.embedding.weight.requires_grad = False
 
     def forward(self, x):
         # self.embedding.weight.data = F.normalize(
@@ -63,11 +64,29 @@ class VectorQuantizer(nn.Module):
         # self.q = F.gumbel_softmax(
         #     distances, dim=1, hard=False
         # )  # '-' distances would be correct
-        return self.q
-        # x_quantized = torch.matmul(
-        #     self.softmax_distances, self.embedding.weight
-        # )
-        # return x_quantized
+        # return self.q
+        x_quantized = torch.matmul(self.q, self.embedding.weight)
+
+        entropy_loss = self.calc_entropy_loss(self.q)
+
+        commitment_loss = self.calc_commitment_loss(x, x_quantized)
+
+        return x_quantized, commitment_loss, entropy_loss
+
+    @staticmethod
+    def calc_entropy_loss(softmax):
+        # Make sure the distribution is normalized (sums to 1)
+        log_q = torch.log(
+            softmax + 1e-10
+        )  # Adding a small epsilon to avoid log(0)
+        entropy = -torch.sum(
+            softmax * log_q, dim=1
+        )  # Entropy for each batch sample
+        return -entropy.mean()  # Mean entropy across the batch
+
+    @staticmethod
+    def calc_commitment_loss(x, q):
+        return F.mse_loss(x, q)
 
     # def forward(self, x):
     #     self.embedding.weight.data = F.normalize(
@@ -132,4 +151,8 @@ if __name__ == "__main__":
     out.sum().backward()
 
     print(m.embedding.weight)
-    print(m.softmax_distances)
+    print(m.q)
+
+    x.shape
+    out.shape
+    m.q

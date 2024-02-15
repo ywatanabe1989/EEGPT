@@ -1,37 +1,44 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 14:45:58 (ywatanabe)"
+# Time-stamp: "2024-02-15 09:46:48 (ywatanabe)"
 
+import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Transformer
 
+"""Predict EEG signal of the last 0.25 seconds from the preciding EEG data using Transformer models"""
 
-class TransformerModel(nn.Module):
-    def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        nheads,
-        num_encoder_layers,
-        num_decoder_layers,
-    ):
-        super(TransformerModel, self).__init__()
-        self.transformer = Transformer(
-            d_model=input_dim,
-            nhead=nheads,
-            num_encoder_layers=num_encoder_layers,
-            num_decoder_layers=num_decoder_layers,
-        )
-        self.fc_out = nn.Linear(input_dim, input_dim)
+# Demo data
+batch_size = 64
+n_chs = 14
+samp_rate = 128
+len_sec = 2
+len_sec_pre = 1.75
 
-    def forward(self, src):
-        # src: (sequence length, batch size, input dimension)
-        src = src.permute(
-            1, 0, 2
-        )  # Transformer expects src to be of shape (S, N, E)
-        output = self.transformer(src, src)
-        output = self.fc_out(output)
-        output = output[-1, :, :].unsqueeze(1)
-        logits = output
-        return logits
+# Assuming demo_sig_torch function is defined as provided
+sig = mngs.dsp.demo_sig_torch(
+    batch_size=batch_size, n_chs=n_chs, samp_rate=samp_rate, len_sec=len_sec
+)
+
+# sig_pre = sig[..., : int(len_sec_pre * samp_rate)]  # Preceding sequence
+# sig_post = sig[
+#     ..., int(len_sec_pre * samp_rate) :
+# ]  # Future sequence to predict
+
+# sig_pre.shape
+# sig_post.shape
+
+# # Encoder
+# encoder_layer = nn.TransformerEncoderLayer(d_model=n_chs, nhead=2)
+# transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
+# src = sig_pre.transpose(1, 2) # (64, 224, 14) # (batch_size, seq_len, n_chs)
+# out = transformer_encoder(src)  # (64, 224, 14)
+
+# # Decoder
+# decoder_layer = nn.TransformerDecoderLayer(d_model=n_chs, nhead=2)
+# transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=6)
+# memory = torch.rand(10, 32, 512) # memory (Tensor) – the sequence from the last layer of the encoder (required).
+# # tgt = torch.rand(20, 32, 512)
+# tgt = sig_post.transpose(1,2)
+# out = transformer_decoder(tgt, memory)

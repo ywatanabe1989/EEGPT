@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 22:40:23 (ywatanabe)"
+# Time-stamp: "2024-02-13 11:22:55 (ywatanabe)"
 
 import logging
 import os
@@ -70,7 +70,8 @@ def base_step(
     Xb = Xb[~indi_nan]
 
     # Forward pass
-    loss, bacc = model(Xb)
+    commitment_loss, entropy_loss, prediction_loss = model(Xb)
+    loss = commitment_loss + entropy_loss + prediction_loss
 
     # Backpropagation and weight update
     if step == "Training":
@@ -84,21 +85,24 @@ def base_step(
     metrics["i_epoch"].append(i_epoch)
     metrics["i_batch"].append(i_batch)
     metrics["loss"].append(loss)
-    metrics["bACC"].append(bacc)
 
     # Print
     if i_batch == 0:
         print(f"\n{'-'*40}\n")
+        print(
+            f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
+        )
+        print(f"\nprediction loss: {prediction_loss.item():.5f}")
+        print(f"\ncommitment loss: {commitment_loss.item():.5f}")
+        print(f"\nentropy loss: {entropy_loss.item():.5f}")
 
-    if i_batch % 100 == 0:
-        # print(f"Embedding weights:\n{model.VQ.embedding.weight}")
         print(f"model.VQ.q:\n{model.VQ.q[:5]}")
         print(
             f"argmax:\n{mngs.gen.unique(model.VQ.q.argmax(axis=-1).cpu().detach().numpy())}"
         )
-        print(
-            f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}, bACC: {round(bacc, 3)}"
-        )
+
+    # if i_batch % 100 == 0:
+    # print(f"Embedding weights:\n{model.VQ.embedding.weight}")
 
     #     print(
     #         f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
@@ -111,8 +115,8 @@ def train_and_eval(dls):
     # Model
     model = EEGPT().cuda()
 
-    optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
-    # optimizer = Adam(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
+    # optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
+    optimizer = Adam(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 
     # Main
     metrics = mngs.gen.listed_dict()

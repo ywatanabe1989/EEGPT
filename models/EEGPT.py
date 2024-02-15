@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-12 23:43:51 (ywatanabe)"
+# Time-stamp: "2024-02-15 09:11:34 (ywatanabe)"
 
 import warnings
 
@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.commitment_loss import commitment_loss
-from models.LossWeighting import LossWeighting
+from models.LossBalancer import LossBalancer
 from models.MultiTaskLoss import MultiTaskLoss
 
 # from models.MNet import MNet
@@ -55,22 +55,23 @@ class EEGPT(nn.Module):
 
         # self.PE = self.generate_positional_encodings(n_steps, input_dim)
         self.PE = PositionalEncodingLayer(
-            n_steps - 1, self.model_config["num_embeddings"]
+            n_steps - 1, self.model_config["embedding_dim"]
         )  # self.model_config["embedding_dim"]
 
         # Transformer layers
         self.transformer = TransformerModel(
-            input_dim=self.model_config["num_embeddings"],
+            input_dim=self.model_config["embedding_dim"],
             hidden_dim=32,
-            nheads=2,
-            num_encoder_layers=1,
-            num_decoder_layers=1,
+            nheads=4,
+            num_encoder_layers=6,
+            num_decoder_layers=6,
         )
 
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction="none")
-        self.loss_weighting = LossWeighting(self.model_config["embedding_dim"])
-        # self.multi_task_loss = MultiTaskLoss([True, False, False])
-        self.multi_task_loss = MultiTaskLoss([True, False])
+        self.loss_balancer = LossBalancer(self.model_config["num_embeddings"])
+        self.multi_task_loss = MultiTaskLoss(
+            [True, False, False]
+        )  # not working well
 
         # To trap latent features
         self.activation = {}
@@ -86,75 +87,90 @@ class EEGPT(nn.Module):
         xs = self.split_conv(x)  # len(xs) # 8; xs[0].shape # [32, 64]
 
         # Quantization
-        xs = [self.VQ(x) for x in xs]  # len(xs) # 8; xs[0].shape # [32, 64]
+        xs_quantized, commitment_losses, entropy_losses = zip(
+            *[self.VQ(x) for x in xs]
+        )
+        commitment_loss = torch.mean(torch.stack(commitment_losses)).to(
+            x.device
+        )
+        entropy_loss = torch.mean(torch.stack(entropy_losses)).to(x.device)
 
         # To tensor
-        x = torch.stack(
-            xs, axis=1
-        )  # (-1, 8, self.model_config["num_embeddings"])
-
+        x_quantized = torch.stack(
+            xs_quantized, axis=1
+        )  # (-1, 8, self.model_config["embedding_dim"])
         # Split x to two parts for self-supervised training
-        x1 = x[:, :-1, :]  # (-1, 7, 4)
-        x2 = x[:, -1, :].unsqueeze(1)  # (-1, 1, 4)
+        xq1 = x_quantized[
+            :, :-1, :
+        ]  # (-1, 7, self.model_config["embedding_dim"])
+        xq2 = x_quantized[:, -1, :].unsqueeze(
+            1
+        )  # (-1, 1, self.model_config["embedding_dim"])
 
         # Positional Encoding
-        x1 += self.PE()
+        xq1 += self.PE()
 
         # For transfer learning
         if not get_latent:
-            logits = self.transformer(
-                x1
-            )  # (-1, 1, self.model_config["num_embeddings"])
-            softmax_probs = F.softmax(logits, dim=-1)
-            # predicted_classes = torch.max(softmax_probs, dim=-1)[1].squeeze()
-            predicted_classes = softmax_probs.squeeze().argmax(dim=-1)
-            true_classes = x2.squeeze().argmax(dim=-1)
+            transformer_output = self.transformer(
+                xq1
+            )  # (-1, 1, self.model_config["embedding_dim"])
 
-            # Classification loss
-            loss_clf = self.cross_entropy_loss(
-                logits.squeeze(), x2.squeeze()
-            ).mean()
-            # loss_clf = self.loss_weighting(
-            #     loss_clf, true_classes, is_training=self.training
-            # )
+            prediction_loss = F.mse_loss(transformer_output, xq2)
 
-            # Diversity loss
-            avg_probs = softmax_probs.mean(dim=0)
-            loss_diversity = -torch.sum(
-                avg_probs * torch.log(avg_probs + 1e-10)
+            return (
+                commitment_loss,
+                alpha * entropy_loss,
+                beta * prediction_loss,
             )
 
-            # Commitment loss
-            loss_commitment = commitment_loss(x2)
+            # total_loss = (
+            #     commitment_loss + alpha + entropy_loss + beta * prediction_loss
+            # )
+
+            # return total_loss
+
+            # softmax_probs = F.softmax(logits, dim=-1).squeeze()
+            # predicted_classes = softmax_probs.argmax(dim=-1)
+            # true_classes = x2.squeeze().argmax(dim=-1)
+
+            # # Classification loss
+            # loss_clf = self.loss_balancer(
+            #     self.cross_entropy_loss(logits.squeeze(), x2.squeeze()),
+            #     true_classes,
+            #     train=self.training,
+            # )
+
+            # # Diversity loss
+            # avg_probs = softmax_probs.mean(dim=0)
+            # loss_diversity = -torch.sum(
+            #     avg_probs * torch.log(avg_probs + 1e-10)
+            # )
+
+            # # Commitment loss
+            # loss_commitment = commitment_loss(x2)
 
             # Total loss
             # multi_task_loss = self.multi_task_loss(
             #     loss_clf, loss_diversity, loss_commitment
-            # )
+            # )  # it seems not working
             # multi_task_loss = self.multi_task_loss(loss_clf, loss_commitment)
-            multi_task_loss = loss_clf
+            # multi_task_loss = loss_clf
 
-            # Calculate balanced accuracy for the last-sequency prediction
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                bacc = balanced_accuracy_score(
-                    true_classes.cpu().detach().numpy(),
-                    predicted_classes.cpu().detach().numpy(),
-                )
-
-                # acc = np.mean(
-                #     true_classes.cpu().detach().numpy()
-                #     == predicted_classes.cpu().detach().numpy()
-                # )
-
-            return multi_task_loss, bacc
-            # return multi_task_loss, acc
+            # # Calculate balanced accuracy for the last-sequency prediction
+            # with warnings.catch_warnings():
+            #     warnings.simplefilter("ignore")
+            #     bacc = balanced_accuracy_score(
+            #         true_classes.cpu().detach().numpy(),
+            #         predicted_classes.cpu().detach().numpy(),
+            #     )
+            # return multi_task_loss, bacc
 
         else:
             self.transformer.transformer.encoder.norm.register_forward_hook(
                 self.get_latent("encoder_norm")
             )
-            logits = self.transformer(x1)
+            logits = self.transformer(xq1)
             l1 = (
                 self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
             )
@@ -188,9 +204,7 @@ if __name__ == "__main__":
     # print(summary(m, x.shape))
 
     # print(m.VQ.embedding.weight)
-    print(m.VQ.softmax_distances)
+    print(m.VQ.q)
+    print(m.VQ.q.argmax(axis=-1))
 
     # loss.sum().backward()
-
-    m.eval()
-    loss = m(x)

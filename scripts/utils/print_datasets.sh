@@ -3,7 +3,6 @@
 # Define an associative array with category names as keys and paths as values
 declare -A categories=(
     [OpenNeuro]="data/OpenNeuro/raw"
-    [OpenNeuro2]="data/OpenNeuro"    
     [Dementia]="data/Dementia/raw"
     [Epilepsy]="data/Epilepsy/raw"
     [WorkingMemory]="data/WorkingMemory/raw"

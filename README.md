@@ -33,8 +33,8 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 ls ./data/O*/dbs -alht
 
 CAT=OpenNeuro
-VER=v028
-cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..`
+VER=v029
+cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 ```
 
 
