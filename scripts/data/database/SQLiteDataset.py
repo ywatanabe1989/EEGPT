@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-15 20:07:22 (ywatanabe)"
+# Time-stamp: "2024-02-17 02:08:43 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -26,6 +26,16 @@ from tqdm import tqdm
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 CONFIG = mngs.gen.load_configs(show=False)
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
+g = torch.Generator()
+g.manual_seed(0)
 
 
 class SQLiteDataset(Dataset):
@@ -75,21 +85,30 @@ class SQLiteDataset(Dataset):
         self,
         ds_config,
         meta_all=None,
-        # apply_sliding_window=True,
         collate_fn=None,
         verbose=False,
     ):
         # Attributes
         self.ds_config = ds_config
 
+        # Loads metadata
+        # self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+        cache_path = self.ds_config["LPATH_DB"].replace(
+            ".db", "_meta_cache.pkl"
+        )
         try:
-            self.df = mngs.io.load("./config/Pretrain/OpenNeuro.csv")
+            self.df = mngs.io.load(cache_path)
+            assert self.df is not None
         except Exception as e:
-            print(e)
             self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+            mngs.io.save(self.df, cache_path)
+
         self.meta_all = self.gen_meta_all()
-        # self.apply_sliding_window = apply_sliding_window
-        self.collate_fn = collate_fn
+        # self.collate_fn = (
+        #     sliding_window_collate_fn
+        #     if collate_fn is "sliding_window"
+        #     else None
+        # )
 
         # Combines criteria
         self.INCLUSION_CRITERIA_COMBINED = combine_inclusion_criteria(
@@ -309,15 +328,20 @@ class SQLiteDataset(Dataset):
                     batch_size=self.ds_config["BATCH_SIZE"],
                     shuffle=True if split == "tra" else False,
                     num_workers=self.ds_config["NUM_WORKERS"],
-                    collate_fn=self.collate_fn,
+                    collate_fn=sliding_window_collate_fn
+                    if split == "tra"
+                    else None,
                     drop_last=True,
+                    worker_init_fn=seed_worker,
+                    generator=g,
                 )
             except Exception as e:
                 print(e)
         return dataloaders
 
 
-def apply_sliding_window_data_augmentation(segment_tensor):
+# Define the custom collate function
+def sliding_window(segment_tensor):
     WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
     start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
     end = start + WINDOW_SIZE_PTS
@@ -325,7 +349,6 @@ def apply_sliding_window_data_augmentation(segment_tensor):
     return segment_tensor
 
 
-# Define the custom collate function
 def sliding_window_collate_fn(batch):
     augmented_batch = []
     for sample in batch:
@@ -387,9 +410,7 @@ if __name__ == "__main__":
 
     # Construct dataset
     lpath_ds_config = "./config/DownStream/Dementia.yaml"
-    ds, dls = load_ds_dls(
-        lpath_ds_config, collate_fn=sliding_window_collate_fn
-    )
+    ds, dls = load_ds_dls(lpath_ds_config)
 
     # Main
     for i_epoch in tqdm(range(5)):

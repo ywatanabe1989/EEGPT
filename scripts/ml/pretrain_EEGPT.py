@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-16 08:05:09 (ywatanabe)"
+# Time-stamp: "2024-02-16 14:24:17 (ywatanabe)"
 
 import logging
 import os
@@ -109,19 +109,15 @@ def base_step(
             f"\nmodel.VQ.assignment_probs.argmax:\n{mngs.gen.unique(model.VQ.assignment_probs.argmax(axis=-1).cpu().detach().numpy())}"
         )
 
-    # if i_batch % 100 == 0:
-    # print(f"Embedding weights:\n{model.VQ.embedding.weight}")
-
-    #     print(
-    #         f"\n{step}, Epoch# {i_epoch}, Batch #{i_batch}, Loss: {round(loss, 8)}"
-    #     )
-
     return metrics
 
 
 def train_and_eval(dls, model_config):
     # Model
     model = EEGPT(model_config).cuda()
+    if model_config["load_conv_and_vq"]:
+        model = load_conv_and_vq_and_freeze_them(model)
+    _ = mngs.ml.utils.check_params(model, show=True)
 
     optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 
@@ -173,6 +169,20 @@ def train_and_eval(dls, model_config):
     return model, pd.DataFrame(metrics)
 
 
+def load_conv_and_vq_and_freeze_them(model):
+    model.load_state_dict(
+        mngs.io.load(
+            "./scripts/ml/pretrain_EEGPT/2024-02-16-06-07_ysWI49LM/checkpoint.pth"
+        ).state_dict()
+    )
+    for param in list(model.split_conv.parameters()) + list(
+        model.VQ.parameters()
+    ):
+        param.requires_grad = False
+
+    return model
+
+
 def main(model_config):
     # Loads
     ds, dls = load_ds_dls("./config/Pretrain/OpenNeuro.yaml")
@@ -210,14 +220,14 @@ if __name__ == "__main__":
         "-b",
         "--beta",
         type=float,
-        default=1.0,
+        default=0.3,
         help="Weight for the entropy loss",
     )
     parser.add_argument(
         "-g",
         "--gamma",
         type=float,
-        default=1.0,
+        default=0.0,
         help="Weight for the prediction loss",
     )
     parser.add_argument(
@@ -246,6 +256,12 @@ if __name__ == "__main__":
         default="uniform",
         help="",
     )
+    parser.add_argument(
+        "--load_conv_and_vq",
+        action="store_true",
+        default=False,
+        help="Load convolution and vector quantization layers and freeze them.",
+    )
 
     args = parser.parse_args()
 
@@ -260,13 +276,12 @@ if __name__ == "__main__":
         loss_alpha=args.alpha,
         loss_beta=args.beta,
         loss_gamma=args.gamma,
+        load_conv_and_vq=args.load_conv_and_vq,
     )
 
     main(model_config)
 
     """
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type softmax
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_soft
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_hard
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type gumbel_softmax_hard
+    ./scripts/ml/pretrain_EEGPT.py -a 0 -b 0 -g 1.0 --softmax_type gumbel_softmax_hard --load_conv_and_vq
     """
