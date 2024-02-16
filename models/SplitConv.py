@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-16 06:57:51 (ywatanabe)"
+# Time-stamp: "2024-02-16 07:12:49 (ywatanabe)"
 
 import torch
 import torch.nn as nn
@@ -110,12 +110,10 @@ class Conv2DNet(nn.Module):
         # residual = residual.mean(dim=1, keepdims=True)  # (16, 1, 1, 4)
         # out = out + residual  # (16, 128, 1, 4)
         # out = out.mean(dim=-1, keepdims=True)
-        # import ipdb; ipdb.set_trace()
         # out = out.mean(dim=-1).squeeze().mean(dim=-1).squeeze().unsqueeze(-1)
 
         out = out.mean(dim=(-2, -1), keepdims=True)  # 16, 64
         out = self.bn7(out)
-        # out = (out - out.mean(dim=-1, keepdims=True)) / (out.std(dim=-1, keepdims=True) + 1e-8)
 
         out = self.dropout(out)
 

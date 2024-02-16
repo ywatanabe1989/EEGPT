@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-15 19:51:15 (ywatanabe)"
+# Time-stamp: "2024-02-16 08:03:51 (ywatanabe)"
 
 import math
 
@@ -11,73 +11,105 @@ import torch.nn.functional as F
 
 class VectorQuantizer(nn.Module):
     """
-    Converts input vectors into combinations of finite number of embeddings,
-    which are learnable parameters of the model.
+    A flexible Vector Quantizer module that converts input vectors into a combination of a finite number of embeddings,
+    which are learnable parameters of the model. It supports different initialization methods for embeddings,
+    application of weight normalization, and choice of softmax type for soft quantization.
 
-    Arguments:
+    The module normalizes input vectors to have mean 0 and standard deviation 1 before computing distances to embeddings.
+    It supports standard softmax, soft, and hard Gumbel softmax for computing soft assignment probabilities.
+
+    Parameters:
         num_embeddings (int): The number of distinct embeddings.
         embedding_dim (int): The dimensionality of each embedding vector.
+        softmax_type (str): Type of softmax for computing assignment probabilities. Supported types are 'softmax',
+            'gumbel_softmax_soft', and 'gumbel_softmax_hard'.
+        initializer (str): Method to initialize embeddings. Supported methods are 'uniform' and 'normal'.
+        apply_weight_norm (bool): If True, applies weight normalization to embeddings before quantization.
 
     Attributes:
         num_embeddings (int): The number of embeddings.
         embedding_dim (int): The dimensionality of embeddings.
-        embedding (nn.Embedding): The embedding layer containing the embeddings.
+        embedding (nn.Embedding): The embedding layer.
+        softmax_type (str): The chosen softmax type.
+        initializer (str): The chosen initializer method.
+        apply_weight_norm (bool): Flag to apply weight normalization.
 
     Returns:
-        Tensor: The quantized output tensor with shape (batch_size, embedding_dim).
+        Tuple[Tensor, Tensor, Tensor]: A tuple containing the quantized output tensor with shape (batch_size, embedding_dim),
+        the commitment loss, and the entropy loss.
 
     Example usage:
-        # Demo input vector data
         BATCH_SIZE, VEC_LEN = 16, 4096
         x = torch.randn(BATCH_SIZE, VEC_LEN).cuda()
-        NUM_EMBEDDINGS = 64  # Each vector will be represented in one of these patterns.
+        NUM_EMBEDDINGS = 64
 
-        m = VectorQuantizer(NUM_EMBEDDINGS, VEC_LEN).cuda()
-        out = m(x)  # (BATCH_SIZE, VEC_LEN)
+        vector_quantizer = VectorQuantizer(NUM_EMBEDDINGS, VEC_LEN, softmax_type="softmax", initializer="uniform", apply_weight_norm=False).cuda()
+        quantized_outputs, commitment_loss, entropy_loss = vector_quantizer(x)
 
-        # Differentiability check
-        out.sum().backward()
+        # Backpropagate
+        commitment_loss.backward()
 
     Note:
-        This implementation is specific to PyTorch tensors and leverages soft quantization,
-        making it suitable for gradient-based optimization.
+        This implementation is designed for PyTorch and is suitable for gradient-based optimization. It provides a
+        modular and flexible approach to vector quantization, allowing for experimentation with different quantization strategies.
     """
 
-    def __init__(self, num_embeddings, embedding_dim):
+    def __init__(
+        self,
+        num_embeddings,
+        embedding_dim,
+        softmax_type="softmax",
+        initializer="uniform",
+        weight_norm=False,
+    ):
         super(VectorQuantizer, self).__init__()
+
+        # Attributes
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
+        self.softmax_type = softmax_type
+        self.initializer = initializer
+        self.weight_norm = weight_norm
+
         self.embedding = nn.Embedding(num_embeddings, embedding_dim)
-        self.embedding.weight.data.uniform_(-1, 1)
-        # stdv = 1.0 / math.sqrt(self.embedding_dim)
-        # self.embedding.weight.data.normal_(mean=0, std=stdv)
-        # self.embedding.weight.requires_grad = False
+
+        if initializer == "uniform":
+            self.embedding.weight.data.uniform_(-1, 1)
+        else:
+            stdv = 1.0 / math.sqrt(self.embedding_dim)
+            self.embedding.weight.data.normal_(mean=0, std=stdv)
 
     def forward(self, x):
-        # self.embedding.weight.data = F.normalize(
-        #     self.embedding.weight, p=2, dim=1
-        # )
+        z = (x - x.mean(dim=-1, keepdims=True)) / (
+            x.std(dim=-1, keepdims=True) + 1e-8
+        )
 
-        distances = self.calc_distances(x, self.embedding.weight)
-        # distances = self.calc_cosine_similarity(x, self.embedding.weight)
+        if self.weight_norm:
+            self.embedding.weight.data = F.normalize(
+                self.embedding.weight, p=2, dim=1
+            )
 
-        self.q = F.softmax(-distances, dim=1)
-        # self.q = F.gumbel_softmax(-distances, dim=1, hard=False)
+        distances = self.calc_distances(z, self.embedding.weight)
 
-        xq = torch.matmul(self.q, self.embedding.weight)
+        self.assignment_probs = self.softmax(distances, self.softmax_type)
 
-        self.entropy_loss = self.calc_entropy_loss(self.q)
+        q = torch.matmul(self.assignment_probs, self.embedding.weight)
 
-        self.commitment_loss = F.mse_loss(x, xq)
+        self.entropy_loss = self.calc_entropy_loss(self.assignment_probs)
 
-        if self.commitment_loss == 0:
-            print(x)
-            print(xq)
-            import ipdb
+        self.commitment_loss = F.mse_loss(z, q)
 
-            ipdb.set_trace()
+        return q, self.commitment_loss, self.entropy_loss
 
-        return xq, self.commitment_loss, self.entropy_loss
+    @staticmethod
+    def softmax(distances, softmax_type):
+        if softmax_type == "softmax":
+            assignment_probs = F.softmax(-distances, dim=1)
+        elif softmax_type == "gumbel_softmax_soft":
+            assignment_probs = F.gumbel_softmax(-distances, dim=1, hard=False)
+        elif softmax_type == "gumbel_softmax_hard":
+            assignment_probs = F.gumbel_softmax(-distances, dim=1, hard=True)
+        return assignment_probs
 
     @staticmethod
     def calc_entropy_loss(softmax):
@@ -93,42 +125,65 @@ class VectorQuantizer(nn.Module):
         distances = norm_x + norm_embedding - 2 * dot_product
         return distances
 
-    @staticmethod
-    def calc_cosine_similarity(x, y):
-        # Normalize input vectors and embedding vectors to have unit norm
-        x_norm = F.normalize(x, p=2, dim=1)
-        y_norm = F.normalize(y, p=2, dim=1)
-
-        # Calculate cosine similarity
-        cosine_sim = torch.matmul(x_norm, y_norm.t())
-
-        # Transform similarities to 'distances' for softmax
-        distances = 1 - cosine_sim
-        return distances
-
-    # @staticmethod
-    # def calc_cosine_similarity(x, y):
-    #     # Normalize input vectors and embedding vectors to have unit norm
-    #     x_norm = F.normalize(x, p=2, dim=1)
-    #     y_norm = F.normalize(y, p=2, dim=1)
-
-    #     # Calculate cosine similarity
-    #     cosine_sim = torch.matmul(x_norm, y_norm.t())
-
-    #     # Since the softmax function expects 'distances', we can invert the cosine similarities
-    #     # so that higher similarities (closer to 1) are treated as smaller 'distances'.
-    #     return cosine_sim
-
 
 if __name__ == "__main__":
-    # Demo input vector data
-    BATCH_SIZE, VEC_LEN = 16, 4096
-    x = torch.randn(BATCH_SIZE, VEC_LEN).cuda()
-    NUM_EMBEDDINGS = (
-        64  # Each vector will be represented in one of these patterns.
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Train the EEGPT model with given hyperparameters."
+    )
+    parser.add_argument(
+        "--softmax_type",
+        default="softmax",
+        choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
+        help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
+    )
+    parser.add_argument(
+        "--num_embeddings",
+        default=4,
+        help="",
+    )
+    parser.add_argument(
+        "--embedding_dim",
+        default=16,
+        help="",
+    )
+    parser.add_argument(
+        "--weight_norm",
+        default=False,
+        help="",
+    )
+    parser.add_argument(
+        "--initializer",
+        default="uniform",
+        help="",
     )
 
-    m = VectorQuantizer(NUM_EMBEDDINGS, VEC_LEN).cuda()
-    out = m(x)  # (BATCH_SIZE, VEC_LEN)
+    args = parser.parse_args()
 
-    out.sum().backward()
+    print(f"\nargs:\n{args}")
+
+    model_config = dict(
+        VQ_num_embeddings=args.num_embeddings,
+        VQ_embedding_dim=args.embedding_dim,
+        VQ_softmax_type=args.softmax_type,
+        VQ_weight_norm=args.weight_norm,
+        VQ_initializer=args.initializer,
+    )
+
+    # Demo input vector data
+    BATCH_SIZE, VEC_LEN = 16, args.embedding_dim
+    x = torch.randn(BATCH_SIZE, VEC_LEN).cuda()
+
+    m = VectorQuantizer(
+        num_embeddings=args.num_embeddings,
+        embedding_dim=args.embedding_dim,
+        softmax_type=args.softmax_type,
+        initializer=args.initializer,
+        weight_norm=args.weight_norm,
+    ).cuda()
+
+    q, commitment_loss, entropy_loss = m(x)
+
+    loss = commitment_loss.mean() + entropy_loss.mean()
+    loss.backward()

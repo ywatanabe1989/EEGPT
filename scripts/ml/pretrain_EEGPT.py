@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-15 20:24:20 (ywatanabe)"
+# Time-stamp: "2024-02-16 08:05:09 (ywatanabe)"
 
 import logging
 import os
@@ -39,9 +39,6 @@ def base_step(
     i_global,
     metrics,
     step="Training",
-    alpha=1,
-    beta=1,
-    gamma=1,
 ):
     if CONFIG["IS_DEBUG"] and (i_batch > 50):
         return None
@@ -73,10 +70,7 @@ def base_step(
     Xb = Xb[~indi_nan]
 
     # Forward pass
-    # alpha, beta, gamma = 1, 0.3, 0
-    commitment_loss, entropy_loss, prediction_loss = model(
-        Xb, alpha=alpha, beta=beta, gamma=gamma
-    )
+    commitment_loss, entropy_loss, prediction_loss = model(Xb)
     loss = commitment_loss + entropy_loss + prediction_loss
 
     # Backpropagation and weight update
@@ -91,6 +85,9 @@ def base_step(
     metrics["i_epoch"].append(i_epoch)
     metrics["i_batch"].append(i_batch)
     metrics["loss"].append(loss)
+    metrics["commitment_loss"].append(commitment_loss.item())
+    metrics["entropy_loss"].append(entropy_loss.item())
+    metrics["prediction_loss"].append(prediction_loss.item())
 
     # Print
     if i_batch == 0:
@@ -106,11 +103,10 @@ def base_step(
         print(
             f"\nmodel.VQ.embedding.weight.data:\n{model.VQ.embedding.weight.data[:5]}"
         )
-        print(f"\nmodel.VQ.q:\n{model.VQ.q[:5]}")
-        print(f"\nmodel.VQ.q:\n{model.VQ.q[:5]}")
+        print(f"\nmodel.VQ.assignment_probs:\n{model.VQ.assignment_probs[:5]}")
 
         print(
-            f"\nmodel.VQ.q.argmax:\n{mngs.gen.unique(model.VQ.q.argmax(axis=-1).cpu().detach().numpy())}"
+            f"\nmodel.VQ.assignment_probs.argmax:\n{mngs.gen.unique(model.VQ.assignment_probs.argmax(axis=-1).cpu().detach().numpy())}"
         )
 
     # if i_batch % 100 == 0:
@@ -123,12 +119,11 @@ def base_step(
     return metrics
 
 
-def train_and_eval(dls, alpha=1, beta=1, gamma=1):
+def train_and_eval(dls, model_config):
     # Model
-    model = EEGPT().cuda()
+    model = EEGPT(model_config).cuda()
 
     optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
-    # optimizer = Adam(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 
     # Main
     metrics = mngs.gen.listed_dict()
@@ -146,9 +141,6 @@ def train_and_eval(dls, alpha=1, beta=1, gamma=1):
                 i_global,
                 metrics,
                 step="Training",
-                alpha=alpha,
-                beta=beta,
-                gamma=gamma,
             )
             i_global += 1
 
@@ -163,9 +155,6 @@ def train_and_eval(dls, alpha=1, beta=1, gamma=1):
                 i_global,
                 metrics,
                 step="Validation",
-                alpha=alpha,
-                beta=beta,
-                gamma=gamma,
             )
 
     # Testing
@@ -179,15 +168,12 @@ def train_and_eval(dls, alpha=1, beta=1, gamma=1):
             i_global,
             metrics,
             step="Test",
-            alpha=alpha,
-            beta=beta,
-            gamma=gamma,
         )
 
     return model, pd.DataFrame(metrics)
 
 
-def main(alpha=1.0, beta=1.0, gamma=1.0):
+def main(model_config):
     # Loads
     ds, dls = load_ds_dls("./config/Pretrain/OpenNeuro.yaml")
     len(ds.df["dataset_id"].unique())  # 78
@@ -195,9 +181,7 @@ def main(alpha=1.0, beta=1.0, gamma=1.0):
     mngs.io.save(ds.df, "./config/Pretrain/OpenNeuro.csv")
 
     # Main
-    model, metrics_df = train_and_eval(
-        dls, alpha=alpha, beta=beta, gamma=gamma
-    )
+    model, metrics_df = train_and_eval(dls, model_config)
     fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
 
     # Saves
@@ -236,16 +220,53 @@ if __name__ == "__main__":
         default=1.0,
         help="Weight for the prediction loss",
     )
+    parser.add_argument(
+        "--softmax_type",
+        default="softmax",
+        choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
+        help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
+    )
+    parser.add_argument(
+        "--num_embeddings",
+        default=4,
+        help="",
+    )
+    parser.add_argument(
+        "--embedding_dim",
+        default=16,
+        help="",
+    )
+    parser.add_argument(
+        "--weight_norm",
+        default=False,
+        help="",
+    )
+    parser.add_argument(
+        "--initializer",
+        default="uniform",
+        help="",
+    )
+
     args = parser.parse_args()
 
     print(f"\nargs:\n{args}")
 
-    main(alpha=args.alpha, beta=args.beta, gamma=args.gamma)
+    model_config = dict(
+        VQ_num_embeddings=args.num_embeddings,
+        VQ_embedding_dim=args.embedding_dim,
+        VQ_softmax_type=args.softmax_type,
+        VQ_weight_norm=args.weight_norm,
+        VQ_initializer=args.initializer,
+        loss_alpha=args.alpha,
+        loss_beta=args.beta,
+        loss_gamma=args.gamma,
+    )
+
+    main(model_config)
 
     """
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.0 -g 0.0
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type softmax
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_soft
+    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_hard
     ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 1.0 -g 0.0
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 3.0 -g 0.0        
     """
