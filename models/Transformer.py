@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-15 18:33:37 (ywatanabe)"
+# Time-stamp: "2024-02-17 03:25:26 (ywatanabe)"
 
 import math
 import random
@@ -39,14 +39,31 @@ class PositionalEncoding(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(
-        self,
-        input_dim=196,
+    """
+    BATCH_SIZE = 128
+    input_dim = 16
+    hidden_dim = 64
+    seq_len = 7
+
+    x = torch.rand(BATCH_SIZE, input_dim, seq_len)
+
+    m = Transformer(
+        input_dim=input_dim,
         hidden_dim=64,
         nheads=2,
         num_encoder_layers=2,
         num_decoder_layers=2,
-        output_dim=28,
+    )
+    y = m(x)  # [-1, 1, input_dim]
+    """
+
+    def __init__(
+        self,
+        input_dim=128,
+        hidden_dim=64,
+        nheads=2,
+        num_encoder_layers=2,
+        num_decoder_layers=2,
     ):
         super(Transformer, self).__init__()
         self.hidden_dim = hidden_dim
@@ -70,13 +87,22 @@ class Transformer(nn.Module):
         # FC
         self.fc_out = nn.Linear(hidden_dim, input_dim)
 
+        # To trap latent features
+        self.activation = {}
+
     @staticmethod
     def reshape(data):
         # [batch_size, seq_len n_features] to [seq_len, batch_size, n_features]
-        return data.permute(1, 0, 2)
+        return data.permute(2, 0, 1)
 
-    def forward(self, pre):
-        """pre: [batch_size, seq_len n_features]"""
+    def trap(self, name):
+        def hook(model, input, output):
+            self.activation[name] = output.detach()
+
+        return hook
+
+    def _forward(self, pre):
+        """pre: [batch_size, n_features, seq_len ]"""
 
         # Encoder
         pre = self.reshape(pre)
@@ -89,3 +115,37 @@ class Transformer(nn.Module):
         out = self.transformer_decoder(tgt, memory)
         out = self.fc_out(out)
         return out[-1].unsqueeze(1)
+
+    def _get_latent(self, pre):
+        self.transformer_encoder.layers[1].norm2.register_forward_hook(
+            self.trap("encoder_norm")
+        )
+        _ = self.forward(pre)
+        return self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
+        # (-1, 64, 7) = (-1, 448)
+
+    def forward(self, pre, get_latent=False):
+        # if not get_latent:
+        #     return self._forward(pre)
+        # else:
+        #     return self._get_latent(pre)
+        return self._get_latent(pre) if get_latent else self._forward(pre)
+
+
+if __name__ == "__main__":
+    BATCH_SIZE = 128
+    input_dim = 16
+    hidden_dim = 64
+    seq_len = 7
+
+    x = torch.rand(BATCH_SIZE, input_dim, seq_len)
+
+    m = Transformer(
+        input_dim=input_dim,
+        hidden_dim=64,
+        nheads=2,
+        num_encoder_layers=2,
+        num_decoder_layers=2,
+    )
+    y = m(x)  # [-1, 1, 16]
+    l = m(x, get_latent=True)  # [-1, 64, 7]

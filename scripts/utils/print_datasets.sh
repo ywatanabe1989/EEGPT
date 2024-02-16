@@ -5,7 +5,6 @@ declare -A categories=(
     [OpenNeuro]="data/OpenNeuro/raw"
     [Dementia]="data/Dementia/raw"
     [Epilepsy]="data/Epilepsy/raw"
-    [WorkingMemory]="data/WorkingMemory/raw"
     [MotorMovementImagery]="data/MotorMovementImagery/raw"
 )
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-16 08:03:51 (ywatanabe)"
+# Time-stamp: "2024-02-17 02:46:02 (ywatanabe)"
 
 import math
 
@@ -80,23 +80,28 @@ class VectorQuantizer(nn.Module):
             self.embedding.weight.data.normal_(mean=0, std=stdv)
 
     def forward(self, x):
+        # To z
         z = (x - x.mean(dim=-1, keepdims=True)) / (
             x.std(dim=-1, keepdims=True) + 1e-8
         )
 
+        # Weight normalization
         if self.weight_norm:
             self.embedding.weight.data = F.normalize(
                 self.embedding.weight, p=2, dim=1
             )
 
+        # Calc allocation based on distances
         distances = self.calc_distances(z, self.embedding.weight)
-
         self.assignment_probs = self.softmax(distances, self.softmax_type)
 
+        # Quantization based on allocation
         q = torch.matmul(self.assignment_probs, self.embedding.weight)
 
+        # Guide the model to have steep probabilities to a reference point
         self.entropy_loss = self.calc_entropy_loss(self.assignment_probs)
 
+        # Guide the model to make the quantization to reproduce the input
         self.commitment_loss = F.mse_loss(z, q)
 
         return q, self.commitment_loss, self.entropy_loss
@@ -127,61 +132,55 @@ class VectorQuantizer(nn.Module):
 
 
 if __name__ == "__main__":
-    import argparse
+    # import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Train the EEGPT model with given hyperparameters."
-    )
-    parser.add_argument(
-        "--softmax_type",
-        default="softmax",
-        choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
-        help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
-    )
-    parser.add_argument(
-        "--num_embeddings",
-        default=4,
-        help="",
-    )
-    parser.add_argument(
-        "--embedding_dim",
-        default=16,
-        help="",
-    )
-    parser.add_argument(
-        "--weight_norm",
-        default=False,
-        help="",
-    )
-    parser.add_argument(
-        "--initializer",
-        default="uniform",
-        help="",
-    )
+    # parser = argparse.ArgumentParser(
+    #     description="Train the EEGPT model with given hyperparameters."
+    # )
+    # parser.add_argument(
+    #     "--softmax_type",
+    #     default="softmax",
+    #     choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
+    #     help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
+    # )
+    # parser.add_argument(
+    #     "--num_embeddings",
+    #     default=4,
+    #     help="",
+    # )
+    # parser.add_argument(
+    #     "--embedding_dim",
+    #     default=16,
+    #     help="",
+    # )
+    # parser.add_argument(
+    #     "--weight_norm",
+    #     default=False,
+    #     help="",
+    # )
+    # parser.add_argument(
+    #     "--initializer",
+    #     default="uniform",
+    #     help="",
+    # )
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    print(f"\nargs:\n{args}")
+    # print(f"\nargs:\n{args}")
 
     model_config = dict(
-        VQ_num_embeddings=args.num_embeddings,
-        VQ_embedding_dim=args.embedding_dim,
-        VQ_softmax_type=args.softmax_type,
-        VQ_weight_norm=args.weight_norm,
-        VQ_initializer=args.initializer,
+        num_embeddings=4,
+        embedding_dim=16,
+        softmax_type="gumbel_softmax_hard",
+        weight_norm=False,
+        initializer="uniform",
     )
 
     # Demo input vector data
-    BATCH_SIZE, VEC_LEN = 16, args.embedding_dim
+    BATCH_SIZE, VEC_LEN = 32, 16
     x = torch.randn(BATCH_SIZE, VEC_LEN).cuda()
 
-    m = VectorQuantizer(
-        num_embeddings=args.num_embeddings,
-        embedding_dim=args.embedding_dim,
-        softmax_type=args.softmax_type,
-        initializer=args.initializer,
-        weight_norm=args.weight_norm,
-    ).cuda()
+    m = VectorQuantizer(**model_config).cuda()
 
     q, commitment_loss, entropy_loss = m(x)
 

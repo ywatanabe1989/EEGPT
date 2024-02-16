@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 02:08:43 (ywatanabe)"
+# Time-stamp: "2024-02-17 09:53:21 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -104,11 +104,6 @@ class SQLiteDataset(Dataset):
             mngs.io.save(self.df, cache_path)
 
         self.meta_all = self.gen_meta_all()
-        # self.collate_fn = (
-        #     sliding_window_collate_fn
-        #     if collate_fn is "sliding_window"
-        #     else None
-        # )
 
         # Combines criteria
         self.INCLUSION_CRITERIA_COMBINED = combine_inclusion_criteria(
@@ -354,9 +349,7 @@ def sliding_window_collate_fn(batch):
     for sample in batch:
         dataset_id, subject_id, segment_tensor, metadata_tensor = sample
         # Apply sliding window data augmentation to the segment_tensor
-        augmented_segment_tensor = apply_sliding_window_data_augmentation(
-            segment_tensor
-        )
+        augmented_segment_tensor = sliding_window(segment_tensor)
         augmented_sample = (
             dataset_id,
             subject_id,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-16 21:16:11 (ywatanabe)"
+# Time-stamp: "2024-02-17 10:13:32 (ywatanabe)"
 
 import warnings
 
@@ -9,18 +9,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.commitment_loss import commitment_loss
-from models.LossBalancer import LossBalancer
 
-# from models.MNet import MNet
-from models.PositionalEncodingLayer import PositionalEncodingLayer
+# from models.LossBalancer import LossBalancer
+# from models.PositionalEncodingLayer import PositionalEncodingLayer
 from models.SplitConv import SplitConv
 from models.Transformer import Transformer
 from models.VectorQuantizer import VectorQuantizer
-from sklearn.metrics import balanced_accuracy_score
-from torchinfo import summary
 
-# from models.MultiTaskLoss import MultiTaskLoss
+# from sklearn.metrics import balanced_accuracy_score
+# from torchinfo import summary
 
 
 class EEGPT(nn.Module):
@@ -50,13 +47,6 @@ class EEGPT(nn.Module):
             weight_norm=self.model_config["VQ_weight_norm"],
         )
 
-        # Positional Encoding
-        n_steps = int(
-            CONFIG["WINDOW_SIZE_SEC"]
-            * CONFIG["TGT_FS"]
-            / self.model_config["window_size"]
-        )
-
         # Transformer layers
         self.transformer = Transformer(
             input_dim=self.model_config["VQ_embedding_dim"],
@@ -64,24 +54,20 @@ class EEGPT(nn.Module):
             nheads=2,
             num_encoder_layers=2,
             num_decoder_layers=2,
-            output_dim=28,
         )
 
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction="none")
-        # self.loss_balancer = LossBalancer(self.model_config["num_embeddings"])
-        # self.multi_task_loss = MultiTaskLoss(
-        #     [True, False, False]
-        # )  # not working well
 
-        # To trap latent features
-        self.activation = {}
+        # Load weights
+        if model_config["conv_vq_weights_path"] is not None:
+            self.load_conv_and_vq_and_freeze_them(
+                model_config["conv_vq_weights_path"]
+            )
 
     def forward(self, x, get_latent=False):
         """x.shape # [-1, 14, 256]"""
-        # if self.training:
-        #     self.multi_task_loss.train()
-        # else:
-        #     self.multi_task_loss.eval()
+
+        device = x.device
 
         # Convolution
         xs = self.split_conv(x)  # len(xs) # 8; xs[0].shape # [32, 64]
@@ -90,117 +76,67 @@ class EEGPT(nn.Module):
         _q, _commitment_losses, _entropy_losses = zip(
             *[self.VQ(x) for x in xs]
         )
-        _q = torch.stack(_q, axis=1)
+        _q = torch.stack(_q, axis=1).permute(0, 2, 1)
         # (-1, 8, self.model_config["embedding_dim"])
-        q_pre, q_post = _q[:, :-1, :], _q[:, -1, :].unsqueeze(1)
+        q_pre, q_post = _q[..., :-1], _q[..., -1].unsqueeze(1)
 
         # For transfer learning
-        if not get_latent:
-            y = self.transformer(q_pre)
-            # (-1, 1, self.model_config["embedding_dim"])
-            commitment_loss = torch.mean(torch.stack(_commitment_losses)).to(
-                x.device
+        return (
+            self._forward(
+                q_pre, q_post, _commitment_losses, _entropy_losses, device
             )
-            entropy_loss = torch.mean(torch.stack(_entropy_losses)).to(
-                x.device
-            )
-            prediction_loss = F.mse_loss(y, q_post)
-            return (
-                self.model_config["loss_alpha"] * commitment_loss,
-                self.model_config["loss_beta"] * entropy_loss,
-                self.model_config["loss_gamma"] * prediction_loss,
-            )
+            if not get_latent
+            else self.transformer(q_pre, get_latent=True)
+        )
 
-            # # Diversity loss
-            # avg_probs = softmax_probs.mean(dim=0)
-            # loss_diversity = -torch.sum(
-            #     avg_probs * torch.log(avg_probs + 1e-10)
-            # )
+    def _forward(
+        self, q_pre, q_post, _commitment_losses, _entropy_losses, device
+    ):
+        y = self.transformer(q_pre)
+        # (-1, self.model_config["embedding_dim"], 1)
+        commitment_loss = torch.mean(torch.stack(_commitment_losses)).to(
+            device
+        )
+        entropy_loss = torch.mean(torch.stack(_entropy_losses)).to(device)
+        prediction_loss = F.mse_loss(y.squeeze(), q_post.squeeze()).to(device)
 
-        else:
-            self.transformer.transformer_encoder.layers[
-                1
-            ].norm2.register_forward_hook(self.get_latent("encoder_norm"))
-            _ = self.transformer(q_pre)
-            return (
-                self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
-            )
-            # (-1, 64, 7) = (-1, 448)
+        # # Diversity loss
+        # avg_probs = softmax_probs.mean(dim=0)
+        # loss_diversity = -torch.sum(
+        #     avg_probs * torch.log(avg_probs + 1e-10)
+        # )
 
-    def get_latent(self, name):
-        def hook(model, input, output):
-            self.activation[name] = output.detach()
+        return (
+            self.model_config["loss_commit_coef"] * commitment_loss,
+            self.model_config["loss_entropy_coef"] * entropy_loss,
+            self.model_config["loss_pred_coef"] * prediction_loss,
+        )
 
-        return hook
+    def load_conv_and_vq_and_freeze_them(self, weights_path):
+        self.load_state_dict(
+            mngs.io.load(
+                weights_path
+                # # "./scripts/ml/pretrain_EEGPT/2024-02-16-06-07_ysWI49LM/checkpoint.pth"
+                # "./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_uDT2kC6q/checkpoint.pth"
+            ).state_dict()
+        )
+        # Freeze loaded weights in the conv and vq layers
+        for param in list(self.split_conv.parameters()) + list(
+            self.VQ.parameters()
+        ):
+            param.requires_grad = False
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Train the EEGPT model with given hyperparameters."
-    )
-    parser.add_argument(
-        "-a",
-        "--alpha",
-        type=float,
-        default=1.0,
-        help="Weight for the commitment loss",
-    )
-    parser.add_argument(
-        "-b",
-        "--beta",
-        type=float,
-        default=1.0,
-        help="Weight for the entropy loss",
-    )
-    parser.add_argument(
-        "-g",
-        "--gamma",
-        type=float,
-        default=1.0,
-        help="Weight for the prediction loss",
-    )
-    parser.add_argument(
-        "--softmax_type",
-        default="softmax",
-        choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
-        help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
-    )
-    parser.add_argument(
-        "--num_embeddings",
-        default=4,
-        help="",
-    )
-    parser.add_argument(
-        "--embedding_dim",
-        default=16,
-        help="",
-    )
-    parser.add_argument(
-        "--weight_norm",
-        default=False,
-        help="",
-    )
-    parser.add_argument(
-        "--initializer",
-        default="uniform",
-        help="",
-    )
-
-    args = parser.parse_args()
-
-    print(f"\nargs:\n{args}")
-
     model_config = dict(
-        VQ_num_embeddings=args.num_embeddings,
-        VQ_embedding_dim=args.embedding_dim,
-        VQ_softmax_type=args.softmax_type,
-        VQ_weight_norm=args.weight_norm,
-        VQ_initializer=args.initializer,
-        loss_alpha=args.alpha,
-        loss_beta=args.beta,
-        loss_gamma=args.gamma,
+        VQ_num_embeddings=4,
+        VQ_embedding_dim=16,
+        VQ_softmax_type="gumbel_softmax_hard",
+        VQ_weight_norm=False,
+        VQ_initializer="uniform",
+        loss_commit_coef=1.0,
+        loss_entropy_coef=0.3,
+        loss_pred_coef=0,
     )
 
     m = EEGPT(model_config).cuda()
@@ -211,4 +147,4 @@ if __name__ == "__main__":
     #     "./scripts/ml/pretrain_EEGPT/2024-02-11-07-05_dPXGGb4b/
     # )
     # m.load_state_dict(mngs.io.load(weights_path).state_dict())
-    l = m(x, get_latent=True)
+    l = m(x, get_latent=True)  # (-1, 64, 7)

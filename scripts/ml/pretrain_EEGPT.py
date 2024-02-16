@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-16 14:24:17 (ywatanabe)"
+# Time-stamp: "2024-02-17 10:12:24 (ywatanabe)"
 
 import logging
 import os
@@ -112,12 +112,7 @@ def base_step(
     return metrics
 
 
-def train_and_eval(dls, model_config):
-    # Model
-    model = EEGPT(model_config).cuda()
-    if model_config["load_conv_and_vq"]:
-        model = load_conv_and_vq_and_freeze_them(model)
-    _ = mngs.ml.utils.check_params(model, show=True)
+def train_and_eval(model, dls):
 
     optimizer = SGD(model.parameters(), lr=float(CONFIG["LEARNING_RATE"]))
 
@@ -169,29 +164,16 @@ def train_and_eval(dls, model_config):
     return model, pd.DataFrame(metrics)
 
 
-def load_conv_and_vq_and_freeze_them(model):
-    model.load_state_dict(
-        mngs.io.load(
-            "./scripts/ml/pretrain_EEGPT/2024-02-16-06-07_ysWI49LM/checkpoint.pth"
-        ).state_dict()
-    )
-    for param in list(model.split_conv.parameters()) + list(
-        model.VQ.parameters()
-    ):
-        param.requires_grad = False
-
-    return model
-
-
 def main(model_config):
     # Loads
     ds, dls = load_ds_dls("./config/Pretrain/OpenNeuro.yaml")
     len(ds.df["dataset_id"].unique())  # 78
     len(ds.df["subject_id"].unique())  # 6144
-    mngs.io.save(ds.df, "./config/Pretrain/OpenNeuro.csv")
 
     # Main
-    model, metrics_df = train_and_eval(dls, model_config)
+    model = EEGPT(model_config).cuda()
+    _ = mngs.ml.utils.check_params(model, show=True)
+    model, metrics_df = train_and_eval(model, dls)
     fig = mngs.ml.plt.learning_curve(metrics_df, yscale="log")
 
     # Saves
@@ -210,22 +192,22 @@ if __name__ == "__main__":
         description="Train the EEGPT model with given hyperparameters."
     )
     parser.add_argument(
-        "-a",
-        "--alpha",
+        "-cc",
+        "--commit_coef",
         type=float,
         default=1.0,
         help="Weight for the commitment loss",
     )
     parser.add_argument(
-        "-b",
-        "--beta",
+        "-ec",
+        "--entropy_coef",
         type=float,
         default=0.3,
         help="Weight for the entropy loss",
     )
     parser.add_argument(
-        "-g",
-        "--gamma",
+        "-pc",
+        "--pred_coef",
         type=float,
         default=0.0,
         help="Weight for the prediction loss",
@@ -236,52 +218,30 @@ if __name__ == "__main__":
         choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
         help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
     )
+    # for learning transformer weights
     parser.add_argument(
-        "--num_embeddings",
-        default=4,
-        help="",
-    )
-    parser.add_argument(
-        "--embedding_dim",
-        default=16,
-        help="",
-    )
-    parser.add_argument(
-        "--weight_norm",
-        default=False,
-        help="",
-    )
-    parser.add_argument(
-        "--initializer",
-        default="uniform",
-        help="",
-    )
-    parser.add_argument(
-        "--load_conv_and_vq",
-        action="store_true",
-        default=False,
+        "--conv_vq_weights_path",
+        default=None,
         help="Load convolution and vector quantization layers and freeze them.",
     )
 
     args = parser.parse_args()
 
+    args.conv_vq_weights_path = "./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_uDT2kC6q/checkpoint.pth"  # fixme
+
     print(f"\nargs:\n{args}")
 
     model_config = dict(
-        VQ_num_embeddings=args.num_embeddings,
-        VQ_embedding_dim=args.embedding_dim,
+        VQ_num_embeddings=4,
+        VQ_embedding_dim=16,
         VQ_softmax_type=args.softmax_type,
-        VQ_weight_norm=args.weight_norm,
-        VQ_initializer=args.initializer,
-        loss_alpha=args.alpha,
-        loss_beta=args.beta,
-        loss_gamma=args.gamma,
-        load_conv_and_vq=args.load_conv_and_vq,
+        VQ_weight_norm=False,
+        VQ_initializer="uniform",
+        loss_commit_coef=args.commit_coef,
+        loss_entropy_coef=args.entropy_coef,
+        loss_pred_coef=args.pred_coef,
+        # load_conv_and_vq=args.load_conv_and_vq,
+        conv_vq_weights_path=args.conv_vq_weights_path,
     )
 
     main(model_config)
-
-    """
-    ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type gumbel_softmax_hard
-    ./scripts/ml/pretrain_EEGPT.py -a 0 -b 0 -g 1.0 --softmax_type gumbel_softmax_hard --load_conv_and_vq
-    """

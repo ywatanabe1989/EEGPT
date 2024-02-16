@@ -40,13 +40,11 @@ cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 
 #### Runs pretraining
 ``` bash
-screen -dmS pretrain_beta_0.1_softmax ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type softmax
-screen -dmS pretrain_beta_0.1_gumbel_soft ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_soft
-screen -dmS pretrain_beta_0.1_gumbel_hard ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_hard
+# 1st Pretrain: the Convolution and VectorQuantization Layers
+screen -dmS pretrain_1st ./scripts/ml/pretrain_EEGPT.py --commit_coef 1.0 --entropy_coef 0.3 --pred_coef 0.0 --softmax_type gumbel_softmax_hard
 
-screen -dmS pretrain_beta_0.3_softmax ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type softmax
-screen -dmS pretrain_beta_0.3_gumbel_soft ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type gumbel_softmax_soft
-screen -dmS pretrain_beta_0.3_gumbel_hard ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type gumbel_softmax_hard
+# 2nd Pretrain: the Transformer Layers
+screen -dmS pretrain_2nd ./scripts/ml/pretrain_EEGPT.py --commit_coef 0. --entropy_coef 0. --pred_coef 1. --softmax_type gumbel_softmax_hard --conv_vq_weights_path ./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_KTyjYpl1/checkpoint.pth
 ```
 
 
