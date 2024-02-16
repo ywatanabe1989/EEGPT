@@ -26,7 +26,7 @@ singularity
 work_singularity
 **.old
 **debug**
-
+config/**/*.csv
 env
 
 # Old
