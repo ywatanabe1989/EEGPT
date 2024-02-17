@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 10:13:32 (ywatanabe)"
+# Time-stamp: "2024-02-17 22:54:19 (ywatanabe)"
 
 import warnings
 
@@ -11,13 +11,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # from models.LossBalancer import LossBalancer
-# from models.PositionalEncodingLayer import PositionalEncodingLayer
 from models.SplitConv import SplitConv
 from models.Transformer import Transformer
 from models.VectorQuantizer import VectorQuantizer
-
-# from sklearn.metrics import balanced_accuracy_score
-# from torchinfo import summary
 
 
 class EEGPT(nn.Module):
@@ -59,26 +55,58 @@ class EEGPT(nn.Module):
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction="none")
 
         # Load weights
-        if model_config["conv_vq_weights_path"] is not None:
-            self.load_conv_and_vq_and_freeze_them(
-                model_config["conv_vq_weights_path"]
+        conv_vq_weights_path = model_config.get("conv_vq_weights_path")
+        weights_path = model_config.get("weights_path")
+
+        # Check if both paths are provided and not None
+        if conv_vq_weights_path is not None and weights_path is not None:
+            raise ValueError(
+                "Both 'conv_vq_weights_path' and 'weights_path' are provided. Please specify only one."
             )
+
+        # Proceed with the rest of the code
+        if conv_vq_weights_path is not None:
+            self.load_weights(conv_vq_weights_path)
+            self.freeze_conv_layers()
+            self.freeze_vq_layers()
+            _ = mngs.ml.utils.check_params(self, show=True)
+
+        if weights_path is not None:
+            self.load_weights(weights_path)
+            _ = mngs.ml.utils.check_params(self, show=True)
 
     def forward(self, x, get_latent=False):
         """x.shape # [-1, 14, 256]"""
 
         device = x.device
 
+        # Normalization after cropping
+        x = mngs.gen.to_z(x, axis=(1, 2))
+
         # Convolution
         xs = self.split_conv(x)  # len(xs) # 8; xs[0].shape # [32, 64]
 
         # Quantization
-        _q, _commitment_losses, _entropy_losses = zip(
-            *[self.VQ(x) for x in xs]
-        )
-        _q = torch.stack(_q, axis=1).permute(0, 2, 1)
+        qs = []
+        _commitment_losses = []
+        _entropy_losses = []
+        assignment_probs = []
+        for _x in xs:
+            _q, _commitment_loss, _entropy_loss = self.VQ(_x)
+            qs.append(_q)
+            _commitment_losses.append(_commitment_loss)
+            _entropy_losses.append(_entropy_loss)
+            assignment_probs.append(self.VQ.assignment_probs)
+
+        # _q, _commitment_losses, _entropy_losses = zip(
+        #     *[self.VQ(x) for x in xs]
+        # )
+        self.assignment_probs = torch.stack(
+            assignment_probs, axis=1
+        )  # [-1, 8, self.model_config["num_embeddings"]]
+        q = torch.stack(qs, axis=1).permute(0, 2, 1)
         # (-1, 8, self.model_config["embedding_dim"])
-        q_pre, q_post = _q[..., :-1], _q[..., -1].unsqueeze(1)
+        q_pre, q_post = q[..., :-1], q[..., -1].unsqueeze(1)
 
         # For transfer learning
         return (
@@ -112,19 +140,26 @@ class EEGPT(nn.Module):
             self.model_config["loss_pred_coef"] * prediction_loss,
         )
 
-    def load_conv_and_vq_and_freeze_them(self, weights_path):
-        self.load_state_dict(
-            mngs.io.load(
-                weights_path
-                # # "./scripts/ml/pretrain_EEGPT/2024-02-16-06-07_ysWI49LM/checkpoint.pth"
-                # "./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_uDT2kC6q/checkpoint.pth"
-            ).state_dict()
-        )
-        # Freeze loaded weights in the conv and vq layers
-        for param in list(self.split_conv.parameters()) + list(
-            self.VQ.parameters()
-        ):
+    def load_weights(self, weights_path):
+        state_dict = mngs.io.load(weights_path)
+        self.load_state_dict(mngs.io.load(weights_path).state_dict())
+        print(f"\nWeights were successfully loaded: {weights_path}")
+
+    def freeze_conv_layers(
+        self,
+    ):
+        for param in list(self.split_conv.parameters()):
             param.requires_grad = False
+
+    def freeze_vq_layers(
+        self,
+    ):
+        for param in list(self.VQ.parameters()):
+            param.requires_grad = False
+
+    # def freeze_vq_layers(self,):
+    #     for param in list(self.VQ.parameters()):
+    #         param.requires_grad = False
 
 
 if __name__ == "__main__":
@@ -136,7 +171,9 @@ if __name__ == "__main__":
         VQ_initializer="uniform",
         loss_commit_coef=1.0,
         loss_entropy_coef=0.3,
-        loss_pred_coef=0,
+        loss_pred_coef=0.0,
+        conv_vq_weights_path="./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_KTyjYpl1/checkpoint.pth",
+        weights_path=None,
     )
 
     m = EEGPT(model_config).cuda()

@@ -57,3 +57,5 @@ spython
 twine
 Cython    
 catboost
+webdriver_manager
+xgboost

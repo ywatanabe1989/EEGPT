@@ -11,6 +11,7 @@ work_singularity
 **debug**
 config/**/*.csv
 env
+catboost_info
 
 # Old
 *.old

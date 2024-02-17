@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 02:46:02 (ywatanabe)"
+# Time-stamp: "2024-02-17 22:45:53 (ywatanabe)"
 
 import math
 
@@ -108,13 +108,18 @@ class VectorQuantizer(nn.Module):
 
     @staticmethod
     def softmax(distances, softmax_type):
+
         if softmax_type == "softmax":
-            assignment_probs = F.softmax(-distances, dim=1)
+            return F.softmax(-distances, dim=1)
+
         elif softmax_type == "gumbel_softmax_soft":
-            assignment_probs = F.gumbel_softmax(-distances, dim=1, hard=False)
+            return F.gumbel_softmax(-distances, dim=1, hard=False)
+
         elif softmax_type == "gumbel_softmax_hard":
-            assignment_probs = F.gumbel_softmax(-distances, dim=1, hard=True)
-        return assignment_probs
+            return F.gumbel_softmax(-distances, dim=1, hard=True)
+
+        else:
+            raise ValueError(f"Unknown softmax_type: {softmax_type}")
 
     @staticmethod
     def calc_entropy_loss(softmax):

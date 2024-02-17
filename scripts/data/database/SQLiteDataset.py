@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 09:53:21 (ywatanabe)"
+# Time-stamp: "2024-02-17 17:25:34 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -92,17 +92,7 @@ class SQLiteDataset(Dataset):
         self.ds_config = ds_config
 
         # Loads metadata
-        # self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
-        cache_path = self.ds_config["LPATH_DB"].replace(
-            ".db", "_meta_cache.pkl"
-        )
-        try:
-            self.df = mngs.io.load(cache_path)
-            assert self.df is not None
-        except Exception as e:
-            self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
-            mngs.io.save(self.df, cache_path)
-
+        self.df = self.load_df_from_cache()
         self.meta_all = self.gen_meta_all()
 
         # Combines criteria
@@ -138,6 +128,22 @@ class SQLiteDataset(Dataset):
                 f"\nIn the current analysis, metadata is mapped as follows:\n"
             )
             pprint(self.meta_map)
+
+    def load_df_from_cache(
+        self,
+    ):
+        cache_path = self.ds_config["LPATH_DB"].replace(
+            ".db", "_meta_cache.pkl"
+        )
+        try:
+            self.df = mngs.io.load(cache_path)
+            assert self.df is not None
+            print(f"\nLoaded from the cache file: {cache_path}")
+        except Exception as e:
+            self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+            mngs.io.save(self.df, cache_path)
+
+        return self.df
 
     @classmethod
     def load_meta_as_df(cls, lpath_db):
@@ -318,14 +324,17 @@ class SQLiteDataset(Dataset):
         dataloaders = {}
         for split in ["tra", "val", "tes"]:
             try:
+                # Applys the sliding window DA to not only training data but also validation and test data
+                sliding_window_collate_fn = SlidingWindowCollateFnMaker(
+                    random_split=True
+                )
+
                 dataloaders[split] = DataLoader(
                     self.datasets[split],
                     batch_size=self.ds_config["BATCH_SIZE"],
                     shuffle=True if split == "tra" else False,
                     num_workers=self.ds_config["NUM_WORKERS"],
-                    collate_fn=sliding_window_collate_fn
-                    if split == "tra"
-                    else None,
+                    collate_fn=sliding_window_collate_fn,
                     drop_last=True,
                     worker_init_fn=seed_worker,
                     generator=g,
@@ -336,29 +345,39 @@ class SQLiteDataset(Dataset):
 
 
 # Define the custom collate function
-def sliding_window(segment_tensor):
-    WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
-    start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
-    end = start + WINDOW_SIZE_PTS
-    segment_tensor = segment_tensor[..., start:end]
-    return segment_tensor
+class SlidingWindowCollateFnMaker:
+    def __init__(self, random_split=False):
+        self.random_split = random_split
 
-
-def sliding_window_collate_fn(batch):
-    augmented_batch = []
-    for sample in batch:
-        dataset_id, subject_id, segment_tensor, metadata_tensor = sample
-        # Apply sliding window data augmentation to the segment_tensor
-        augmented_segment_tensor = sliding_window(segment_tensor)
-        augmented_sample = (
-            dataset_id,
-            subject_id,
-            augmented_segment_tensor,
-            metadata_tensor,
+    @staticmethod
+    def sliding_window(segment_tensor, random_split=False):
+        WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
+        if segment_tensor.shape[-1] < WINDOW_SIZE_PTS:
+            raise ValueError("Segment tensor is smaller than the window size.")
+        start = (
+            random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
+            if random_split
+            else 0
         )
-        augmented_batch.append(augmented_sample)
-    # Use the default collate function to merge the augmented samples into a batch
-    return torch.utils.data.dataloader.default_collate(augmented_batch)
+        segment_tensor = segment_tensor[..., start : start + WINDOW_SIZE_PTS]
+        return segment_tensor
+
+    def __call__(self, batch):
+        augmented_batch = []
+        for sample in batch:
+            dataset_id, subject_id, segment_tensor, metadata_tensor = sample
+            # Apply sliding window data augmentation to the segment_tensor
+            augmented_segment_tensor = self.sliding_window(
+                segment_tensor, random_split=self.random_split
+            )
+            augmented_sample = (
+                dataset_id,
+                subject_id,
+                augmented_segment_tensor,
+                metadata_tensor,
+            )
+            augmented_batch.append(augmented_sample)
+        return torch.utils.data.dataloader.default_collate(augmented_batch)
 
 
 def combine_inclusion_criteria(*criteria):

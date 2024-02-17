@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 03:25:26 (ywatanabe)"
+# Time-stamp: "2024-02-17 20:28:21 (ywatanabe)"
 
 import math
 import random
@@ -120,15 +120,11 @@ class Transformer(nn.Module):
         self.transformer_encoder.layers[1].norm2.register_forward_hook(
             self.trap("encoder_norm")
         )
-        _ = self.forward(pre)
+        _ = self._forward(pre)
         return self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
         # (-1, 64, 7) = (-1, 448)
 
     def forward(self, pre, get_latent=False):
-        # if not get_latent:
-        #     return self._forward(pre)
-        # else:
-        #     return self._get_latent(pre)
         return self._get_latent(pre) if get_latent else self._forward(pre)
 
 

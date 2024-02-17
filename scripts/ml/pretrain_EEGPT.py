@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 10:12:24 (ywatanabe)"
+# Time-stamp: "2024-02-17 22:45:23 (ywatanabe)"
 
 import logging
 import os
@@ -53,14 +53,14 @@ def base_step(
     # Batched Dataset ID, Subject ID, and EEG signal
     Db, Sb, Xb, _Mb = batch
 
-    # Sliding window as a data augumentation method
-    start = random.randint(0, Xb.shape[-1] - WINDOW_SIZE_PTS)
-    end = start + WINDOW_SIZE_PTS
-    Xb = Xb[..., start:end]
+    # # Sliding window as a data augumentation method
+    # start = random.randint(0, Xb.shape[-1] - WINDOW_SIZE_PTS)
+    # end = start + WINDOW_SIZE_PTS
+    # Xb = Xb[..., start:end]
 
     # Normalization after cropping
-    Xb = mngs.gen.to_z(Xb, axis=2)
-    Xb = mngs.gen.to_z(Xb, axis=1)
+    # Xb = mngs.gen.to_z(Xb, axis=2)
+    # Xb = mngs.gen.to_z(Xb, axis=1)
     Xb = Xb.float().cuda()
 
     # Remove samples with nan values
@@ -213,6 +213,13 @@ if __name__ == "__main__":
         help="Weight for the prediction loss",
     )
     parser.add_argument(
+        "--num_embeddings",
+        default=4,
+        type=int,
+        help="The number of embeddings to be uesd for quantization",
+    )
+
+    parser.add_argument(
         "--softmax_type",
         default="softmax",
         choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
@@ -227,12 +234,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    args.conv_vq_weights_path = "./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_uDT2kC6q/checkpoint.pth"  # fixme
-
     print(f"\nargs:\n{args}")
 
     model_config = dict(
-        VQ_num_embeddings=4,
+        VQ_num_embeddings=args.num_embeddings,
         VQ_embedding_dim=16,
         VQ_softmax_type=args.softmax_type,
         VQ_weight_norm=False,
@@ -240,8 +245,10 @@ if __name__ == "__main__":
         loss_commit_coef=args.commit_coef,
         loss_entropy_coef=args.entropy_coef,
         loss_pred_coef=args.pred_coef,
-        # load_conv_and_vq=args.load_conv_and_vq,
         conv_vq_weights_path=args.conv_vq_weights_path,
     )
+    mngs.gen.save(model_config, CONFIG["SDIR"] + "model_config.yaml")
 
     main(model_config)
+
+    mngs.gen.close(CONFIG)
