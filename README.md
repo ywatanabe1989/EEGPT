@@ -64,21 +64,4 @@ Over 100 datasets identified on OpenNeuro under the following conditions:
 From 78 datasets, EEG data of 6,144 subjects are utilized during pretraining.
 
 ## Hyper-parameters to Tune
-```
-LEARNING_RATE
-BATCH_SIZE
-OPTIMIZER
-WINDOW_SIZE_SEC
-N_EPOCHS
-DROPOUT_RATIO
-
-VQ_NUM_EMBEDDINGS
-VQ_EMBEDDING_DIM
-VQ_SOFTMAX_TYPE
-VQ_LOSS_COEFFICIENTS
-
-TF_N_HEADS
-TF_HIDDEN_DIM
-TF_N_ENC_LAYERS
-TF_N_DEC_LAYERS
-```
+[`./scripts/ml/parse_model_configs.py`](./scripts/ml/parse_model_configs.py) handles hyper parameters.
