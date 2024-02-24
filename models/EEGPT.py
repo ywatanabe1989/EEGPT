@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 22:54:19 (ywatanabe)"
+# Time-stamp: "2024-02-24 12:07:54 (ywatanabe)"
 
 import warnings
 
@@ -29,28 +29,15 @@ class EEGPT(nn.Module):
             )
         )
         self.model_config = model_config
-        CONFIG = mngs.io.load_configs(show=False)
 
         # Convolutional Layer
         self.split_conv = SplitConv(self.model_config)
 
         # Vector Quantizer
-        self.VQ = VectorQuantizer(
-            num_embeddings=self.model_config["VQ_num_embeddings"],
-            embedding_dim=self.model_config["VQ_embedding_dim"],
-            softmax_type=self.model_config["VQ_softmax_type"],
-            initializer=self.model_config["VQ_initializer"],
-            weight_norm=self.model_config["VQ_weight_norm"],
-        )
+        self.vq = VectorQuantizer(self.model_config)
 
         # Transformer layers
-        self.transformer = Transformer(
-            input_dim=self.model_config["VQ_embedding_dim"],
-            hidden_dim=64,
-            nheads=2,
-            num_encoder_layers=2,
-            num_decoder_layers=2,
-        )
+        self.transformer = Transformer(self.model_config)
 
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction="none")
 
@@ -78,67 +65,65 @@ class EEGPT(nn.Module):
     def forward(self, x, get_latent=False):
         """x.shape # [-1, 14, 256]"""
 
-        device = x.device
-
-        # Normalization after cropping
+        # Normalization as the first layers
         x = mngs.gen.to_z(x, axis=(1, 2))
 
         # Convolution
-        xs = self.split_conv(x)  # len(xs) # 8; xs[0].shape # [32, 64]
+        x = self.split_conv(x)
+        # [-1, 64, x.shape[-1] // model_config["conv_split_size_pts"]]
 
-        # Quantization
-        qs = []
+        # Vector Quantization
+        (
+            q_pre,
+            q_post,
+            commitment_loss,
+            entropy_loss,
+            diversity_loss,
+        ) = self.apply_vq_for_split_segments(x)
+        # [-1, 64, x.shape[-1] // model_config["conv_split_size_pts"]]
+        # q_pre: [-1, model_config["vq_num_embeddings"], x.shape[-1] // model_config["conv_split_size_pts"] - 1]
+        # q_post: [-1, model_config["vq_num_embeddings"], 1]
+
+        # Transformer
+        if get_latent:
+            return self.transformer(q_pre, get_latent=True)
+
+        else:
+            y = self.transformer(q_pre)
+            prediction_loss = F.mse_loss(y, q_post.squeeze())
+            return (
+                self.model_config["vq_prediction_coef"] * prediction_loss,
+                self.model_config["vq_commitment_coef"] * commitment_loss,
+                self.model_config["vq_entropy_coef"] * entropy_loss,
+                self.model_config["vq_diversity_coef"] * diversity_loss,
+            )
+
+    def apply_vq_for_split_segments(self, x):
+        _qs = []
         _commitment_losses = []
         _entropy_losses = []
-        assignment_probs = []
-        for _x in xs:
-            _q, _commitment_loss, _entropy_loss = self.VQ(_x)
-            qs.append(_q)
+        _diversity_losses = []
+        _assignment_probs = []
+        for i_seg in range(x.shape[-1]):
+            _x = x[..., i_seg]
+            _q, _commitment_loss, _entropy_loss, _diversity_loss = self.vq(_x)
+
+            _qs.append(_q)
             _commitment_losses.append(_commitment_loss)
             _entropy_losses.append(_entropy_loss)
-            assignment_probs.append(self.VQ.assignment_probs)
+            _diversity_losses.append(_diversity_loss)
+            _assignment_probs.append(self.vq.assignment_probs)
 
-        # _q, _commitment_losses, _entropy_losses = zip(
-        #     *[self.VQ(x) for x in xs]
-        # )
-        self.assignment_probs = torch.stack(
-            assignment_probs, axis=1
-        )  # [-1, 8, self.model_config["num_embeddings"]]
-        q = torch.stack(qs, axis=1).permute(0, 2, 1)
-        # (-1, 8, self.model_config["embedding_dim"])
-        q_pre, q_post = q[..., :-1], q[..., -1].unsqueeze(1)
+        # [-1, 8, self.model_config["num_embeddings"]]
+        q = torch.stack(_qs, axis=1).permute(0, 2, 1)
+        q_pre, q_post = q[..., :-1], q[..., -1].unsqueeze(-1)
 
-        # For transfer learning
-        return (
-            self._forward(
-                q_pre, q_post, _commitment_losses, _entropy_losses, device
-            )
-            if not get_latent
-            else self.transformer(q_pre, get_latent=True)
-        )
+        self.assignment_probs = torch.stack(_assignment_probs, axis=1)
+        commitment_loss = torch.mean(torch.stack(_commitment_losses))
+        entropy_loss = torch.mean(torch.stack(_entropy_losses))
+        diversity_loss = torch.mean(torch.stack(_diversity_losses))
 
-    def _forward(
-        self, q_pre, q_post, _commitment_losses, _entropy_losses, device
-    ):
-        y = self.transformer(q_pre)
-        # (-1, self.model_config["embedding_dim"], 1)
-        commitment_loss = torch.mean(torch.stack(_commitment_losses)).to(
-            device
-        )
-        entropy_loss = torch.mean(torch.stack(_entropy_losses)).to(device)
-        prediction_loss = F.mse_loss(y.squeeze(), q_post.squeeze()).to(device)
-
-        # # Diversity loss
-        # avg_probs = softmax_probs.mean(dim=0)
-        # loss_diversity = -torch.sum(
-        #     avg_probs * torch.log(avg_probs + 1e-10)
-        # )
-
-        return (
-            self.model_config["loss_commit_coef"] * commitment_loss,
-            self.model_config["loss_entropy_coef"] * entropy_loss,
-            self.model_config["loss_pred_coef"] * prediction_loss,
-        )
+        return q_pre, q_post, commitment_loss, entropy_loss, diversity_loss
 
     def load_weights(self, weights_path):
         state_dict = mngs.io.load(weights_path)
@@ -154,31 +139,19 @@ class EEGPT(nn.Module):
     def freeze_vq_layers(
         self,
     ):
-        for param in list(self.VQ.parameters()):
+        for param in list(self.vq.parameters()):
             param.requires_grad = False
-
-    # def freeze_vq_layers(self,):
-    #     for param in list(self.VQ.parameters()):
-    #         param.requires_grad = False
 
 
 if __name__ == "__main__":
-    model_config = dict(
-        VQ_num_embeddings=4,
-        VQ_embedding_dim=16,
-        VQ_softmax_type="gumbel_softmax_hard",
-        VQ_weight_norm=False,
-        VQ_initializer="uniform",
-        loss_commit_coef=1.0,
-        loss_entropy_coef=0.3,
-        loss_pred_coef=0.0,
-        conv_vq_weights_path="./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_KTyjYpl1/checkpoint.pth",
-        weights_path=None,
-    )
+    from scripts.ml.parse_model_configs import parse_model_configs
 
-    m = EEGPT(model_config).cuda()
     x = torch.randn(32, 14, 256).cuda()
-    loss = m(x)
+
+    model_config = parse_model_configs()
+    m = EEGPT(model_config).cuda()
+    losses = m(x)
+
     # Pretrained model
     # weights_path = (
     #     "./scripts/ml/pretrain_EEGPT/2024-02-11-07-05_dPXGGb4b/

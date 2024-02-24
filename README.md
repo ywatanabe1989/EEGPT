@@ -33,7 +33,7 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 ls ./data/O*/dbs -alht
 
 CAT=OpenNeuro
-VER=v030
+VER=v032
 cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 ```
 
@@ -41,17 +41,18 @@ cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 #### Runs pretraining
 ``` bash
 # 1st Pretrain: the Convolution and VectorQuantization Layers
-screen -dmS pretrain_1st ./scripts/ml/pretrain_EEGPT.py --commit_coef 1.0 --entropy_coef 0.3 --pred_coef 0.0 --softmax_type gumbel_softmax_hard
+screen -dmS pretrain_1st ./scripts/ml/pretrain_EEGPT.py --commit_coef 1.0 --entropy_coef 0.3 --pred_coef 0.0 --softmax_type gumbel_softmax_hard --num_embeddings 4
 
 # 2nd Pretrain: the Transformer Layers
-screen -dmS pretrain_2nd ./scripts/ml/pretrain_EEGPT.py --commit_coef 0. --entropy_coef 0. --pred_coef 1. --softmax_type gumbel_softmax_hard --conv_vq_weights_path ./scripts/ml/pretrain_EEGPT/2024-02-17-01-48_KTyjYpl1/checkpoint.pth
+screen -dmS pretrain_2nd \
+python -m ipdb ./scripts/ml/pretrain_EEGPT.py --commit_coef 0. --entropy_coef 0. --pred_coef 1. --softmax_type gumbel_softmax_hard --conv_vq_weights_path \
+./scripts/ml/pretrain_EEGPT/2024-02-17-19-55_0qjaeWlU_04/checkpoint.pth
 
-screen -dmS pretrain_1st ./scripts/ml/pretrain_EEGPT.py --commit_coef 1.0 --entropy_coef 0.3 --pred_coef 0.0 --softmax_type gumbel_softmax_hard --num_embeddings 16
 
-# 2024-02-17-08-15_UmciKUpN
-# 2024-02-17-08-19_0qqNiw9a
+# 2024-02-17-19-55_0qjaeWlU_04/
+# 2024-02-17-19-55_eMqdWxV3_16/
+# 2024-02-17-19-55_y49afhEJ_08/
 ```
-
 
 
 
@@ -75,8 +76,9 @@ VQ_NUM_EMBEDDINGS
 VQ_EMBEDDING_DIM
 VQ_SOFTMAX_TYPE
 VQ_LOSS_COEFFICIENTS
-TRANSFORMER_N_HEADS
-TRANSFORMER_HIDDEN_DIM
-TRANSFORMER_N_ENC_LAYERS
-TRANSFORMER_N_DEC_LAYERS
+
+TF_N_HEADS
+TF_HIDDEN_DIM
+TF_N_ENC_LAYERS
+TF_N_DEC_LAYERS
 ```

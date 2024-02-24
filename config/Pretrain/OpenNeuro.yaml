@@ -4,17 +4,19 @@ INCLUSION_CRITERIA_TRA: {}
 INCLUSION_CRITERIA_VAL: {}
 INCLUSION_CRITERIA_TES: {}
 SPLIT_CRITERIA_TRA_VAL_vs_TES:
-    ["dataset_id", "subject_id"]
+    ["dataset_id"]
+    # ["dataset_id", "subject_id"]    
 SPLIT_CRITERIA_TRA_vs_VAL:
-    ["dataset_id", "subject_id"]  
+    ["dataset_id"]
+    # ["dataset_id", "subject_id"]      
 SPLIT_RATIOS:
-    tra: .6
-    val: .2
-    tes: .2
+    tra: .8
+    val: .1
+    tes: .1
 BALANCING_CRITERIA_TRA: []
     
 BATCH_SIZE:
   1024
   
 NUM_WORKERS:
-  4
+  2

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 21:04:24 (ywatanabe)"
+# Time-stamp: "2024-02-19 08:06:58 (ywatanabe)"
 
 from pprint import pprint
 
@@ -174,57 +174,6 @@ def balance_tra(df_tra, ds_config):
 
     return df_tra
 
-    # col = ds_config["BALANCING_CRITERIA_TRA"][0]
-
-    # values, ns = np.unique(df_tra[col], return_counts=True)
-    # pseudo_labels_uq
-
-    # # Undersampling on each column iteratively. So the order is the matter.
-    # for col in ds_config["BALANCING_CRITERIA_TRA"]:
-    #     print(col)
-    #     values, ns = np.unique(df_tra[col], return_counts=True)
-    #     n_min = np.min(ns)
-    #     indi_use = []
-    #     for val in values:
-    #         indi_use.append(
-    #             np.random.permutation(
-    #                 df_tra[df_tra["disease_type"] == val].index
-    #             )[:n_min]
-    #         )
-    #     indi_use = np.hstack(indi_use)
-    #     df_tra = df_tra.loc[indi_use]
-
-    # return df_tra
-    #     import ipdb
-
-    #     ipdb.set_trace()
-
-    # # ##
-    # # # Example
-    # # ds_config["BALANCING_CRITERIA_TRA"] = ["disease_type", "subject_id"]
-    # # ##
-
-    # df_tra["pseudo_label"] = mngs.ml.utils.merge_labels(
-    #     *[df_tra[col] for col in ds_config["BALANCING_CRITERIA_TRA"]]
-    # )
-    # pseudo_labels_uq = df_tra["pseudo_label"].unique()
-    # import ipdb
-
-    # ipdb.set_trace()
-
-    # # Assuming balancing criteria is based on a specific column, e.g., 'disease_type'
-
-    # # Perform undersampling
-    # min_count = df_tra["pseudo_label"].value_counts().min()
-
-    # df_balanced = df_tra.groupby("pseudo_label").sample(
-    #     n=min_count, random_state=42
-    # )
-    # # Optionally, you can drop the 'pseudo_label' column if it's no longer needed
-    # df_balanced = df_balanced.drop(columns=["pseudo_label"])
-
-    # return df_balanced
-
 
 def validate_datasets(df_tra, df_val, df_tes, ds_config):
     # Validates inclusion criteria for each set
@@ -281,7 +230,7 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
         )
     if not set(col_split_tes) & set(col_split_val) == set():
         raise ValueError(
-            f"Test dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            f"\nTest dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
         )
 
     # Validates train-vaild split criteria
@@ -297,7 +246,7 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
     )
     if not set(col_split_tra) & set(col_split_val) == set():
         raise ValueError(
-            f"Validation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            f"\nValidation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
         )
 
     # Balancing checks and operations would be more complex and are better handled separately
@@ -306,10 +255,10 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
     )
     if not counts.all():
         raise ValueError(
-            f"Training dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
+            f"\nTraining dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
         )
 
-    print(f"Dataset splitting is validated.")
+    print(f"\nDataset splitting is validated.")
 
 
 def main(df, ds_config):

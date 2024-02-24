@@ -59,3 +59,4 @@ Cython
 catboost
 webdriver_manager
 xgboost
+torchvision

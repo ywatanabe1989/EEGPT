@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 22:45:23 (ywatanabe)"
+# Time-stamp: "2024-02-23 01:54:23 (ywatanabe)"
 
-import logging
 import os
 import random
 import sys
@@ -14,8 +13,8 @@ import pandas as pd
 import torch
 from models.EEGPT import EEGPT
 from models.MultiTaskLoss import MultiTaskLoss
-from scripts.data.database.SQLiteDataset import load_ds_dls  # SQLiteDataset
-from torch.optim import SGD, Adam
+from scripts.data.database.SQLiteDataset import load_ds_dls
+from torch.optim import SGD
 
 # Configurations
 CONFIG, sys.stdout, sys.stderr, plt, cc = mngs.gen.start(
@@ -53,14 +52,7 @@ def base_step(
     # Batched Dataset ID, Subject ID, and EEG signal
     Db, Sb, Xb, _Mb = batch
 
-    # # Sliding window as a data augumentation method
-    # start = random.randint(0, Xb.shape[-1] - WINDOW_SIZE_PTS)
-    # end = start + WINDOW_SIZE_PTS
-    # Xb = Xb[..., start:end]
-
     # Normalization after cropping
-    # Xb = mngs.gen.to_z(Xb, axis=2)
-    # Xb = mngs.gen.to_z(Xb, axis=1)
     Xb = Xb.float().cuda()
 
     # Remove samples with nan values
@@ -191,46 +183,86 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Train the EEGPT model with given hyperparameters."
     )
+
+    # General
     parser.add_argument(
-        "-cc",
-        "--commit_coef",
+        "--learning_rate",
+        default=1e3,
         type=float,
-        default=1.0,
-        help="Weight for the commitment loss",
-    )
-    parser.add_argument(
-        "-ec",
-        "--entropy_coef",
-        type=float,
-        default=0.3,
-        help="Weight for the entropy loss",
-    )
-    parser.add_argument(
-        "-pc",
-        "--pred_coef",
-        type=float,
-        default=0.0,
-        help="Weight for the prediction loss",
-    )
-    parser.add_argument(
-        "--num_embeddings",
-        default=4,
-        type=int,
-        help="The number of embeddings to be uesd for quantization",
     )
 
     parser.add_argument(
-        "--softmax_type",
-        default="softmax",
-        choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
-        help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
+        "--optimizer",
+        default="SGD",
     )
-    # for learning transformer weights
+
+    # Conv and VQ
     parser.add_argument(
         "--conv_vq_weights_path",
         default=None,
-        help="Load convolution and vector quantization layers and freeze them.",
     )
+
+    # VQ parameters
+    parser.add_argument("--vq_num_embeddings", type=int, default=4)
+    parser.add_argument("--vq_embedding_dim", type=int, default=16)
+    parser.add_argument(
+        "--vq_softmax_type", type=str, default="gumbel_softmax_hard"
+    )
+    parser.add_argument("--vq_commit_coef", type=float, default=1.0)
+    parser.add_argument("--vq_entropy_coef", type=float, default=0.3)
+    parser.add_argument("--vq_pred_coef", type=float, default=0.0)
+
+    # Transformer parameters
+    parser.add_argument("--tf_n_heads", type=int, default=2)
+    parser.add_argument("--tf_hidden_dim", type=int, default=16)
+    parser.add_argument("--tf_n_enc_layers", type=int, default=2)
+    parser.add_argument("--tf_n_dec_layers", type=int, default=2)
+    parser.add_argument("--tf_dropout_ratio", type=float, default=0.1)
+
+    # parser.add_argument(
+    #     "-cc",
+    #     "--commit_coef",
+    #     type=float,
+    #     default=1.0,
+    #     help="Weight for the commitment loss",
+    # )
+    # parser.add_argument(
+    #     "-ec",
+    #     "--entropy_coef",
+    #     type=float,
+    #     default=0.3,
+    #     help="Weight for the entropy loss",
+    # )
+    # parser.add_argument(
+    #     "-pc",
+    #     "--pred_coef",
+    #     type=float,
+    #     default=0.0,
+    #     help="Weight for the prediction loss",
+    # )
+    # parser.add_argument(
+    #     "--num_embeddings",
+    #     default=4,
+    #     type=int,
+    #     help="The number of embeddings to be uesd for quantization",
+    # )
+
+    # parser.add_argument(
+    #     "--softmax_type",
+    #     default="softmax",
+    #     choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
+    #     help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
+    # )
+
+    # parser.add_argument("--vq_commit_coef", type=float, default=1.0)
+    # parser.add_argument("--vq_entropy_coef", type=float, default=0.3)
+    # parser.add_argument("--vq_pred_coef", type=float, default=0.0)
+
+    # parser.add_argument("--tf_n_heads", type=int, default=8)
+    # parser.add_argument("--tf_hidden_dim", type=int, default=512)
+    # parser.add_argument("--tf_n_enc_layers", type=int, default=6)
+    # parser.add_argument("--tf_n_dec_layers", type=int, default=6)
+    # parser.add_argument("--tf_dropout_ratio", type=float, default=0.1)
 
     args = parser.parse_args()
 
@@ -247,8 +279,17 @@ if __name__ == "__main__":
         loss_pred_coef=args.pred_coef,
         conv_vq_weights_path=args.conv_vq_weights_path,
     )
-    mngs.gen.save(model_config, CONFIG["SDIR"] + "model_config.yaml")
+
+    if args.conv_vq_weights_path:
+        import ipdb
+
+        ipdb.set_trace()
 
     main(model_config)
 
+    mngs.gen.save(model_config, CONFIG["SDIR"] + "model_config.yaml")
     mngs.gen.close(CONFIG)
+
+    # 2024-02-17-19-55_0qjaeWlU_04
+    # 2024-02-17-19-55_eMqdWxV3_16
+    # 2024-02-17-19-55_y49afhEJ_08

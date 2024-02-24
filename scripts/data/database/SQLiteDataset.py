@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 17:25:34 (ywatanabe)"
+# Time-stamp: "2024-02-19 08:20:32 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -86,13 +86,15 @@ class SQLiteDataset(Dataset):
         ds_config,
         meta_all=None,
         collate_fn=None,
+        from_cache=False,
         verbose=False,
     ):
         # Attributes
         self.ds_config = ds_config
 
         # Loads metadata
-        self.df = self.load_df_from_cache()
+        self.df = self.load_df_from_cache(from_cache)
+
         self.meta_all = self.gen_meta_all()
 
         # Combines criteria
@@ -122,26 +124,60 @@ class SQLiteDataset(Dataset):
 
         if verbose:
             print(
-                f"\nThe metadata of the entire database, {self.ds_config['LPATH_DB']}, is as follows:\n{self.df}"
+                f"\nThe metadata of the entire database ({self.ds_config['LPATH_DB']}) is as follows:\n{self.df.columns}"
             )
             print(
                 f"\nIn the current analysis, metadata is mapped as follows:\n"
             )
             pprint(self.meta_map)
+            print(f"\nTraining + Validation + Test")
+            print(f"\ndataset_id:\n{mngs.gen.unique(self.df['dataset_id'])}")
+            print(f"\subject_id:\n{mngs.gen.unique(self.df['subject_id'])}")
+
+            for split_str, df in zip(
+                ["Training", "Validation", "Test"], [df_tra, df_val, df_tes]
+            ):
+                print(f"\n{split_str}")
+                print(f"\n# of datasets:\n{len(df['dataset_id'].unique())}")
+                print(f"\n# of subjects:\n{len(df['subject_id'].unique())}")
+
+                # print(f"\n{split_str}")
+                # print(f"\ndataset_id:\n{len(mngs.gen.unique(df['dataset_id']))}")
+
+                # print(f"\subject_id:\n{len(mngs.gen.unique(df['subject_id'])}")
+
+            # print(f"\nTraining")
+            # print(f"\ndataset_id:\n{mngs.gen.unique(df_tra['dataset_id'])}")
+            # print(f"\subject_id:\n{mngs.gen.unique(df_tra['subject_id'])}")
+            # print(f"\nValidation")
+            # print(f"\ndataset_id:\n{mngs.gen.unique(df_val['dataset_id'])}")
+            # print(f"\nsubject_id:\n{mngs.gen.unique(df_val['subject_id'])}")
+            # print(f"\nTest")
+            # print(f"\ndataset_id:\n{mngs.gen.unique(df_tes['dataset_id'])}")
+            # print(f"\subject_id:\n{mngs.gen.unique(df_tes['subject_id'])}")
 
     def load_df_from_cache(
         self,
+        from_cache=False,
     ):
         cache_path = self.ds_config["LPATH_DB"].replace(
             ".db", "_meta_cache.pkl"
         )
-        try:
-            self.df = mngs.io.load(cache_path)
-            assert self.df is not None
-            print(f"\nLoaded from the cache file: {cache_path}")
-        except Exception as e:
+
+        # Loads from db
+        if not from_cache:
             self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
             mngs.io.save(self.df, cache_path)
+
+        # Loads from cache pkl
+        else:
+            try:
+                self.df = mngs.io.load(cache_path)
+                assert self.df is not None
+                print(f"\nLoaded from the cache file: {cache_path}")
+            except Exception as e:
+                self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+                mngs.io.save(self.df, cache_path)
 
         return self.df
 
@@ -422,51 +458,45 @@ if __name__ == "__main__":
 
     # Construct dataset
     lpath_ds_config = "./config/DownStream/Dementia.yaml"
-    ds, dls = load_ds_dls(lpath_ds_config)
+    lpath_ds_config = "./config/Pretrain/OpenNeuro.yaml"
+    ds, dls = load_ds_dls(lpath_ds_config, from_cache=True, verbose=True)
 
     # Main
     for i_epoch in tqdm(range(5)):
         DS_epoch = []
         S_epoch = []
-        # M_epoch = []
         DT_epoch = []
         C_epoch = []
         I_epoch = []
         for i_batch, batch in tqdm(enumerate(dls["tra"])):
-            """
-            batch = next(iter(dls["tra"]))
-            batch = next(iter(ds_tra))
-            """
             # Batched dataset ids, subject ids, EEG signals, and metadatas
             DSb, Sb, Xb, _Mb = batch
+            Mb_df = ds.decode_meta(_Mb)
 
-            # Xb = apply_sliding_window_data_augmentation(Xb)
-            print(Xb.shape)
-
-            DTb = _Mb[:, 0]  # Disease type
-            Cb = _Mb[:, 1]  # Cognitive level
-            Ib = _Mb[:, 2]  # Institution
+            # DTb = Mb["disease_type"]  # Disease type
+            # Cb = Mb["cognitive_level"]  # Cognitive level
+            # Ib = Mb["institution"]  # Institution
 
             DS_epoch.append(DSb)
             S_epoch.append(Sb)
-            DT_epoch.append(DTb)
-            C_epoch.append(Cb)
-            I_epoch.append(Ib)
+            # DT_epoch.append(DTb)
+            # C_epoch.append(Cb)
+            # I_epoch.append(Ib)
             # M_epoch.append(_Mb)
 
-    ds.decode_meta(_Mb)
+    # ds.decode_meta(_Mb)
 
     DS_uq = mngs.gen.unique(np.hstack(DS_epoch))
     S_uq = mngs.gen.unique(np.hstack(S_epoch))
-    DT_uq = mngs.gen.unique(np.hstack(DT_epoch))
-    C_uq = mngs.gen.unique(np.hstack(C_epoch))
-    I_uq = mngs.gen.unique(np.hstack(I_epoch))
+    # DT_uq = mngs.gen.unique(np.hstack(DT_epoch))
+    # C_uq = mngs.gen.unique(np.hstack(C_epoch))
+    # I_uq = mngs.gen.unique(np.hstack(I_epoch))
 
     print(f"\nLoaded dataset list:\n{DS_uq}")
     print(f"\nLoaded subject list:\n{S_uq}")
-    print(f"\nLoaded disease_type list:\n{DT_uq}")
-    print(f"\nLoaded cognitive_level list:\n{C_uq}")
-    print(f"\nLoaded institution list:\n{I_uq}")
+    # print(f"\nLoaded disease_type list:\n{DT_uq}")
+    # print(f"\nLoaded cognitive_level list:\n{C_uq}")
+    # print(f"\nLoaded institution list:\n{I_uq}")
 
     # END
     mngs.gen.close(CONFIG)
