@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-24 12:04:38 (ywatanabe)"
+# Time-stamp: "2024-02-26 22:34:23 (ywatanabe)"
 
 import math
 
@@ -60,6 +60,8 @@ class Transformer(nn.Module):
             d_model=self.model_config["tf_hidden_dim"],
             nhead=self.model_config["tf_n_heads"],
             dim_feedforward=self.model_config["tf_dim_feedforward"],
+            dropout=self.model_config["tf_dropout_ratio"],
+            # batch_first=True,
         )
         self.transformer_encoder = nn.TransformerEncoder(
             encoder_layer, num_layers=self.model_config["tf_n_enc_layers"]
@@ -69,6 +71,9 @@ class Transformer(nn.Module):
         decoder_layer = nn.TransformerDecoderLayer(
             d_model=self.model_config["tf_hidden_dim"],
             nhead=self.model_config["tf_n_heads"],
+            dim_feedforward=self.model_config["tf_dim_feedforward"],
+            dropout=self.model_config["tf_dropout_ratio"],
+            # batch_first=True,
         )
         self.transformer_decoder = nn.TransformerDecoder(
             decoder_layer, num_layers=self.model_config["tf_n_dec_layers"]
@@ -83,13 +88,20 @@ class Transformer(nn.Module):
         # To trap_activation latent features
         self.activation = {}
 
+    # @staticmethod
+    # def reshape(data):
+    #     """[batch_size, n_features, seq_len] to [batch_size, seq_len, n_features]"""
+    #     return data.transpose(1, 2)
     @staticmethod
     def reshape(data):
-        # [batch_size, seq_len n_features] to [seq_len, batch_size, n_features]
-        return data.permute(2, 0, 1)
+        """[batch_size, n_features, seq_len] to [seq_len, batch_size, n_features]"""
+        return data.permute(2, 0, 1)  # [REVISED]
 
     def forward(self, pre, get_latent=False):
-        return self._get_latent(pre) if get_latent else self._forward(pre)
+        if get_latent:
+            return self._get_latent(pre)
+        else:
+            return self._forward(pre)
 
     def _forward(self, pre):
         """pre: [batch_size, n_features, seq_len ]"""
@@ -104,15 +116,18 @@ class Transformer(nn.Module):
         tgt = pre
         out = self.transformer_decoder(tgt, memory)
         out = self.fc_out(out)
-        return out[-1]
+        out = out.permute(1, 2, 0)  # [REVISED]
+        # out = out.transpose(1, 2)
+
+        return out  # [..., -1]
 
     def _get_latent(self, pre):
         self.transformer_encoder.layers[1].norm2.register_forward_hook(
-            self.trap_activation("encoder_norm")
+            self.trap_activation("latent")
         )
         _ = self._forward(pre)
-        return self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
-        # (-1, 64, 7) = (-1, 448)
+        return self.activation["latent"].permute(1, 2, 0)  # [REVISED]
+        # return self.activation["latent"].transpose(1, 2)
 
     def trap_activation(self, name):
         def hook(model, input, output):
@@ -139,7 +154,6 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
-        # Make the positional encoding as long as the input sequence
         x_pe = self.pe[:, : x.size(1)]
         return x + x_pe
 
@@ -155,13 +169,25 @@ if __name__ == "__main__":
     x = torch.rand(BATCH_SIZE, input_dim, seq_len)
 
     # Forwarding
-    model_config = parse_model_configs()
-    m = Transformer(
-        model_config,
+    model_config = mngs.io.load(
+        "./scripts/ml/pretrain_EEGPT/FINISHED/2024Y-02M-25D-12h27m14s_9zs9/transformer_model_config.yaml"
     )
-    y = m(x)  # [-1, 1, 16]
-    print(y.shape)
+    model_config.pop("conv_vq_weights_path", None)
+    weights_path = "./scripts/ml/pretrain_EEGPT/FINISHED/2024Y-02M-25D-12h27m14s_9zs9/transformer_checkpoint.pth"
+    model_config["weights_path"] = weights_path
 
-    l = m(x, get_latent=True)
-    # [-1, 64, 7] # [-1, tf_hidden_dim, n_input_steps]
+    # model_config = parse_model_configs()
+    m = (
+        Transformer(
+            model_config,
+        )
+        .eval()
+        .cuda()
+    )
+    # y = m(x)  # [-1, 16, seq_len]
+    # print(y.shape)
+
+    m(x.cuda())
+    l = m(x.cuda(), get_latent=True)
+    # [-1, 64, 7] # [-1, tf_hidden_dim, seq_len]
     print(l.shape)

@@ -1,0 +1,77 @@
+usage: parse_model_configs.py [-h] [--learning_rate LEARNING_RATE]
+                              [--batch_size BATCH_SIZE]
+                              [--optimizer OPTIMIZER] [--n_epochs N_EPOCHS]
+                              [--conv_n_blocks CONV_N_BLOCKS]
+                              [--conv_split_size_pts CONV_SPLIT_SIZE_PTS]
+                              [--vq_num_embeddings VQ_NUM_EMBEDDINGS]
+                              [--vq_embedding_dim VQ_EMBEDDING_DIM]
+                              [--vq_initializer VQ_INITIALIZER]
+                              [--vq_weight_norm VQ_WEIGHT_NORM]
+                              [--vq_softmax_type VQ_SOFTMAX_TYPE]
+                              [--vq_commitment_coef VQ_COMMITMENT_COEF]
+                              [--vq_entropy_coef VQ_ENTROPY_COEF]
+                              [--vq_diversity_coef VQ_DIVERSITY_COEF]
+                              [--vq_prediction_coef VQ_PREDICTION_COEF]
+                              [--tf_hidden_dim TF_HIDDEN_DIM]
+                              [--tf_dim_feedforward TF_DIM_FEEDFORWARD]
+                              [--tf_n_heads TF_N_HEADS]
+                              [--tf_n_enc_layers TF_N_ENC_LAYERS]
+                              [--tf_n_dec_layers TF_N_DEC_LAYERS]
+                              [--tf_dropout_ratio TF_DROPOUT_RATIO]
+
+Train the EEGPT model with given hyperparameters.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+General Settings:
+  --learning_rate LEARNING_RATE
+                        Initial learning rate (default: 0.001)
+  --batch_size BATCH_SIZE
+                        Batch size for training (default: 32)
+  --optimizer OPTIMIZER
+                        Optimizer type (default: SGD)
+  --n_epochs N_EPOCHS   Number of training epochs (default: 100)
+
+Convolution Layer Settings:
+  --conv_n_blocks CONV_N_BLOCKS
+                        Number of convolution blocks (default: 3)
+  --conv_split_size_pts CONV_SPLIT_SIZE_PTS
+                        Size of splits for convolution blocks in points
+                        (default: 32)
+
+Vector Quantization Settings:
+  --vq_num_embeddings VQ_NUM_EMBEDDINGS
+                        Number of VQ embeddings (default: 4)
+  --vq_embedding_dim VQ_EMBEDDING_DIM
+                        Dimension of VQ embeddings (default: 16)
+  --vq_initializer VQ_INITIALIZER
+                        Initializer for VQ embeddings (default: uniform)
+  --vq_weight_norm VQ_WEIGHT_NORM
+                        Apply weight normalization in VQ (default: False)
+  --vq_softmax_type VQ_SOFTMAX_TYPE
+                        Type of softmax used in VQ (default:
+                        gumbel_softmax_hard)
+  --vq_commitment_coef VQ_COMMITMENT_COEF
+                        Commitment coefficient for VQ (default: 1.0)
+  --vq_entropy_coef VQ_ENTROPY_COEF
+                        Entropy coefficient for VQ (default: 0.3)
+  --vq_diversity_coef VQ_DIVERSITY_COEF
+                        Diversity coefficient for VQ (default: 1.0)
+  --vq_prediction_coef VQ_PREDICTION_COEF
+                        Prediction coefficient for VQ (default: 0.0)
+
+Transformer Settings:
+  --tf_hidden_dim TF_HIDDEN_DIM
+                        Hidden dimension for transformer (default: 64)
+  --tf_dim_feedforward TF_DIM_FEEDFORWARD
+                        Dimension of feedforward network in transformer
+                        (default: 2048)
+  --tf_n_heads TF_N_HEADS
+                        Number of attention heads in transformer (default: 2)
+  --tf_n_enc_layers TF_N_ENC_LAYERS
+                        Number of encoder layers in transformer (default: 2)
+  --tf_n_dec_layers TF_N_DEC_LAYERS
+                        Number of decoder layers in transformer (default: 2)
+  --tf_dropout_ratio TF_DROPOUT_RATIO
+                        Dropout ratio in transformer (default: 0.1)

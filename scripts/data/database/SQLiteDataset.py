@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-19 08:20:32 (ywatanabe)"
+# Time-stamp: "2024-02-28 12:29:39 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -17,6 +17,7 @@ import mngs
 import numpy as np
 import pandas as pd
 import torch
+from icecream import ic
 from scripts.data.database.check_db import check_db
 from scripts.data.database.split_datasets import split_datasets
 from sklearn.model_selection import train_test_split
@@ -86,11 +87,15 @@ class SQLiteDataset(Dataset):
         ds_config,
         meta_all=None,
         collate_fn=None,
-        from_cache=False,
+        batch_size=None,
+        from_cache=True,
         verbose=False,
     ):
         # Attributes
         self.ds_config = ds_config
+
+        if batch_size is not None:
+            self.ds_config["BATCH_SIZE"] = batch_size
 
         # Loads metadata
         self.df = self.load_df_from_cache(from_cache)
@@ -140,21 +145,6 @@ class SQLiteDataset(Dataset):
                 print(f"\n{split_str}")
                 print(f"\n# of datasets:\n{len(df['dataset_id'].unique())}")
                 print(f"\n# of subjects:\n{len(df['subject_id'].unique())}")
-
-                # print(f"\n{split_str}")
-                # print(f"\ndataset_id:\n{len(mngs.gen.unique(df['dataset_id']))}")
-
-                # print(f"\subject_id:\n{len(mngs.gen.unique(df['subject_id'])}")
-
-            # print(f"\nTraining")
-            # print(f"\ndataset_id:\n{mngs.gen.unique(df_tra['dataset_id'])}")
-            # print(f"\subject_id:\n{mngs.gen.unique(df_tra['subject_id'])}")
-            # print(f"\nValidation")
-            # print(f"\ndataset_id:\n{mngs.gen.unique(df_val['dataset_id'])}")
-            # print(f"\nsubject_id:\n{mngs.gen.unique(df_val['subject_id'])}")
-            # print(f"\nTest")
-            # print(f"\ndataset_id:\n{mngs.gen.unique(df_tes['dataset_id'])}")
-            # print(f"\subject_id:\n{mngs.gen.unique(df_tes['subject_id'])}")
 
     def load_df_from_cache(
         self,
@@ -295,6 +285,7 @@ class SQLiteDataset(Dataset):
             .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
             .copy()
         ).float()
+
         metadata_tensor = self._meta2tensor(metadata_json)
         return dataset_id, subject_id, segment_tensor, metadata_tensor
 
@@ -360,9 +351,8 @@ class SQLiteDataset(Dataset):
         dataloaders = {}
         for split in ["tra", "val", "tes"]:
             try:
-                # Applys the sliding window DA to not only training data but also validation and test data
-                sliding_window_collate_fn = SlidingWindowCollateFnMaker(
-                    random_split=True
+                custom_collate_fn = CustomCollateFnMaker(
+                    random_split=True,
                 )
 
                 dataloaders[split] = DataLoader(
@@ -370,7 +360,7 @@ class SQLiteDataset(Dataset):
                     batch_size=self.ds_config["BATCH_SIZE"],
                     shuffle=True if split == "tra" else False,
                     num_workers=self.ds_config["NUM_WORKERS"],
-                    collate_fn=sliding_window_collate_fn,
+                    collate_fn=custom_collate_fn,
                     drop_last=True,
                     worker_init_fn=seed_worker,
                     generator=g,
@@ -381,7 +371,9 @@ class SQLiteDataset(Dataset):
 
 
 # Define the custom collate function
-class SlidingWindowCollateFnMaker:
+
+
+class CustomCollateFnMaker:
     def __init__(self, random_split=False):
         self.random_split = random_split
 
@@ -402,18 +394,20 @@ class SlidingWindowCollateFnMaker:
         augmented_batch = []
         for sample in batch:
             dataset_id, subject_id, segment_tensor, metadata_tensor = sample
-            # Apply sliding window data augmentation to the segment_tensor
             augmented_segment_tensor = self.sliding_window(
                 segment_tensor, random_split=self.random_split
             )
-            augmented_sample = (
+            augmented_sample = [
                 dataset_id,
                 subject_id,
                 augmented_segment_tensor,
                 metadata_tensor,
-            )
+            ]
             augmented_batch.append(augmented_sample)
-        return torch.utils.data.dataloader.default_collate(augmented_batch)
+
+        batch = torch.utils.data.dataloader.default_collate(augmented_batch)
+
+        return batch
 
 
 def combine_inclusion_criteria(*criteria):
@@ -457,9 +451,13 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Construct dataset
-    lpath_ds_config = "./config/DownStream/Dementia.yaml"
+    # lpath_ds_config = "./config/DownStream/Dementia.yaml"
     lpath_ds_config = "./config/Pretrain/OpenNeuro.yaml"
-    ds, dls = load_ds_dls(lpath_ds_config, from_cache=True, verbose=True)
+    ds, dls = load_ds_dls(
+        lpath_ds_config,
+        from_cache=True,
+        verbose=True,
+    )
 
     # Main
     for i_epoch in tqdm(range(5)):

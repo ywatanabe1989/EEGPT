@@ -40,20 +40,10 @@ cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 
 #### Runs pretraining
 ``` bash
-# 1st Pretrain: the Convolution and VectorQuantization Layers
-screen -dmS pretrain_1st ./scripts/ml/pretrain_EEGPT.py --commit_coef 1.0 --entropy_coef 0.3 --pred_coef 0.0 --softmax_type gumbel_softmax_hard --num_embeddings 4
-
-# 2nd Pretrain: the Transformer Layers
-screen -dmS pretrain_2nd \
-python -m ipdb ./scripts/ml/pretrain_EEGPT.py --commit_coef 0. --entropy_coef 0. --pred_coef 1. --softmax_type gumbel_softmax_hard --conv_vq_weights_path \
-./scripts/ml/pretrain_EEGPT/2024-02-17-19-55_0qjaeWlU_04/checkpoint.pth
-
-
-# 2024-02-17-19-55_0qjaeWlU_04/
-# 2024-02-17-19-55_eMqdWxV3_16/
-# 2024-02-17-19-55_y49afhEJ_08/
+./scripts/ml/pretrain_EEGPT.py -h
+# screen -dmS "$session_name" bash -c "$command"
+            
 ```
-
 
 
 ## OpenNeuro Datasets for Pretraining
@@ -65,3 +55,10 @@ From 78 datasets, EEG data of 6,144 subjects are utilized during pretraining.
 
 ## Hyper-parameters to Tune
 [`./scripts/ml/parse_model_configs.py`](./scripts/ml/parse_model_configs.py) handles hyper parameters.
+
+``` bash
+./scripts/ml/parse_model_configs.py -h | tee ./docs/hyper_parameters.txt
+```
+
+
+

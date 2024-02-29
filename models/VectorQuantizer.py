@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-23 21:33:59 (ywatanabe)"
+# Time-stamp: "2024-02-24 23:08:07 (ywatanabe)"
 
 import math
 
@@ -148,8 +148,6 @@ if __name__ == "__main__":
     from scripts.ml.parse_model_configs import parse_model_configs
 
     model_config = parse_model_configs()
-
-    # model_config = args_dict
 
     # Demo input vector data
     BATCH_SIZE, VEC_LEN = 32, 16

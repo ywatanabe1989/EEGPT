@@ -1,6 +1,5 @@
-# Sampling
 WINDOW_SIZE_SEC:
-  2
+  9
 
 OVERLAP_FACTOR:
   2

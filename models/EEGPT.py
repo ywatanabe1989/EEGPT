@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-24 12:07:54 (ywatanabe)"
+# Time-stamp: "2024-02-28 10:47:18 (ywatanabe)"
 
 import warnings
 
@@ -14,6 +14,60 @@ import torch.nn.functional as F
 from models.SplitConv import SplitConv
 from models.Transformer import Transformer
 from models.VectorQuantizer import VectorQuantizer
+
+CONFIG = mngs.gen.load_configs(show=False)
+
+
+def split_to_1_sec_segment(x, samp_rate):
+    xs = [
+        x[..., ii * samp_rate : (ii + 1) * samp_rate]
+        for ii in range(x.shape[-1] // samp_rate)
+    ]
+    return xs
+
+
+def calc_band_power(xs, samp_rate):
+    bands_dict = {
+        "delta": [0.5, 4],
+        "theta": [4, 8],
+        "lalpha": [8, 10],
+        "halpha": [10, 13],
+        "beta": [13, 32],
+        "gamma": [32, 63.9],
+    }
+
+    band_powers = []
+    for x in xs:
+        # Apply FFT and shift zero frequency component to the center
+        fft_x = torch.fft.fft(x, dim=-1)
+        fft_x = torch.fft.fftshift(fft_x, dim=-1)
+
+        # Compute power spectrum
+        power_spectrum = torch.abs(fft_x) ** 2
+
+        # Calculate frequency resolution
+        freq_res = samp_rate / x.size(-1)
+
+        # Calculate the indices for the frequency bands
+        band_indices = {
+            band: [int(np.floor(freq / freq_res)) for freq in freqs]
+            for band, freqs in bands_dict.items()
+        }
+
+        # Calculate band power
+        band_power = []
+        for band, (low_idx, high_idx) in band_indices.items():
+            # Sum the power spectrum values within the frequency band limits
+            band_power.append(
+                power_spectrum[..., low_idx:high_idx].sum(dim=-1)
+            )
+
+        band_power = torch.stack(band_power, dim=-1)
+        band_powers.append(band_power)
+
+    band_powers = torch.stack(band_powers, dim=-1)
+
+    return band_powers
 
 
 class EEGPT(nn.Module):
@@ -30,11 +84,11 @@ class EEGPT(nn.Module):
         )
         self.model_config = model_config
 
-        # Convolutional Layer
-        self.split_conv = SplitConv(self.model_config)
+        # # Convolutional Layer
+        # self.split_conv = SplitConv(self.model_config)
 
-        # Vector Quantizer
-        self.vq = VectorQuantizer(self.model_config)
+        # # Vector Quantizer
+        # self.vq = VectorQuantizer(self.model_config)
 
         # Transformer layers
         self.transformer = Transformer(self.model_config)
@@ -60,101 +114,96 @@ class EEGPT(nn.Module):
 
         if weights_path is not None:
             self.load_weights(weights_path)
+            self.freeze_all_layers()
             _ = mngs.ml.utils.check_params(self, show=True)
 
     def forward(self, x, get_latent=False):
         """x.shape # [-1, 14, 256]"""
 
-        # Normalization as the first layers
+        # Calculates band powers by 1-sec segments
+        xs = split_to_1_sec_segment(x, samp_rate=CONFIG["TGT_FS"])
+        x = calc_band_power(xs, samp_rate=CONFIG["TGT_FS"])
         x = mngs.gen.to_z(x, axis=(1, 2))
+        x = x.reshape(x.shape[0], -1, x.shape[-1])
 
-        # Convolution
-        x = self.split_conv(x)
-        # [-1, 64, x.shape[-1] // model_config["conv_split_size_pts"]]
+        # Split the band powers into those from pre / post segments
+        pre = x[..., :-1]
+        post = x[..., -1].unsqueeze(-1)
 
-        # Vector Quantization
-        (
-            q_pre,
-            q_post,
-            commitment_loss,
-            entropy_loss,
-            diversity_loss,
-        ) = self.apply_vq_for_split_segments(x)
-        # [-1, 64, x.shape[-1] // model_config["conv_split_size_pts"]]
-        # q_pre: [-1, model_config["vq_num_embeddings"], x.shape[-1] // model_config["conv_split_size_pts"] - 1]
-        # q_post: [-1, model_config["vq_num_embeddings"], 1]
+        return self.transformer(pre, get_latent=get_latent), post
 
-        # Transformer
-        if get_latent:
-            return self.transformer(q_pre, get_latent=True)
+        # # Transformer
+        # if get_latent:
+        #     return self.transformer(
+        #         pre, get_latent=True
+        #     )
 
-        else:
-            y = self.transformer(q_pre)
-            prediction_loss = F.mse_loss(y, q_post.squeeze())
-            return (
-                self.model_config["vq_prediction_coef"] * prediction_loss,
-                self.model_config["vq_commitment_coef"] * commitment_loss,
-                self.model_config["vq_entropy_coef"] * entropy_loss,
-                self.model_config["vq_diversity_coef"] * diversity_loss,
-            )
-
-    def apply_vq_for_split_segments(self, x):
-        _qs = []
-        _commitment_losses = []
-        _entropy_losses = []
-        _diversity_losses = []
-        _assignment_probs = []
-        for i_seg in range(x.shape[-1]):
-            _x = x[..., i_seg]
-            _q, _commitment_loss, _entropy_loss, _diversity_loss = self.vq(_x)
-
-            _qs.append(_q)
-            _commitment_losses.append(_commitment_loss)
-            _entropy_losses.append(_entropy_loss)
-            _diversity_losses.append(_diversity_loss)
-            _assignment_probs.append(self.vq.assignment_probs)
-
-        # [-1, 8, self.model_config["num_embeddings"]]
-        q = torch.stack(_qs, axis=1).permute(0, 2, 1)
-        q_pre, q_post = q[..., :-1], q[..., -1].unsqueeze(-1)
-
-        self.assignment_probs = torch.stack(_assignment_probs, axis=1)
-        commitment_loss = torch.mean(torch.stack(_commitment_losses))
-        entropy_loss = torch.mean(torch.stack(_entropy_losses))
-        diversity_loss = torch.mean(torch.stack(_diversity_losses))
-
-        return q_pre, q_post, commitment_loss, entropy_loss, diversity_loss
+        # else:
+        #     y = self.transformer(pre)[..., -1]
+        #     # prediction_loss = F.mse_loss(y, post.squeeze())
+        #     # return prediction_loss
 
     def load_weights(self, weights_path):
         state_dict = mngs.io.load(weights_path)
         self.load_state_dict(mngs.io.load(weights_path).state_dict())
         print(f"\nWeights were successfully loaded: {weights_path}")
 
-    def freeze_conv_layers(
+    def freeze_all_layers(
         self,
     ):
-        for param in list(self.split_conv.parameters()):
+        for param in list(self.parameters()):
             param.requires_grad = False
 
-    def freeze_vq_layers(
-        self,
-    ):
-        for param in list(self.vq.parameters()):
-            param.requires_grad = False
+    def trap_activation(self, name):
+        def hook(model, input, output):
+            self.activation[name] = output.detach()
+
+        return hook
+
+
+def load_trained_EEGPT(ID):
+    EEGPT_model_config = mngs.io.load(
+        f"./scripts/ml/pretrain_EEGPT/{ID}/transformer_model_config.yaml"
+    )
+    try:
+        del EEGPT_model_config["conv_vq_weights_path"]
+    except:
+        pass
+    EEGPT_model_config[
+        "weights_path"
+    ] = f"./scripts/ml/pretrain_EEGPT/{ID}/transformer_checkpoint.pth"
+    EEGPT_model = EEGPT(EEGPT_model_config).cuda().eval()
+    return EEGPT_model
 
 
 if __name__ == "__main__":
     from scripts.ml.parse_model_configs import parse_model_configs
 
-    x = torch.randn(32, 14, 256).cuda()
+    samp_rate = 128
+    len_sec = 16 + 1
+    x = torch.randn(32, 14, samp_rate * len_sec).cuda()
 
     model_config = parse_model_configs()
-    m = EEGPT(model_config).cuda()
-    losses = m(x)
+    # xs = split_to_1_sec_segment(x, 128)
 
-    # Pretrained model
-    # weights_path = (
-    #     "./scripts/ml/pretrain_EEGPT/2024-02-11-07-05_dPXGGb4b/
+    # out = calc_band_power(xs, samp_rate)
+
+    # mngs.dsp.feature_extractors.amp_band(xs[0][0], samp_rate, band_str="delta")
+
+    # model_config = mngs.io.load(
+    #     "./scripts/ml/pretrain_EEGPT/FINISHED/2024Y-02M-25D-12h27m14s_9zs9/transformer_model_config.yaml"
     # )
-    # m.load_state_dict(mngs.io.load(weights_path).state_dict())
-    l = m(x, get_latent=True)  # (-1, 64, 7)
+    # model_config.pop("conv_vq_weights_path", None)
+    # model_config.pop("weights_path", None)
+    # weights_path = "./scripts/ml/pretrain_EEGPT/FINISHED/2024Y-02M-25D-12h27m14s_9zs9/transformer_checkpoint.pth"
+    # model_config = parse_model_configs()
+
+    # model_config["weights_path"] = weights_path
+
+    m = EEGPT(model_config).cuda()
+    # m.eval()
+
+    l, post = m(x, get_latent=True)  # (-1, 64, 7)
+    y, post = m(x, get_latent=False)  # (-1, 64, 7)
+
+    # loss = m(x)
