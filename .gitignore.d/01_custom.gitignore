@@ -2,7 +2,6 @@
 res
 **.log
 **.pkl
-scripts/pretrain_EEGPT/*
 **/2024-*
 **/[DEBUG]*
 singularity

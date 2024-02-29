@@ -19,7 +19,7 @@
 res
 **.log
 **.pkl
-scripts/pretrain_EEGPT/*
+# scripts/pretrain_EEGPT/*
 **/2024-*
 **/[DEBUG]*
 singularity
@@ -28,6 +28,7 @@ work_singularity
 **debug**
 config/**/*.csv
 env
+catboost_info
 
 # Old
 *.old
