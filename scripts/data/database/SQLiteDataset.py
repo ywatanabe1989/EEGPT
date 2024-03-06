@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-17 02:08:43 (ywatanabe)"
+# Time-stamp: "2024-02-28 12:29:39 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -17,6 +17,7 @@ import mngs
 import numpy as np
 import pandas as pd
 import torch
+from icecream import ic
 from scripts.data.database.check_db import check_db
 from scripts.data.database.split_datasets import split_datasets
 from sklearn.model_selection import train_test_split
@@ -86,29 +87,20 @@ class SQLiteDataset(Dataset):
         ds_config,
         meta_all=None,
         collate_fn=None,
+        batch_size=None,
+        from_cache=True,
         verbose=False,
     ):
         # Attributes
         self.ds_config = ds_config
 
+        if batch_size is not None:
+            self.ds_config["BATCH_SIZE"] = batch_size
+
         # Loads metadata
-        # self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
-        cache_path = self.ds_config["LPATH_DB"].replace(
-            ".db", "_meta_cache.pkl"
-        )
-        try:
-            self.df = mngs.io.load(cache_path)
-            assert self.df is not None
-        except Exception as e:
-            self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
-            mngs.io.save(self.df, cache_path)
+        self.df = self.load_df_from_cache(from_cache)
 
         self.meta_all = self.gen_meta_all()
-        # self.collate_fn = (
-        #     sliding_window_collate_fn
-        #     if collate_fn is "sliding_window"
-        #     else None
-        # )
 
         # Combines criteria
         self.INCLUSION_CRITERIA_COMBINED = combine_inclusion_criteria(
@@ -137,12 +129,47 @@ class SQLiteDataset(Dataset):
 
         if verbose:
             print(
-                f"\nThe metadata of the entire database, {self.ds_config['LPATH_DB']}, is as follows:\n{self.df}"
+                f"\nThe metadata of the entire database ({self.ds_config['LPATH_DB']}) is as follows:\n{self.df.columns}"
             )
             print(
                 f"\nIn the current analysis, metadata is mapped as follows:\n"
             )
             pprint(self.meta_map)
+            print(f"\nTraining + Validation + Test")
+            print(f"\ndataset_id:\n{mngs.gen.unique(self.df['dataset_id'])}")
+            print(f"\subject_id:\n{mngs.gen.unique(self.df['subject_id'])}")
+
+            for split_str, df in zip(
+                ["Training", "Validation", "Test"], [df_tra, df_val, df_tes]
+            ):
+                print(f"\n{split_str}")
+                print(f"\n# of datasets:\n{len(df['dataset_id'].unique())}")
+                print(f"\n# of subjects:\n{len(df['subject_id'].unique())}")
+
+    def load_df_from_cache(
+        self,
+        from_cache=False,
+    ):
+        cache_path = self.ds_config["LPATH_DB"].replace(
+            ".db", "_meta_cache.pkl"
+        )
+
+        # Loads from db
+        if not from_cache:
+            self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+            mngs.io.save(self.df, cache_path)
+
+        # Loads from cache pkl
+        else:
+            try:
+                self.df = mngs.io.load(cache_path)
+                assert self.df is not None
+                print(f"\nLoaded from the cache file: {cache_path}")
+            except Exception as e:
+                self.df = self.load_meta_as_df(self.ds_config["LPATH_DB"])
+                mngs.io.save(self.df, cache_path)
+
+        return self.df
 
     @classmethod
     def load_meta_as_df(cls, lpath_db):
@@ -258,6 +285,7 @@ class SQLiteDataset(Dataset):
             .reshape(len(CONFIG["TGT_TRANVERSE_BIPOLAR_MONTAGE"]), -1)
             .copy()
         ).float()
+
         metadata_tensor = self._meta2tensor(metadata_json)
         return dataset_id, subject_id, segment_tensor, metadata_tensor
 
@@ -323,14 +351,16 @@ class SQLiteDataset(Dataset):
         dataloaders = {}
         for split in ["tra", "val", "tes"]:
             try:
+                custom_collate_fn = CustomCollateFnMaker(
+                    random_split=True,
+                )
+
                 dataloaders[split] = DataLoader(
                     self.datasets[split],
                     batch_size=self.ds_config["BATCH_SIZE"],
                     shuffle=True if split == "tra" else False,
                     num_workers=self.ds_config["NUM_WORKERS"],
-                    collate_fn=sliding_window_collate_fn
-                    if split == "tra"
-                    else None,
+                    collate_fn=custom_collate_fn,
                     drop_last=True,
                     worker_init_fn=seed_worker,
                     generator=g,
@@ -341,31 +371,43 @@ class SQLiteDataset(Dataset):
 
 
 # Define the custom collate function
-def sliding_window(segment_tensor):
-    WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
-    start = random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
-    end = start + WINDOW_SIZE_PTS
-    segment_tensor = segment_tensor[..., start:end]
-    return segment_tensor
 
 
-def sliding_window_collate_fn(batch):
-    augmented_batch = []
-    for sample in batch:
-        dataset_id, subject_id, segment_tensor, metadata_tensor = sample
-        # Apply sliding window data augmentation to the segment_tensor
-        augmented_segment_tensor = apply_sliding_window_data_augmentation(
-            segment_tensor
+class CustomCollateFnMaker:
+    def __init__(self, random_split=False):
+        self.random_split = random_split
+
+    @staticmethod
+    def sliding_window(segment_tensor, random_split=False):
+        WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
+        if segment_tensor.shape[-1] < WINDOW_SIZE_PTS:
+            raise ValueError("Segment tensor is smaller than the window size.")
+        start = (
+            random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
+            if random_split
+            else 0
         )
-        augmented_sample = (
-            dataset_id,
-            subject_id,
-            augmented_segment_tensor,
-            metadata_tensor,
-        )
-        augmented_batch.append(augmented_sample)
-    # Use the default collate function to merge the augmented samples into a batch
-    return torch.utils.data.dataloader.default_collate(augmented_batch)
+        segment_tensor = segment_tensor[..., start : start + WINDOW_SIZE_PTS]
+        return segment_tensor
+
+    def __call__(self, batch):
+        augmented_batch = []
+        for sample in batch:
+            dataset_id, subject_id, segment_tensor, metadata_tensor = sample
+            augmented_segment_tensor = self.sliding_window(
+                segment_tensor, random_split=self.random_split
+            )
+            augmented_sample = [
+                dataset_id,
+                subject_id,
+                augmented_segment_tensor,
+                metadata_tensor,
+            ]
+            augmented_batch.append(augmented_sample)
+
+        batch = torch.utils.data.dataloader.default_collate(augmented_batch)
+
+        return batch
 
 
 def combine_inclusion_criteria(*criteria):
@@ -409,52 +451,50 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Construct dataset
-    lpath_ds_config = "./config/DownStream/Dementia.yaml"
-    ds, dls = load_ds_dls(lpath_ds_config)
+    # lpath_ds_config = "./config/DownStream/Dementia.yaml"
+    lpath_ds_config = "./config/Pretrain/OpenNeuro.yaml"
+    ds, dls = load_ds_dls(
+        lpath_ds_config,
+        from_cache=True,
+        verbose=True,
+    )
 
     # Main
     for i_epoch in tqdm(range(5)):
         DS_epoch = []
         S_epoch = []
-        # M_epoch = []
         DT_epoch = []
         C_epoch = []
         I_epoch = []
         for i_batch, batch in tqdm(enumerate(dls["tra"])):
-            """
-            batch = next(iter(dls["tra"]))
-            batch = next(iter(ds_tra))
-            """
             # Batched dataset ids, subject ids, EEG signals, and metadatas
             DSb, Sb, Xb, _Mb = batch
+            Mb_df = ds.decode_meta(_Mb)
 
-            # Xb = apply_sliding_window_data_augmentation(Xb)
-            print(Xb.shape)
-
-            DTb = _Mb[:, 0]  # Disease type
-            Cb = _Mb[:, 1]  # Cognitive level
-            Ib = _Mb[:, 2]  # Institution
+            # DTb = Mb["disease_type"]  # Disease type
+            # Cb = Mb["cognitive_level"]  # Cognitive level
+            # Ib = Mb["institution"]  # Institution
 
             DS_epoch.append(DSb)
             S_epoch.append(Sb)
-            DT_epoch.append(DTb)
-            C_epoch.append(Cb)
-            I_epoch.append(Ib)
+            # DT_epoch.append(DTb)
+            # C_epoch.append(Cb)
+            # I_epoch.append(Ib)
             # M_epoch.append(_Mb)
 
-    ds.decode_meta(_Mb)
+    # ds.decode_meta(_Mb)
 
     DS_uq = mngs.gen.unique(np.hstack(DS_epoch))
     S_uq = mngs.gen.unique(np.hstack(S_epoch))
-    DT_uq = mngs.gen.unique(np.hstack(DT_epoch))
-    C_uq = mngs.gen.unique(np.hstack(C_epoch))
-    I_uq = mngs.gen.unique(np.hstack(I_epoch))
+    # DT_uq = mngs.gen.unique(np.hstack(DT_epoch))
+    # C_uq = mngs.gen.unique(np.hstack(C_epoch))
+    # I_uq = mngs.gen.unique(np.hstack(I_epoch))
 
     print(f"\nLoaded dataset list:\n{DS_uq}")
     print(f"\nLoaded subject list:\n{S_uq}")
-    print(f"\nLoaded disease_type list:\n{DT_uq}")
-    print(f"\nLoaded cognitive_level list:\n{C_uq}")
-    print(f"\nLoaded institution list:\n{I_uq}")
+    # print(f"\nLoaded disease_type list:\n{DT_uq}")
+    # print(f"\nLoaded cognitive_level list:\n{C_uq}")
+    # print(f"\nLoaded institution list:\n{I_uq}")
 
     # END
     mngs.gen.close(CONFIG)

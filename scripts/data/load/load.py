@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 20:08:42 (ywatanabe)"
+# Time-stamp: "2024-02-17 02:37:29 (ywatanabe)"
 
 import logging
 import random
@@ -16,6 +16,40 @@ from scripts.data.load.preprocess import preprocess_raw, segment_processed_raw
 CONFIG = mngs.io.load_configs(show=False)
 
 # Functions
+def split_MNIST(data):
+    data = data.reshape(
+        len(data), 4, -1
+    )  # (1, 8, 98) # (batch_size, seq_len, n_features)
+    # Provide only the first 21 rows as input
+    pre = data[:, :-1, :]
+    # The last 7 rows will be the target
+    post = data[:, -1:, :]
+    return pre, post
+
+
+def load_MNIST_dataloaders():
+    # Load MNIST dataset
+    transform = transforms.Compose([transforms.ToTensor()])
+    mnist_data = datasets.MNIST(
+        root="./data", train=True, download=True, transform=transform
+    )
+
+    # Split dataset into training and validation
+    train_size = int(0.8 * len(mnist_data))
+    val_size = len(mnist_data) - train_size
+    train_dataset, val_dataset = random_split(
+        mnist_data, [train_size, val_size]
+    )
+
+    train_loader = DataLoader(
+        train_dataset, batch_size=1024, shuffle=True, drop_last=True
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=1024, shuffle=False, drop_last=True
+    )
+    return train_loader, val_loader
+
+
 def find_eeg_files(category, IS_DEBUG=False):
     EEG_EXPS = [f"*.{ext}" for ext in CONFIG["EEG_EXTENSIONS"]]
     LPATHS = mngs.gen.find(

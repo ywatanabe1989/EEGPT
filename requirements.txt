@@ -57,3 +57,8 @@ spython
 twine
 Cython    
 catboost
+webdriver_manager
+xgboost
+torchvision
+torchviz
+info-nce-pytorch

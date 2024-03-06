@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-11 08:01:34 (ywatanabe)"
+# Time-stamp: "2024-02-19 08:06:58 (ywatanabe)"
 
 from pprint import pprint
 
@@ -133,17 +133,46 @@ def define_df_tra_and_df_val(
 
 
 def balance_tra(df_tra, ds_config):
-    # Assuming balancing criteria is based on a specific column, e.g., 'disease_type'
-    balance_col = ds_config.get("BALANCING_CRITERIA_TRA", None)
-    if not balance_col:
-        return df_tra  # No balancing criteria specified
+    def under_sample(df_tra, col):
+        pseudo_labels_to_use = []
+        ns = []
+        vals_uq = df_tra[col].unique()
+        for val_uq in vals_uq:
+            _pseudo_labels_to_use = mngs.gen.search(
+                val_uq, df_tra["pseudo_label"].unique()
+            )[1]
+            _n = len(_pseudo_labels_to_use)
+            pseudo_labels_to_use.append(_pseudo_labels_to_use)
+            ns.append(_n)
+        n_min = np.min(ns)
+        pseudo_labels_to_use = np.hstack(
+            [
+                np.random.permutation(pltu)[:n_min]
+                for pltu in pseudo_labels_to_use
+            ]
+        )
+        return df_tra[df_tra["pseudo_label"].isin(pseudo_labels_to_use)]
 
-    # Perform undersampling
-    min_count = df_tra[balance_col].value_counts().min()
-    df_balanced = df_tra.groupby(balance_col).sample(
-        n=min_count, random_state=42
+    if not ds_config.get("BALANCING_CRITERIA_TRA"):
+        return df_tra
+
+    df_tra["pseudo_label"] = mngs.ml.utils.merge_labels(
+        *[df_tra[col] for col in ds_config["BALANCING_CRITERIA_TRA"]]
     )
-    return df_balanced
+    # pseudo_labels_uq = df_tra["pseudo_label"].unique()
+
+    for col in ds_config["BALANCING_CRITERIA_TRA"]:
+        df_tra = under_sample(df_tra, col)
+
+    print("\n" + "-" * 40)
+    print(f"\nTraining data was undersampled as follows:")
+    for col in ds_config["BALANCING_CRITERIA_TRA"]:
+        print()
+        print(col)
+        print(mngs.gen.unique(df_tra[col]))
+    print("\n" + "-" * 40)
+
+    return df_tra
 
 
 def validate_datasets(df_tra, df_val, df_tes, ds_config):
@@ -201,7 +230,7 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
         )
     if not set(col_split_tes) & set(col_split_val) == set():
         raise ValueError(
-            f"Test dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            f"\nTest dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
         )
 
     # Validates train-vaild split criteria
@@ -217,7 +246,7 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
     )
     if not set(col_split_tra) & set(col_split_val) == set():
         raise ValueError(
-            f"Validation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            f"\nValidation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
         )
 
     # Balancing checks and operations would be more complex and are better handled separately
@@ -226,10 +255,10 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
     )
     if not counts.all():
         raise ValueError(
-            f"Training dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
+            f"\nTraining dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
         )
 
-    print(f"Dataset splitting is validated.")
+    print(f"\nDataset splitting is validated.")
 
 
 def main(df, ds_config):

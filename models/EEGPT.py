@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-16 21:16:11 (ywatanabe)"
+# Time-stamp: "2024-02-29 23:21:00 (ywatanabe)"
 
 import warnings
 
@@ -9,18 +9,97 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.commitment_loss import commitment_loss
-from models.LossBalancer import LossBalancer
 
-# from models.MNet import MNet
-from models.PositionalEncodingLayer import PositionalEncodingLayer
+# from models.LossBalancer import LossBalancer
 from models.SplitConv import SplitConv
 from models.Transformer import Transformer
 from models.VectorQuantizer import VectorQuantizer
-from sklearn.metrics import balanced_accuracy_score
-from torchinfo import summary
 
-# from models.MultiTaskLoss import MultiTaskLoss
+CONFIG = mngs.gen.load_configs(show=False)
+
+
+class CosineSimilarityLoss(nn.Module):
+    def __init__(self):
+        super(CosineSimilarityLoss, self).__init__()
+        self.cosine_similarity = nn.CosineSimilarity(dim=1)
+
+    def forward(self, y_pred, y_true):
+        loss = 1 - self.cosine_similarity(y_pred, y_true)
+        return loss.mean()  # Taking the mean to aggregate over the batch
+
+
+class AxiswiseDropout(nn.Module):
+    def __init__(self, dropout_prob=0.5, dim=1):
+        super(AxiswiseDropout, self).__init__()
+        self.dropout_prob = dropout_prob
+        self.dim = dim
+
+    def forward(self, x):
+        if self.training:
+            sizes = [s if i == self.dim else 1 for i, s in enumerate(x.size())]
+            dropout_mask = F.dropout(
+                torch.ones(*sizes, device=x.device, dtype=x.dtype),
+                self.dropout_prob,
+                True,
+            )
+
+            # Expand the mask to the size of the input tensor and apply it
+            return x * dropout_mask.expand_as(x)
+        return x
+
+
+def split_segments(x, window_size_pts):
+    xs = [
+        x[..., ii * window_size_pts : (ii + 1) * window_size_pts]
+        for ii in range(x.shape[-1] // window_size_pts)
+    ]
+    return xs
+
+
+def calc_band_powers(batched_signals, samp_rate):
+    """
+    Calculates the band powers of EEG signals in a batched manner.
+
+    Parameters:
+    - batched_signals (torch.Tensor): The EEG signals in batch, shape (batch_size, channels, samples).
+    - samp_rate (float): The sampling rate of the EEG signals.
+    - bands_dict (dict): A dictionary containing the frequency bands, e.g., {'delta': (0.5, 4), 'theta': (4, 8)}.
+
+    Returns:
+    - torch.Tensor: The calculated band powers, shape (batch_size, channels, number of bands).
+    """
+    bands_dict = {
+        "delta": (0.5, 4),
+        "theta": (4, 8),
+        "lalpha": [8, 10],
+        "halpha": [10, 13],
+        "beta": (13, 30),
+        "gamma": (30, 59),
+    }
+
+    # FFT
+    fft_signals = torch.fft.rfft(batched_signals, dim=-1)
+    freqs = torch.fft.rfftfreq(batched_signals.shape[-1], 1 / samp_rate)
+
+    # Power spectrum
+    power_spectrum = torch.abs(fft_signals) ** 2
+
+    band_powers = []
+    for band, (low_freq, high_freq) in bands_dict.items():
+        # Find the indices of the frequency bins corresponding to the band
+        band_indices = torch.where((freqs >= low_freq) & (freqs <= high_freq))[
+            0
+        ]
+
+        # Sum the power spectrum within the band
+        band_power = power_spectrum[..., band_indices].sum(dim=-1)
+        band_powers.append(band_power.unsqueeze(-1))
+
+    # Concatenate the band powers along the last dimension
+    band_powers = torch.cat(band_powers, dim=-1)
+
+    band_powers /= band_powers.sum(axis=-1, keepdims=True)
+    return band_powers
 
 
 class EEGPT(nn.Module):
@@ -36,179 +115,148 @@ class EEGPT(nn.Module):
             )
         )
         self.model_config = model_config
-        CONFIG = mngs.io.load_configs(show=False)
-
-        # Convolutional Layer
-        self.split_conv = SplitConv(self.model_config)
-
-        # Vector Quantizer
-        self.VQ = VectorQuantizer(
-            num_embeddings=self.model_config["VQ_num_embeddings"],
-            embedding_dim=self.model_config["VQ_embedding_dim"],
-            softmax_type=self.model_config["VQ_softmax_type"],
-            initializer=self.model_config["VQ_initializer"],
-            weight_norm=self.model_config["VQ_weight_norm"],
-        )
-
-        # Positional Encoding
-        n_steps = int(
-            CONFIG["WINDOW_SIZE_SEC"]
-            * CONFIG["TGT_FS"]
-            / self.model_config["window_size"]
-        )
 
         # Transformer layers
-        self.transformer = Transformer(
-            input_dim=self.model_config["VQ_embedding_dim"],
-            hidden_dim=64,
-            nheads=2,
-            num_encoder_layers=2,
-            num_decoder_layers=2,
-            output_dim=28,
-        )
+        self.transformer = Transformer(self.model_config)
 
-        self.cross_entropy_loss = nn.CrossEntropyLoss(reduction="none")
-        # self.loss_balancer = LossBalancer(self.model_config["num_embeddings"])
-        # self.multi_task_loss = MultiTaskLoss(
-        #     [True, False, False]
-        # )  # not working well
+        self.bn = nn.BatchNorm1d(84)
 
-        # To trap latent features
-        self.activation = {}
+        self.feature_wise_dropout = AxiswiseDropout(dropout_prob=0.1, dim=-2)
+
+        # self.criterion = CosineSimilarityLoss()
+        self.criterion = F.mse_loss
+        # self.criterion = self.manhattan_dist
+        self.sigmoid = nn.Sigmoid()
+
+        # # Load weights
+
+        # if weights_path is not None:
+        #     self.load_weights(weights_path)
+        #     self.freeze_all_layers()
+        #     _ = mngs.ml.utils.check_params(self, show=True)
+
+    @staticmethod
+    def manhattan_dist(x, y):
+        return (x - y).abs().sum()
 
     def forward(self, x, get_latent=False):
         """x.shape # [-1, 14, 256]"""
-        # if self.training:
-        #     self.multi_task_loss.train()
-        # else:
-        #     self.multi_task_loss.eval()
 
-        # Convolution
-        xs = self.split_conv(x)  # len(xs) # 8; xs[0].shape # [32, 64]
-
-        # Quantization
-        _q, _commitment_losses, _entropy_losses = zip(
-            *[self.VQ(x) for x in xs]
+        # Calculates band powers by 1-sec segments
+        xs = split_segments(x, window_size_pts=CONFIG["TGT_FS"])
+        xs = [mngs.gen.to_z(x, axis=-1) for x in xs]
+        x = torch.stack(
+            [calc_band_powers(x, CONFIG["TGT_FS"]) for x in xs], axis=-1
         )
-        _q = torch.stack(_q, axis=1)
-        # (-1, 8, self.model_config["embedding_dim"])
-        q_pre, q_post = _q[:, :-1, :], _q[:, -1, :].unsqueeze(1)
 
-        # For transfer learning
-        if not get_latent:
-            y = self.transformer(q_pre)
-            # (-1, 1, self.model_config["embedding_dim"])
-            commitment_loss = torch.mean(torch.stack(_commitment_losses)).to(
-                x.device
-            )
-            entropy_loss = torch.mean(torch.stack(_entropy_losses)).to(
-                x.device
-            )
-            prediction_loss = F.mse_loss(y, q_post)
-            return (
-                self.model_config["loss_alpha"] * commitment_loss,
-                self.model_config["loss_beta"] * entropy_loss,
-                self.model_config["loss_gamma"] * prediction_loss,
-            )
+        # torch.Size([32, 14, 128, 9])
+        # [-1, 14, 6, 9] # [batch_size, n_chs, n_bands, seq_len]
 
-            # # Diversity loss
-            # avg_probs = softmax_probs.mean(dim=0)
-            # loss_diversity = -torch.sum(
-            #     avg_probs * torch.log(avg_probs + 1e-10)
-            # )
+        # Split the band powers into those from pre / post segments
+        pre = x[..., :-1]
+        post = x[..., -1].unsqueeze(-1)  # keeps the dimension for consistency
+
+        # To features: 14 channels * 6 bands -> 84 features
+        pre = pre.reshape(pre.shape[0], -1, pre.shape[-1])
+        post = post.reshape(post.shape[0], -1, post.shape[-1])
+
+        # Normalization in a batch using the mean and std of preceeding data
+        mm_pre, ss_pre = pre.mean(axis=(0, -1), keepdims=True), pre.std(
+            axis=(0, -1), keepdims=True
+        )
+
+        pre = (pre - mm_pre) / (ss_pre + 1e-5)
+        post = (post - mm_pre) / (ss_pre + 1e-5)
+
+        # Remove nan-including samples
+        pre, post = self.remove_nan_inclusing_samples(pre, post)
+
+        # Feature-wise dropout
+        pre = self.feature_wise_dropout(pre)
+
+        # Squeese post
+        post = self.sigmoid(post) * 2 - 1
+        post = post.squeeze()
+        self.post = post.detach().cpu()  # for future reference
+
+        # # Clipping post to stabilize its values
+        # post = torch.clamp(post, min=-1, max=1)
+
+        if get_latent:
+            self.y = None
+            return self.transformer(pre, get_latent=True)
 
         else:
-            self.transformer.transformer_encoder.layers[
-                1
-            ].norm2.register_forward_hook(self.get_latent("encoder_norm"))
-            _ = self.transformer(q_pre)
-            return (
-                self.activation["encoder_norm"].transpose(0, 1).transpose(1, 2)
-            )
-            # (-1, 64, 7) = (-1, 448)
+            y = self.transformer(pre, get_latent=False)[..., -1]
+            if torch.isnan(y).any():
+                import ipdb
 
-    def get_latent(self, name):
+                ipdb.set_trace()
+
+            if torch.isnan(post).any():
+                import ipdb
+
+                ipdb.set_trace()
+
+            loss = self.criterion(post, y)
+            self.y = y.detach().cpu()
+            return loss
+
+    def remove_nan_inclusing_samples(self, pre, post):
+        is_nan_pre = pre.reshape(len(pre), -1).isnan().any(-1)
+        is_nan_post = post.reshape(len(post), -1).isnan().any(-1)
+        is_nan_all = is_nan_pre + is_nan_post
+
+        pre = pre[~is_nan_all]
+        post = post[~is_nan_all]
+        return pre, post
+
+    def load_weights(self, weights_path):
+        state_dict = mngs.io.load(weights_path)
+        self.load_state_dict(mngs.io.load(weights_path).state_dict())
+        print(f"\nWeights were successfully loaded: {weights_path}")
+
+    def freeze_all_layers(
+        self,
+    ):
+        for param in list(self.parameters()):
+            param.requires_grad = False
+
+    def trap_activation(self, name):
         def hook(model, input, output):
             self.activation[name] = output.detach()
 
         return hook
 
 
+def load_trained_EEGPT(ID):
+    EEGPT_model_config = mngs.io.load(
+        f"./scripts/ml/pretrain_EEGPT/{ID}/transformer_model_config.yaml"
+    )
+    try:
+        del EEGPT_model_config["conv_vq_weights_path"]
+    except:
+        pass
+    EEGPT_model_config[
+        "weights_path"
+    ] = f"./scripts/ml/pretrain_EEGPT/{ID}/transformer_checkpoint.pth"
+    EEGPT_model = EEGPT(EEGPT_model_config).cuda().eval()
+    return EEGPT_model
+
+
 if __name__ == "__main__":
-    import argparse
+    from scripts.ml.parse_model_configs import parse_model_configs
 
-    parser = argparse.ArgumentParser(
-        description="Train the EEGPT model with given hyperparameters."
-    )
-    parser.add_argument(
-        "-a",
-        "--alpha",
-        type=float,
-        default=1.0,
-        help="Weight for the commitment loss",
-    )
-    parser.add_argument(
-        "-b",
-        "--beta",
-        type=float,
-        default=1.0,
-        help="Weight for the entropy loss",
-    )
-    parser.add_argument(
-        "-g",
-        "--gamma",
-        type=float,
-        default=1.0,
-        help="Weight for the prediction loss",
-    )
-    parser.add_argument(
-        "--softmax_type",
-        default="softmax",
-        choices=["softmax", "gumbel_softmax_soft", "gumbel_softmax_hard"],
-        help="Type of softmax to be used in the VQ layer: 'softmax', 'gumbel_softmax_soft', or 'gumbel_softmax_hard'.",
-    )
-    parser.add_argument(
-        "--num_embeddings",
-        default=4,
-        help="",
-    )
-    parser.add_argument(
-        "--embedding_dim",
-        default=16,
-        help="",
-    )
-    parser.add_argument(
-        "--weight_norm",
-        default=False,
-        help="",
-    )
-    parser.add_argument(
-        "--initializer",
-        default="uniform",
-        help="",
-    )
+    WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
 
-    args = parser.parse_args()
+    x = torch.randn(32, 14, WINDOW_SIZE_PTS).cuda()
 
-    print(f"\nargs:\n{args}")
-
-    model_config = dict(
-        VQ_num_embeddings=args.num_embeddings,
-        VQ_embedding_dim=args.embedding_dim,
-        VQ_softmax_type=args.softmax_type,
-        VQ_weight_norm=args.weight_norm,
-        VQ_initializer=args.initializer,
-        loss_alpha=args.alpha,
-        loss_beta=args.beta,
-        loss_gamma=args.gamma,
-    )
+    model_config = parse_model_configs()
 
     m = EEGPT(model_config).cuda()
-    x = torch.randn(32, 14, 256).cuda()
-    loss = m(x)
-    # Pretrained model
-    # weights_path = (
-    #     "./scripts/ml/pretrain_EEGPT/2024-02-11-07-05_dPXGGb4b/
-    # )
-    # m.load_state_dict(mngs.io.load(weights_path).state_dict())
-    l = m(x, get_latent=True)
+
+    loss = m(x, get_latent=False)
+    l = m(x, get_latent=True)  # (-1, 32, 8)
+
+    loss.backward()
+    # loss = m(x)

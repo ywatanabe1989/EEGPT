@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 20:44:32 (ywatanabe)"
+# Time-stamp: "2024-02-28 12:40:04 (ywatanabe)"
 
 import logging
 import random
@@ -27,7 +27,7 @@ def populate_db(files_list, spath_db):
         """
         CREATE TABLE eeg_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dataset_id TEXT NOT NULL,        
+            dataset_id TEXT NOT NULL,
             subject_id TEXT NOT NULL,
             segment_number INTEGER NOT NULL,
             segment BLOB NOT NULL,
@@ -51,8 +51,6 @@ def populate_db(files_list, spath_db):
 
         # Makes subject_id identical across datasets
         subject_id = dataset_id + "_" + subject_id
-        print(dataset_id)
-        print(subject_id)
 
         # Loads EEG segments
         eeg_segments, metadatas = load_a_processed_and_segmented_eeg_file(
@@ -172,7 +170,7 @@ if __name__ == "__main__":
     """
     screen -S populate
     ./scripts/data/database/populate_db.py --data_category OpenNeuro
-    ./scripts/data/database/populate_db.py --data_category Dementia    
+    ./scripts/data/database/populate_db.py --data_category Dementia
     ./scripts/data/database/populate_db.py --data_category Epilepsy
     ./scripts/data/database/populate_db.py --data_category MotorMovementImagery
     """

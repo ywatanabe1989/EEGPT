@@ -33,23 +33,18 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 ls ./data/O*/dbs -alht
 
 CAT=OpenNeuro
-VER=v029
+VER=v034
 cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
+rm -f ./data/"$CAT"/dbs/eeg_data_meta_cache.pkl
 ```
 
 
 #### Runs pretraining
 ``` bash
-screen -dmS pretrain_beta_0.1_softmax ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type softmax
-screen -dmS pretrain_beta_0.1_gumbel_soft ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_soft
-screen -dmS pretrain_beta_0.1_gumbel_hard ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.1 -g 0.0 --softmax_type gumbel_softmax_hard
-
-screen -dmS pretrain_beta_0.3_softmax ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type softmax
-screen -dmS pretrain_beta_0.3_gumbel_soft ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type gumbel_softmax_soft
-screen -dmS pretrain_beta_0.3_gumbel_hard ./scripts/ml/pretrain_EEGPT.py -a 1.0 -b 0.3 -g 0.0 --softmax_type gumbel_softmax_hard
+./scripts/ml/pretrain_EEGPT.py -h
+# screen -dmS "$session_name" bash -c "$command"
+            
 ```
-
-
 
 
 ## OpenNeuro Datasets for Pretraining
@@ -58,3 +53,13 @@ Over 100 datasets identified on OpenNeuro under the following conditions:
 - 2. PARTICIPANTS: 50 or more
 
 From 78 datasets, EEG data of 6,144 subjects are utilized during pretraining.
+
+## Hyper-parameters to Tune
+[`./scripts/ml/parse_model_configs.py`](./scripts/ml/parse_model_configs.py) handles hyper parameters.
+
+``` bash
+./scripts/ml/parse_model_configs.py -h | tee ./docs/hyper_parameters.txt
+```
+
+
+

@@ -1,52 +1,64 @@
 \section{Methods}
 \subsection{Datasets}
 \subsubsection{Datasets for Pretraining}
-For the purpose of training, we utilized the OpenNeuro repository. Specifically, the inclusion criteria mandated that each dataset contain (i) EEG recordings (ii) from over 50 participants, which led to the initial selection of 49 datasets with EEG modality. \cite{ds004902:1.0.0} \cite{ds004883:1.0.0} \cite{ds004771:1.0.0} \cite{ds004718:1.0.4} \cite{ds004626:1.0.2} \cite{ds004602:1.0.1} \cite{ds004595:1.0.0} \cite{ds004584:1.0.0} \cite{ds004580:1.0.0} \cite{ds004579:1.0.0} \cite{ds004577:1.0.1} \cite{ds004574:1.0.0} \cite{ds004572:1.2.0} \cite{ds004532:1.2.0} \cite{ds004515:1.0.0} \cite{ds004504:1.0.6} \cite{ds004448:1.0.2} \cite{ds004395:2.0.0} \cite{ds004362:1.0.0} \cite{ds004317:1.0.3} \cite{ds004315:1.0.0} \cite{ds004279:1.1.1} \cite{ds004256:1.0.5} \cite{ds004186:2.0.0} \cite{ds004166:1.0.0} \cite{ds004151:1.0.0} \cite{ds004148:1.0.1} \cite{ds004120:1.0.0} \cite{ds004118:1.0.1} \cite{ds004067:1.0.1} \cite{ds004019:1.0.0} \cite{ds003969:1.0.0} \cite{ds003947:1.0.1} \cite{ds003944:1.0.1} \cite{ds003838:1.0.5} \cite{ds003825:1.2.0} \cite{ds003775:1.2.1} \cite{ds003690:1.0.0} \cite{ds003655:1.0.2} \cite{ds003638:1.0.0} \cite{ds003602:1.0.1} \cite{ds003523:1.1.0} \cite{ds003522:1.1.0} \cite{ds003518:1.1.0} \cite{ds003509:1.1.0} \cite{ds003506:1.1.0} \cite{ds003490:1.1.0} \cite{ds003478:1.1.0} \cite{ds003474:1.1.0}
+For the purpose of training, we utilized the OpenNeuro repository. Specifically, the inclusion criteria mandated that each dataset contain (i) EEG recordings (ii) from over 50 participants, which led to the initial selection of 178 datasets with EEG modality. \cite{ds004902:1.0.0} \cite{ds004883:1.0.0} \cite{ds004771:1.0.0} \cite{ds004718:1.0.4} \cite{ds004626:1.0.2} \cite{ds004602:1.0.1} \cite{ds004595:1.0.0} \cite{ds004584:1.0.0} \cite{ds004580:1.0.0} \cite{ds004579:1.0.0} \cite{ds004577:1.0.1} \cite{ds004574:1.0.0} \cite{ds004572:1.2.0} \cite{ds004532:1.2.0} \cite{ds004515:1.0.0} \cite{ds004504:1.0.6} \cite{ds004448:1.0.2} \cite{ds004395:2.0.0} \cite{ds004362:1.0.0} \cite{ds004317:1.0.3} \cite{ds004315:1.0.0} \cite{ds004279:1.1.1} \cite{ds004256:1.0.5} \cite{ds004186:2.0.0} \cite{ds004166:1.0.0} \cite{ds004151:1.0.0} \cite{ds004148:1.0.1} \cite{ds004120:1.0.0} \cite{ds004118:1.0.1} \cite{ds004067:1.0.1} \cite{ds004019:1.0.0} \cite{ds003969:1.0.0} \cite{ds003947:1.0.1} \cite{ds003944:1.0.1} \cite{ds003838:1.0.5} \cite{ds003825:1.2.0} \cite{ds003775:1.2.1} \cite{ds003690:1.0.0} \cite{ds003655:1.0.2} \cite{ds003638:1.0.0} \cite{ds003602:1.0.1} \cite{ds003523:1.1.0} \cite{ds003522:1.1.0} \cite{ds003518:1.1.0} \cite{ds003509:1.1.0} \cite{ds003506:1.1.0} \cite{ds003490:1.1.0} \cite{ds003478:1.1.0} \cite{ds003474:1.1.0}
 \\
 \indent
-However, during the preprocessing stage, which involved tasks such as channel renaming, channel selection, and data cropping, some datasets were found to be incompatible with our processing pipeline. Consequently, the final dataset count was reduced to about 30 (Table~\ref{tab:01}).
+However, during the preprocessing stage, which involved tasks such as channel renaming, channel selection, and data cropping, some datasets were found to be incompatible with our processing pipeline. Consequently, the final dataset count was reduced to 115 datasets and 7,145 subjects (Table~\ref{tab:01}).
 \\
 \indent
 \subsubsection{Datasets for Downstream Tasks}
 \subsubsubsection{Dementia Classification Task}
-For the specific downstream task of dementia classification, we employed a private dataset obtained from collaborative research between Osaka University, Kochi University, and Nippon Hospital \cite{hata_precise_2023} \cite{watanabe_deep_2024}. This dataset comprises EEG recordings from 570 individuals, including healthy volunteers (HVs), and patients diagnosed with Alzheimer's Disease (AD), Dementia with Lewy Bodies (DLB), idiopathic Normal Pressure Hydrocephalus (iNPH), and Mild Cognitive Impairment (MCI).
+As a downstream task, dementia classification was conducted. For this purpose, we used a private cohort dataset obtained from Osaka University, Kochi University, and Nippon Life Hospital \cite{hata_precise_2023} \cite{watanabe_deep_2024}. This dataset comprises EEG recordings from 570 individuals, including healthy volunteers (HVs), and patients diagnosed with Alzheimer's Disease (AD), Dementia with Lewy Bodies (DLB), idiopathic Normal Pressure Hydrocephalus (iNPH), and Mild Cognitive Impairment (MCI).
+
 \subsubsubsection{Seizure Detection and Prediction Task}
 An dataset on OpenNeuro \cite{ds003555:1.0.0} and our internal dataset (Table~\ref{tab:01}) were utilized.
+
 \subsubsubsection{Motor Movement Imagery Task}
 
-\subsection{EEG Channel Mapping}
-To ensure uniformity across datasets, which vary in the number of channels, their positions, and the availability of metadata for them, a channel mapping approach was adopted. Specifically, the international 10--20 system for EEG electrode placement was targeted: FP1, F3, C3, P3, O1, FP2, F4, C4, P4, O2, F7, T7, P7, F8, T8, P8, FZ, CZ, and PZ. In instances where the original electrode montage did not conform to these montages, the data were mapped to the closest equivalent electrode. The 19-channel EEG data were then re-referenced using a transverse bipolar montage in the following 14 arrangements: FP1--FP2, F7--F3, F3--FZ, FZ--F4, F4--F8, T7--C3, C3--CZ, CZ--C4, C4--T8, P7--P3, P3--PZ, PZ--P4, P4--P8, O1--O2.
-    
-\subsection{Data Sampling}
-All EEG data were resampled to a uniform frequency of 128 Hz to standardize the sampling rate across different recordings. To address potential power line noise, a band-pass filter was applied to eliminate both 50Hz and 60Hz interference from the EEG signals.
+\subsection{Datasets Handling}
+\subsubsection{EEG Channel Mapping}
+To reconcile the variations in channel settings across different EEG datasets, a channel mapping strategy was employed. Specifically, the following channels were selected as target channels from the international 10--20 system configuration for EEG electrode placement: Fp1, F3, C3, P3, O1, Fp2, F4, C4, P4, O2, F7, T7, P7, F8, T8, P8, Fz, Cz, and Pz. If the original electrode setup did not align with these channel locations, channels were mapped to the nearest equivalent electrode, such as from T3 to T7. Additionally, when channel tags were not available but channel coordinates were, the nearest channels to the target channels were identified by calculating the Euclidean distance.
+\\
+\indent
+Subsequently, the obtained 19-channel EEG data were re-referenced using a transverse bipolar montage: (for frontal regions) Fp1--Fp2, F7--F3, F3--FZ, Fz--F4, F4--F8, (for central regions) T7--C3, C3--CZ, Cz--C4, C4--T8, (for parietal regions) P7--P3, P3--Pz, Pz--P4, P4--P8, and (for occipital regions) O1--O2.
 
-\subsection{Sliding Window Data Augumentatino}
-A target window size of 2 seconds was established for the analysis of EEG data. The data were initially segmented into 4-second bins, with a 2-second overlap between consecutive bins to ensure continuity. During the training phase of the EEGPT model, window-sliding data augmentation was employed to enhance the model's robustness. To avoid sampling bias, the number of windows sampled from each subject was limited to a maximum of 100.
+\subsubsection{EEG Resampling}
+All EEG data were resampled to a target frequency of 128 Hz. To address potential power line noise, a band-pass filter was applied to eliminate both 50Hz and 60Hz interference from the EEG signals.
 
-\subsection{Data Splitting}
-For the pretraining phase, the dataset was partitioned into three separate sets: training, validation, and test data. This division was performed at the dataset level to prevent any single dataset from appearing in more than one set. This strategy was adopted to provide a more accurate estimation of the model's performance on data from unseen sources, thereby assessing its generalizability in a realistic context.
+\subsubsection{Limiting the Number of EEG Data from Each Subject}
+To prevent sampling bias, the number of windows sampled from each subject was capped at a maximum of 100.
 
-\subsection{Self-Supervised Pre-training of EEGPT Model}
-The EEGPT model is a novel neural network architecture designed to leverage the rich temporal and spatial information present in EEG data. The model is structured to include convolutional neural network (CNN) layers, quantilizing layers, and transformer layers, each serving a unique purpose in the processing pipeline.
+\subsubsection{Sliding Window Data Augumentatino}
+During the training phase of the EEGPT model, window-sliding data augmentation was employed to enhance the model's robustness. Specifically, a target window size was determined as 2 seconds. EEG data were initially segmented into 4-second bins, with a 2-second overlap between consecutive bins.
 
-\subsubsection{Convolutional Neural Network Layers}
-The CNN layers are the initial point of contact for the raw EEG data entering the model. These layers are adept at extracting local features from the input signals, such as spatial patterns across different electrodes that may be indicative of specific neural activities or pathological states. By applying a series of convolutional filters, the model can learn to recognize these patterns and use them as a foundation for more complex feature extraction.
+\subsubsection{Data Splitting}
+The entire datasets were divided into three distinct sets: training, validation, and test data. This partitioning was conducted at the dataset level to ensure that no single dataset appeared in more than one set. This approach was adopted to estimate the model's performance on EEG data derived from unseen sites, with the objective of application in real-life scenarios.
 
-\subsubsection{Quantilizing Layers}
-Following the CNN layers, the quantilizing layers come into play. The primary function of these layers is to simplify the input data by quantizing it, effectively reducing its complexity. This process involves mapping the continuous range of EEG signal values to a discrete set, which can help the model in two ways: it reduces the computational load and it may allow the model to focus on the most informative aspects of the EEG signals by filtering out less relevant noise.
+\subsection{The EEGPT Model}
+\subsubsection{Structure of the EEGPT model}
+The EEGPT model was developed to learn general spatio-temporal patterns in EEG data from more than 100 datasets and to utilize these knowledge to downstream tasks such as dementia classification. The model is structured with convolutional neural network (CNN) layers to capture local features for channel and time axes, applied to each 0.25-second segment in a shared manner without overlaps. The features extracted by the CNN are then processed with quantilizing layers to limit the actual degree of freedom of these segments to four. Finally, transformer layers are applied to capture longer temporal dependencies across segments through the application of positional encoding.
 
-\subsubsection{Transformer Layers}
-The transformer layers are the core of the EEGPT model's ability to understand and predict EEG data. Transformers are a type of neural network architecture that has proven highly effective in capturing long-range dependencies within sequential data. In the context of EEG, this means that the model can learn the temporal dynamics of brain activity over time, which is crucial for tasks such as event prediction or state classification.
+% \subsubsection{Convolutional Neural Network Layers}
+% The CNN layers are the initial point of contact for the raw EEG data entering the model. These layers are adept at extracting local features from the input signals, such as spatial patterns across different electrodes that may be indicative of specific neural activities or pathological states. By applying a series of convolutional filters, the model can learn to recognize these patterns and use them as a foundation for more complex feature extraction.
 
-\subsubsection{Self-Supervised Learning Strategy}
-The pre-training of the EEGPT model is conducted using a self-supervised learning strategy. This approach does not require labeled data; instead, the model learns to predict parts of the input data from other parts. Specifically, for each 2-second window of EEG data, the model uses the first 1.75 seconds to understand the context and then attempts to predict the subsequent 0.25 seconds. This forces the model to internalize the structure of the EEG signals and develop an internal representation that captures the essence of the brain's electrical activity.
+% \subsubsection{Quantilizing Layers}
+% Following the CNN layers, the quantilizing layers come into play. The primary function of these layers is to simplify the input data by quantizing it, effectively reducing its complexity. This process involves mapping the continuous range of EEG signal values to a discrete set, which can help the model in two ways: it reduces the computational load and it may allow the model to focus on the most informative aspects of the EEG signals by filtering out less relevant noise.
 
-By training the EEGPT model in this self-supervised manner, we aim to create a versatile and powerful tool capable of understanding EEG data in a way that is not limited by the biases and constraints of labeled datasets. Once pre-trained, the EEGPT model can be fine-tuned on specific tasks, such as dementia classification or epilepsy prediction, with the expectation that its richly learned representations will provide a strong foundation for high performance on these downstream tasks.
+% \subsubsection{Transformer Layers}
+% The transformer layers are the core of the EEGPT model's ability to understand and predict EEG data. Transformers are a type of neural network architecture that has proven highly effective in capturing long-range dependencies within sequential data. In the context of EEG, this means that the model can learn the temporal dynamics of brain activity over time, which is crucial for tasks such as event prediction or state classification.
+
+\subsubsection{Self-Supervised Pretraining of the EEGPT model}
+The pretraining process was divided into two steps both in self-supervised manners. Initially, only the convolutional and quantization layers were trained by adjusting the loss: the coefficients of committing loss, entropy loss, and prediction loss were set at 1.0, 0.3, and 0.0, respectively. This was implemented to ensure extensive use of quantizing categories and the close alignment of embedding vectors with the original input from the CNN layers.
+\\
+\indent
+Next, these first two layers were frozen and a feature prediction task was conducted to train the transformer layers: from the preceding 1.75-second segments, the last 0.25-second segment was predicted based on their quantized representations.
 
 \subsection{Downstream Tasks using the pretrained EEPT model}
 \subsubsection{Dementia Classification}
 
 \subsubsection{Epileptic Seizure Detection}
+
 % https://physionet.org/content/siena-scalp-eeg/1.0.0/
 \subsubsection{Motor Movement Imagery Classification}
 
