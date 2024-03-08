@@ -30,9 +30,6 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 
 #### Updates links to databases
 ```
-
-
-
 CAT=OpenNeuro
 CAT=Dementia
 
@@ -48,7 +45,6 @@ rm -f ./data/"$CAT"/dbs/eeg_data_meta_cache.pkl
 ./scripts/ml/pretrain/EEGPT.py -h
 # screen -dmS "$session_name" bash -c "$command"
 # ./scripts/ml/pretrain/EEGPT/FINISHED/2024Y-03M-01D-03h26m30s_EJgv/
-            
 ```
 
 
