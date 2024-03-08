@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-28 12:40:04 (ywatanabe)"
+# Time-stamp: "2024-03-01 10:58:49 (ywatanabe)"
 
 import logging
 import random
@@ -87,7 +87,7 @@ def populate_db(files_list, spath_db):
     cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
     datasets = [row[0] for row in cursor.fetchall()]
     cursor.execute("SELECT DISTINCT subject_id FROM eeg_data")
-    subject_ids = [row[0] for row in cursor.fetchall()]
+    subject_ids = [row[1] for row in cursor.fetchall()]
     print(subject_ids)
     conn.close()
 

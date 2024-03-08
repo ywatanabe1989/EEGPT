@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-08 18:28:43 (ywatanabe)"
+# Time-stamp: "2024-03-01 11:16:41 (ywatanabe)"
 
 import json
 import random
@@ -23,7 +23,7 @@ def associate_EEG_segments_and_metadata(
 
     Parameters:
     - metadata_json (str): JSON string representing the file-level metadata.
-    - n_segments (int): The total number of segments.
+    - eeg_segs: EEG segments.
 
     Returns:
     - list of str: A list of JSON strings, each representing the metadata for a specific segment.
@@ -43,8 +43,6 @@ def associate_EEG_segments_and_metadata(
     segment_labels = []
 
     # These constants should be correctly defined or passed as parameters
-    # WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
-    # STEP_SIZE_PTS = int(WINDOW_SIZE_PTS / CONFIG["OVERLAP_FACTOR"])
     STEP_SIZE_SEC = int(CONFIG["WINDOW_SIZE_SEC"] / CONFIG["OVERLAP_FACTOR"])
 
     for ii_seg in range(len(eeg_segs)):

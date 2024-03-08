@@ -30,10 +30,11 @@ $ screen -dmS populate_MotorMovementImagery ./scripts/data/database/populate_db.
 
 #### Updates links to databases
 ```
-ls ./data/O*/dbs -alht
-
 CAT=OpenNeuro
-VER=v034
+CAT=Dementia
+
+ls ./data/"$CAT"/dbs -alht
+VER=v012
 cd ./data/"$CAT"/dbs/ && ln -sf eeg_data_"$VER".db eeg_data.db && cd ../../..
 rm -f ./data/"$CAT"/dbs/eeg_data_meta_cache.pkl
 ```
@@ -41,18 +42,11 @@ rm -f ./data/"$CAT"/dbs/eeg_data_meta_cache.pkl
 
 #### Runs pretraining
 ``` bash
-./scripts/ml/pretrain_EEGPT.py -h
+./scripts/ml/pretrain/EEGPT.py -h
 # screen -dmS "$session_name" bash -c "$command"
-            
+# ./scripts/ml/pretrain/EEGPT/FINISHED/2024Y-03M-01D-03h26m30s_EJgv/
 ```
 
-
-## OpenNeuro Datasets for Pretraining
-Over 100 datasets identified on OpenNeuro under the following conditions:
-- 1. MODALITY: EEG
-- 2. PARTICIPANTS: 50 or more
-
-From 78 datasets, EEG data of 6,144 subjects are utilized during pretraining.
 
 ## Hyper-parameters to Tune
 [`./scripts/ml/parse_model_configs.py`](./scripts/ml/parse_model_configs.py) handles hyper parameters.
@@ -60,6 +54,4 @@ From 78 datasets, EEG data of 6,144 subjects are utilized during pretraining.
 ``` bash
 ./scripts/ml/parse_model_configs.py -h | tee ./docs/hyper_parameters.txt
 ```
-
-
 

@@ -1,0 +1,97 @@
+DIR_OPENNEURO: ./data/OpenNeuro/
+DIR_EPILEPSY: ./data/Epilepsy/
+DIR_DEMENTIA: ./data/Dementia/
+DIR_VISUAL: ./data/Visual/
+DIR_WORKINGMEMORY: ./data/WorkingMemory/
+DIR_MOTORMOVEMENTIMAGERY: ./data/MotorMovementImagery/
+EEG_EXTENSIONS:
+    - eeg
+    - edf
+    - bdf
+    - gdf
+    - cnt
+    - egi
+    - mff
+    - set
+    - xdf
+    - xdfz
+IS_DEBUG: false
+CHANNEL_MAPPING:
+    T3: T7
+    T5: P7
+    T4: T8
+    T6: P8
+    CPZ: PZ
+    EEG FP1: FP1
+    EEG F3: F3
+    EEG C3: C3
+    EEG P3: P3
+    EEG O1: O1
+    EEG FP2: FP2
+    EEG F4: F4
+    EEG C4: C4
+    EEG P4: P4
+    EEG O2: O2
+    EEG F7: F7
+    EEG T3: T7
+    EEG T5: P7
+    EEG F8: F8
+    EEG T4: T8
+    EEG T6: P8
+    EEG FZ: FZ
+    EEG CZ: CZ
+    EEG PZ: PZ
+TGT_MONTAGE:
+    - FP1
+    - F3
+    - C3
+    - P3
+    - O1
+    - FP2
+    - F4
+    - C4
+    - P4
+    - O2
+    - F7
+    - T7
+    - P7
+    - F8
+    - T8
+    - P8
+    - FZ
+    - CZ
+    - PZ
+TGT_TRANVERSE_BIPOLAR_MONTAGE:
+    - FP1-FP2
+    - F7-F3
+    - F3-FZ
+    - FZ-F4
+    - F4-F8
+    - T7-C3
+    - C3-CZ
+    - CZ-C4
+    - C4-T8
+    - P7-P3
+    - P3-PZ
+    - PZ-P4
+    - P4-P8
+    - O1-O2
+TGT_FS: 128
+WINDOW_SIZE_SEC: 9
+OVERLAP_FACTOR: 2
+MAX_N_WINDOWS_PER_SUB: 100
+DEBUG_N_WINDOWS_PER_SUB: 10
+N_LPATHS_TO_LOAD: -1
+DEBUG_N_LPATHS_TO_LOAD: 30
+BATCH_SIZE: 32
+DEBUG_BATCH_SIZE: 32
+N_EPOCHS: 100
+DEBUG_N_EPOCHS: 2
+LEARNING_RATE: '1e-3'
+DEBUG_LEARNING_RATE: '1e-10'
+ID: 2024Y-03M-03D-02h14m38s_1LFN
+START_TIME: 2024-03-03 02:14:38.289861
+SDIR: 
+    /home/ywatanabe/proj/EEGPT/./scripts/ml/downstream/dementia/visualize/RUNNING/2024Y-03M-03D-02h14m38s_1LFN/
+END_TIME: 2024-03-03 02:16:37.845183
+SPENT_TIME: 00:01:59
