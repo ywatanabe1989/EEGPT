@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-28 12:29:39 (ywatanabe)"
+# Time-stamp: "2024-03-02 22:00:27 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -8,6 +8,7 @@ import random
 import re
 import sqlite3
 import sys
+import warnings
 from collections import OrderedDict
 from pprint import pprint
 
@@ -266,10 +267,8 @@ class SQLiteDataset(Dataset):
     def __getitem__(self, index):
         index = self.allowed_indices[index]
 
-        # The index here is a direct index into the dataset.
         query = "SELECT dataset_id, subject_id, segment, metadata FROM eeg_data WHERE id = ?"
-        # params = [index + 1]  # Assuming that the database IDs start at 1
-        params = [index]  # Assuming that the database IDs start at 1
+        params = [index]
 
         with self.get_cursor(self.ds_config["LPATH_DB"]) as cursor:
             cursor.execute(query, params)
@@ -370,57 +369,63 @@ class SQLiteDataset(Dataset):
         return dataloaders
 
 
-# Define the custom collate function
-
-
 class CustomCollateFnMaker:
     def __init__(self, random_split=False):
         self.random_split = random_split
 
     @staticmethod
-    def sliding_window(segment_tensor, random_split=False):
+    def sliding_window(Xb, random_split=False):
         WINDOW_SIZE_PTS = int(CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"])
-        if segment_tensor.shape[-1] < WINDOW_SIZE_PTS:
-            raise ValueError("Segment tensor is smaller than the window size.")
+        if Xb.shape[-1] < WINDOW_SIZE_PTS:
+            warnings.warn(
+                f"The length of EEG data ({Xb.shape[-1]}) is shorter than the window size ({WINDOW_SIZE_PTS}) "
+                f"for sliding window data augmentation. NaN data is returned.",
+                UserWarning,
+            )
+            return torch.full(
+                (Xb.shape[0], Xb.shape[1], WINDOW_SIZE_PTS), torch.nan
+            )
         start = (
-            random.randint(0, segment_tensor.shape[-1] - WINDOW_SIZE_PTS)
+            random.randint(0, Xb.shape[-1] - WINDOW_SIZE_PTS)
             if random_split
             else 0
         )
-        segment_tensor = segment_tensor[..., start : start + WINDOW_SIZE_PTS]
-        return segment_tensor
+        Xb = Xb[..., start : start + WINDOW_SIZE_PTS]
+        return Xb
+
+    # @staticmethod
+    # def drop_nan_including_samples(batch):
+    #     Xb = batch[2]
+    #     indi_nan = Xb.isnan().any(-1).any(-1)
+    #     return [item[~indi_nan] for item in batch]
 
     def __call__(self, batch):
         augmented_batch = []
         for sample in batch:
-            dataset_id, subject_id, segment_tensor, metadata_tensor = sample
-            augmented_segment_tensor = self.sliding_window(
-                segment_tensor, random_split=self.random_split
-            )
+            dataset_id, subject_id, Xs, metadata_tensor = sample
+            Xs = self.sliding_window(Xs, random_split=self.random_split)
+
+            if Xs.isnan().any():
+                continue
+
             augmented_sample = [
                 dataset_id,
                 subject_id,
-                augmented_segment_tensor,
+                Xs,
                 metadata_tensor,
             ]
             augmented_batch.append(augmented_sample)
 
-        batch = torch.utils.data.dataloader.default_collate(augmented_batch)
-
-        return batch
+        return torch.utils.data.dataloader.default_collate(augmented_batch)
 
 
 def combine_inclusion_criteria(*criteria):
     combined_criteria = {}
 
-    # Iterate over all dictionaries passed to the function
     for criterion in criteria:
-        # Iterate over key-value pairs in each dictionary
         for key, values in criterion.items():
-            # If the key is already in the combined dictionary, update it with new values
             if key in combined_criteria:
                 combined_criteria[key].update(values)
-            # If the key is not in the combined dictionary, add it
             else:
                 combined_criteria[key] = set(values)
 
@@ -451,11 +456,11 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Construct dataset
-    # lpath_ds_config = "./config/DownStream/Dementia.yaml"
-    lpath_ds_config = "./config/Pretrain/OpenNeuro.yaml"
+    lpath_ds_config = "./config/DownStream/Dementia.yaml"
+    # lpath_ds_config = "./config/Pretrain/OpenNeuro.yaml"
     ds, dls = load_ds_dls(
         lpath_ds_config,
-        from_cache=True,
+        from_cache=False,
         verbose=True,
     )
 
@@ -470,7 +475,6 @@ if __name__ == "__main__":
             # Batched dataset ids, subject ids, EEG signals, and metadatas
             DSb, Sb, Xb, _Mb = batch
             Mb_df = ds.decode_meta(_Mb)
-
             # DTb = Mb["disease_type"]  # Disease type
             # Cb = Mb["cognitive_level"]  # Cognitive level
             # Ib = Mb["institution"]  # Institution

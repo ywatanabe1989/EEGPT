@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-29 23:21:00 (ywatanabe)"
+# Time-stamp: "2024-03-01 12:07:37 (ywatanabe)"
 
 import warnings
 
@@ -18,14 +18,14 @@ from models.VectorQuantizer import VectorQuantizer
 CONFIG = mngs.gen.load_configs(show=False)
 
 
-class CosineSimilarityLoss(nn.Module):
-    def __init__(self):
-        super(CosineSimilarityLoss, self).__init__()
-        self.cosine_similarity = nn.CosineSimilarity(dim=1)
+# class CosineSimilarityLoss(nn.Module):
+#     def __init__(self):
+#         super(CosineSimilarityLoss, self).__init__()
+#         self.cosine_similarity = nn.CosineSimilarity(dim=1)
 
-    def forward(self, y_pred, y_true):
-        loss = 1 - self.cosine_similarity(y_pred, y_true)
-        return loss.mean()  # Taking the mean to aggregate over the batch
+#     def forward(self, y_pred, y_true):
+#         loss = 1 - self.cosine_similarity(y_pred, y_true)
+#         return loss.mean()  # Taking the mean to aggregate over the batch
 
 
 class AxiswiseDropout(nn.Module):
@@ -121,19 +121,18 @@ class EEGPT(nn.Module):
 
         self.bn = nn.BatchNorm1d(84)
 
-        self.feature_wise_dropout = AxiswiseDropout(dropout_prob=0.1, dim=-2)
+        self.feature_wise_dropout = AxiswiseDropout(dropout_prob=0.2, dim=-2)
 
         # self.criterion = CosineSimilarityLoss()
         self.criterion = F.mse_loss
-        # self.criterion = self.manhattan_dist
         self.sigmoid = nn.Sigmoid()
 
-        # # Load weights
-
-        # if weights_path is not None:
-        #     self.load_weights(weights_path)
-        #     self.freeze_all_layers()
-        #     _ = mngs.ml.utils.check_params(self, show=True)
+        # Load weights
+        weights_path = model_config.get("weights_path")
+        if weights_path:
+            self.load_weights(weights_path)
+            self.freeze_all_layers()
+            _ = mngs.ml.utils.check_params(self, show=True)
 
     @staticmethod
     def manhattan_dist(x, y):
@@ -151,6 +150,8 @@ class EEGPT(nn.Module):
 
         # torch.Size([32, 14, 128, 9])
         # [-1, 14, 6, 9] # [batch_size, n_chs, n_bands, seq_len]
+        x = x.transpose(1, 2)
+        # [-1, 6, 14, 9] # [batch_size, n_bands, n_chs, seq_len]
 
         # Split the band powers into those from pre / post segments
         pre = x[..., :-1]
@@ -230,16 +231,19 @@ class EEGPT(nn.Module):
 
 
 def load_trained_EEGPT(ID):
+    # EEGPT_model_config = mngs.io.load(
+    #     f"./scripts/ml/pretrain/EEGPT/{ID}/transformer_model_config.yaml"
+    # )
     EEGPT_model_config = mngs.io.load(
-        f"./scripts/ml/pretrain_EEGPT/{ID}/transformer_model_config.yaml"
+        f"./scripts/ml/pretrain/EEGPT/{ID}/model_config.yaml"
     )
-    try:
-        del EEGPT_model_config["conv_vq_weights_path"]
-    except:
-        pass
+    # try:
+    #     del EEGPT_model_config["conv_vq_weights_path"]
+    # except:
+    #     pass
     EEGPT_model_config[
         "weights_path"
-    ] = f"./scripts/ml/pretrain_EEGPT/{ID}/transformer_checkpoint.pth"
+    ] = f"./scripts/ml/pretrain/EEGPT/{ID}/checkpoint.pth"
     EEGPT_model = EEGPT(EEGPT_model_config).cuda().eval()
     return EEGPT_model
 
