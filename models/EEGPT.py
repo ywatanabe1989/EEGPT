@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-03-01 12:07:37 (ywatanabe)"
+# Time-stamp: "2024-03-11 16:53:03 (ywatanabe)"
 
 import warnings
 
@@ -134,9 +134,9 @@ class EEGPT(nn.Module):
             self.freeze_all_layers()
             _ = mngs.ml.utils.check_params(self, show=True)
 
-    @staticmethod
-    def manhattan_dist(x, y):
-        return (x - y).abs().sum()
+    # @staticmethod
+    # def manhattan_dist(x, y):
+    #     return (x - y).abs().sum()
 
     def forward(self, x, get_latent=False):
         """x.shape # [-1, 14, 256]"""

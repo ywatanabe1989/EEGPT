@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-02-19 08:06:58 (ywatanabe)"
+# Time-stamp: "2024-03-09 19:54:26 (ywatanabe)"
 
 from pprint import pprint
 
@@ -28,6 +28,9 @@ def limit_segments_per_sub(df):
 def combine_inclusion_criteria(*multiple_criteria):
     combined_criteria = {}
     for criterion in multiple_criteria:
+        if criterion is None:
+            continue
+
         for key, values in criterion.items():
             if key in combined_criteria:
                 combined_criteria[key].update(values)
@@ -39,6 +42,9 @@ def combine_inclusion_criteria(*multiple_criteria):
 
 
 def filter_by_criteria(df, criteria):
+    if criteria is None:
+        return df
+
     mask = pd.Series(True, index=df.index)
     for key, values in criteria.items():
         mask &= df[key].isin(values)
@@ -66,14 +72,28 @@ def define_df_tes(
     ]
 
     # Solve the found conflicts by merging labels based on the SPLIT_CRITERIA_TRA_VAL_vs_TES
-    df_c["pseudo_label"] = mngs.ml.utils.merge_labels(
-        *[df_c[col] for col in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
-    )
+    if not ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]:
+        df_c["pseudo_label"] = np.arange(len(df_c))
+    else:
+        df_c["pseudo_label"] = mngs.ml.utils.merge_labels(
+            *[df_c[col] for col in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+        )
+
     pseudo_labels_uq = df_c["pseudo_label"].unique()
-    labels_tra_val, labels_tes = train_test_split(
-        pseudo_labels_uq,
-        test_size=ds_config["SPLIT_RATIOS"]["tes"],
-    )
+
+    if ds_config["SPLIT_RATIOS"]["tes"] == 1:
+        labels_tra_val = []
+        labels_tes = pseudo_labels_uq
+
+    elif ds_config["SPLIT_RATIOS"]["tes"] == 0:
+        labels_tra_val = pseudo_labels_uq
+        labels_tes = []
+
+    else:
+        labels_tra_val, labels_tes = train_test_split(
+            pseudo_labels_uq,
+            test_size=ds_config["SPLIT_RATIOS"]["tes"],
+        )
 
     df_resolved_as_tra_val = df_c[df_c["pseudo_label"].isin(labels_tra_val)]
     df_resolved_as_tes = df_c[df_c["pseudo_label"].isin(labels_tes)]
@@ -110,9 +130,13 @@ def define_df_tra_and_df_val(
     ]
 
     # Solve the found conflicts by merging labels based on the SPLIT_CRITERIA_TRA_VAL_vs_TES
-    df_c["pseudo_label"] = mngs.ml.utils.merge_labels(
-        *[df_c[col] for col in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
-    )
+    if not ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]:
+        df_c["pseudo_label"] = np.arange(len(df_c))
+    else:
+        df_c["pseudo_label"] = mngs.ml.utils.merge_labels(
+            *[df_c[col] for col in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+        )
+
     pseudo_labels_uq = df_c["pseudo_label"].unique()
     labels_tra, labels_val = train_test_split(
         pseudo_labels_uq,
@@ -161,16 +185,16 @@ def balance_tra(df_tra, ds_config):
     )
     # pseudo_labels_uq = df_tra["pseudo_label"].unique()
 
-    for col in ds_config["BALANCING_CRITERIA_TRA"]:
-        df_tra = under_sample(df_tra, col)
-
-    print("\n" + "-" * 40)
-    print(f"\nTraining data was undersampled as follows:")
-    for col in ds_config["BALANCING_CRITERIA_TRA"]:
-        print()
-        print(col)
-        print(mngs.gen.unique(df_tra[col]))
-    print("\n" + "-" * 40)
+    if len(df_tra) > 0:
+        for col in ds_config["BALANCING_CRITERIA_TRA"]:
+            df_tra = under_sample(df_tra, col)
+        print("\n" + "-" * 40)
+        print(f"\nTraining data was undersampled as follows:")
+        for col in ds_config["BALANCING_CRITERIA_TRA"]:
+            print()
+            print(col)
+            print(mngs.gen.unique(df_tra[col]))
+        print("\n" + "-" * 40)
 
     return df_tra
 
@@ -185,6 +209,9 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
             ds_config["INCLUSION_CRITERIA_TES"],
         ],
     ):
+        if criteria is None:
+            continue
+
         for key, values in criteria.items():
             if not df_split[key].isin(values).all():
                 raise ValueError(
@@ -209,54 +236,67 @@ def validate_datasets(df_tra, df_val, df_tes, ds_config):
             )
 
     # Validates test split criteria
-    col_split_tra = set(
-        mngs.ml.utils.merge_labels(
-            *[df_tra[k] for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+    if ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"] is not None:
+
+        col_split_tra = set(
+            mngs.ml.utils.merge_labels(
+                *[
+                    df_tra[k]
+                    for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]
+                ]
+            )
         )
-    )
-    col_split_val = set(
-        mngs.ml.utils.merge_labels(
-            *[df_val[k] for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+        col_split_val = set(
+            mngs.ml.utils.merge_labels(
+                *[
+                    df_val[k]
+                    for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]
+                ]
+            )
         )
-    )
-    col_split_tes = set(
-        mngs.ml.utils.merge_labels(
-            *[df_tes[k] for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]]
+        col_split_tes = set(
+            mngs.ml.utils.merge_labels(
+                *[
+                    df_tes[k]
+                    for k in ds_config["SPLIT_CRITERIA_TRA_VAL_vs_TES"]
+                ]
+            )
         )
-    )
-    if not set(col_split_tes) & set(col_split_tra) == set():
-        raise ValueError(
-            f"Test dataset is not split from training dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
-        )
-    if not set(col_split_tes) & set(col_split_val) == set():
-        raise ValueError(
-            f"\nTest dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
-        )
+        if not set(col_split_tes) & set(col_split_tra) == set():
+            raise ValueError(
+                f"Test dataset is not split from training dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            )
+        if not set(col_split_tes) & set(col_split_val) == set():
+            raise ValueError(
+                f"\nTest dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            )
 
     # Validates train-vaild split criteria
-    col_split_tra = set(
-        mngs.ml.utils.merge_labels(
-            *[df_tra[k] for k in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+    if ds_config["SPLIT_CRITERIA_TRA_vs_VAL"] is not None:
+        col_split_tra = set(
+            mngs.ml.utils.merge_labels(
+                *[df_tra[k] for k in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+            )
         )
-    )
-    col_split_val = set(
-        mngs.ml.utils.merge_labels(
-            *[df_val[k] for k in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+        col_split_val = set(
+            mngs.ml.utils.merge_labels(
+                *[df_val[k] for k in ds_config["SPLIT_CRITERIA_TRA_vs_VAL"]]
+            )
         )
-    )
-    if not set(col_split_tra) & set(col_split_val) == set():
-        raise ValueError(
-            f"\nValidation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
-        )
+        if not set(col_split_tra) & set(col_split_val) == set():
+            raise ValueError(
+                f"\nValidation dataset is not split from validation dataset based on ds_config['SPLIT_CRITERIA_TRA_VAL_vs_TES']"
+            )
 
     # Balancing checks and operations would be more complex and are better handled separately
-    uqs, counts = np.unique(
-        df_tra[ds_config["BALANCING_CRITERIA_TRA"]], return_counts=True
-    )
-    if not counts.all():
-        raise ValueError(
-            f"\nTraining dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
+    if ds_config["BALANCING_CRITERIA_TRA"] is not None:
+        uqs, counts = np.unique(
+            df_tra[ds_config["BALANCING_CRITERIA_TRA"]], return_counts=True
         )
+        if not counts.all():
+            raise ValueError(
+                f"\nTraining dataset is not balanced for {ds_config['BALANCING_CRITERIA_TRA']}"
+            )
 
     print(f"\nDataset splitting is validated.")
 
@@ -313,7 +353,8 @@ if __name__ == "__main__":
     from scripts.data.database.SQLiteDataset import SQLiteDataset
 
     CONFIG = mngs.io.load_configs(show=False)
-    ds_config = mngs.io.load("./config/DownStream/Dementia.yaml")
+    # ds_config = mngs.io.load("./config/DownStream/Dementia.yaml")
+    ds_config = mngs.io.load("./config/DownStream/Kaggle_Test.yaml")
     # pprint(ds_config)
     # {'BALANCING_CRITERIA_TRA': ['disease_type'],
     #  'INCLUSION_CRITERIA_TES': {'cognitive_level': ['Normal', 'Dementia'],

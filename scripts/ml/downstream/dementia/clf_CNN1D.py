@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-03-03 09:20:59 (ywatanabe)"
+# Time-stamp: "2024-03-12 13:18:22 (ywatanabe)"
 
 import sys
 
@@ -409,7 +409,7 @@ if __name__ == "__main__":
     )
     plt, cc = mngs.plt.configure_mpl(plt, fig_scale=3)
     CONFIG["BATCH_SIZE"] = 32
-    CONFIG["N_EPOCHS"] = 100
+    CONFIG["N_EPOCHS"] = 1
 
     main(eegpt_id=args.ID)
 

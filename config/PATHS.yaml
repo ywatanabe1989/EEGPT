@@ -20,6 +20,9 @@ DIR_WORKINGMEMORY:
 DIR_MOTORMOVEMENTIMAGERY:
   "./data/MotorMovementImagery/"  
 
+DIR_KAGGLE:
+  "./data/Kaggle/"  
+
 EEG_EXTENSIONS: [
         "eeg",
         "edf",

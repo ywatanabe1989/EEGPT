@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-03-01 10:58:49 (ywatanabe)"
+# Time-stamp: "2024-03-12 11:27:09 (ywatanabe)"
 
 import logging
 import random
@@ -87,8 +87,8 @@ def populate_db(files_list, spath_db):
     cursor.execute("SELECT DISTINCT dataset_id FROM eeg_data")
     datasets = [row[0] for row in cursor.fetchall()]
     cursor.execute("SELECT DISTINCT subject_id FROM eeg_data")
-    subject_ids = [row[1] for row in cursor.fetchall()]
-    print(subject_ids)
+    subject_ids = [row[0] for row in cursor.fetchall()]
+
     conn.close()
 
     n_datasets = len(np.unique(datasets))
@@ -176,3 +176,12 @@ if __name__ == "__main__":
     """
 
     ## EOF
+
+    # Traceback (most recent call last):
+    #   File "/home/ywatanabe/proj/EEGPT/./scripts/data/database/populate_db.py", line 166, in <module>
+    #     populate_db(LPATHS, spath_db)
+    #   File "/home/ywatanabe/proj/EEGPT/./scripts/data/database/populate_db.py", line 90, in populate_db
+    #     subject_ids = [row[1] for row in cursor.fetchall()]
+    #   File "/home/ywatanabe/proj/EEGPT/./scripts/data/database/populate_db.py", line 90, in <listcomp>
+    #     subject_ids = [row[1] for row in cursor.fetchall()]
+    # IndexError: tuple index out of range

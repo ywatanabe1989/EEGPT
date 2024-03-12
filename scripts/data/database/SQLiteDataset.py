@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-03-02 22:00:27 (ywatanabe)"
+# Time-stamp: "2024-03-12 12:20:26 (ywatanabe)"
 
 import contextlib  # Add this line to import contextlib
 import json
@@ -423,6 +423,10 @@ def combine_inclusion_criteria(*criteria):
     combined_criteria = {}
 
     for criterion in criteria:
+
+        if criterion is None:
+            continue
+
         for key, values in criterion.items():
             if key in combined_criteria:
                 combined_criteria[key].update(values)
@@ -456,37 +460,48 @@ if __name__ == "__main__":
     WINDOW_SIZE_PTS = CONFIG["WINDOW_SIZE_SEC"] * CONFIG["TGT_FS"]
 
     # Construct dataset
-    lpath_ds_config = "./config/DownStream/Dementia.yaml"
+    # lpath_ds_config = "./config/DownStream/Dementia.yaml"
     # lpath_ds_config = "./config/Pretrain/OpenNeuro.yaml"
+    lpath_ds_config = "./config/DownStream/Epilepsy.yaml"
     ds, dls = load_ds_dls(
-        lpath_ds_config,
-        from_cache=False,
-        verbose=True,
+        lpath_ds_config, from_cache=False, verbose=True, batch_size=4
     )
+
+    batch = next(iter(dls["tra"]))
+    batch = next(iter(dls["val"]))
+    batch = next(iter(dls["tes"]))
 
     # Main
     for i_epoch in tqdm(range(5)):
-        DS_epoch = []
-        S_epoch = []
-        DT_epoch = []
-        C_epoch = []
-        I_epoch = []
-        for i_batch, batch in tqdm(enumerate(dls["tra"])):
+        D_all = []
+        S_all = []
+        X_all = []
+        M_all = []
+        ILAE_all = []
+        for i_batch, batch in tqdm(enumerate(dls["val"])):
             # Batched dataset ids, subject ids, EEG signals, and metadatas
             DSb, Sb, Xb, _Mb = batch
-            Mb_df = ds.decode_meta(_Mb)
-            # DTb = Mb["disease_type"]  # Disease type
-            # Cb = Mb["cognitive_level"]  # Cognitive level
-            # Ib = Mb["institution"]  # Institution
+            D_all.append(DSb)
+            S_all.append(Sb)
+            X_all.append(Xb)
+            M_all.append(_Mb)
+            ILAE_all.append(np.array(ds.decode_meta(_Mb)["ILAE"]).astype(int))
 
-            DS_epoch.append(DSb)
-            S_epoch.append(Sb)
-            # DT_epoch.append(DTb)
-            # C_epoch.append(Cb)
-            # I_epoch.append(Ib)
-            # M_epoch.append(_Mb)
+            # Mb_df = ds.decode_meta(_Mb)
+    # ds.decode_meta(_Mb)["ILAE"]
 
-    # ds.decode_meta(_Mb)
+    X_all = np.vstack(X_all)
+    S_all = np.hstack(S_all)
+    M_all = np.vstack(M_all)
+    ILAE_all = np.hstack(ILAE_all)
+
+    df = pd.DataFrame(
+        columns=["subject", "ILAE"],
+        data=np.stack([S_all, ILAE_all]).T,
+    )
+    df = df.drop_duplicates()
+    mngs.gen.uq(M_all)
+    ds.decode_meta(_Mb)
 
     DS_uq = mngs.gen.unique(np.hstack(DS_epoch))
     S_uq = mngs.gen.unique(np.hstack(S_epoch))
