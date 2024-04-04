@@ -62,3 +62,5 @@ xgboost
 torchvision
 torchviz
 info-nce-pytorch
+torcheeg
+fastdtw

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: "2024-03-03 02:43:20 (ywatanabe)"
+# Time-stamp: "2024-03-30 14:19:04 (ywatanabe)"
 
 
 import sys
@@ -55,7 +55,7 @@ def to_L(ds, dls, EEGPT, step):
     for sub in np.unique(_S_all):
 
         indi_sub = np.where(_S_all == sub)[0]
-        indi_sub = np.random.permutation(indi_sub)[:30]
+        indi_sub = np.random.permutation(indi_sub)[:100]
 
         S_all.append(_S_all[indi_sub])
         D_all.append(_D_all[indi_sub])
@@ -101,6 +101,35 @@ def main():
 
     data = to_L_all(ds, dls, EEGPT)
 
+    # to subject-mean
+    data_all = mngs.gen.listed_dict()
+    for step in ["tra", "val", "tes"]:
+        S, D, C, I, L = [], [], [], [], []
+        for sub in np.unique(data[f"S_{step}"]):
+            indi = data[f"S_{step}"] == sub
+            S.append(data[f"S_{step}"][indi][0])
+            D.append(data[f"D_{step}"][indi][0])
+            C.append(data[f"C_{step}"][indi][0])
+            I.append(data[f"I_{step}"][indi][0])
+            L.append(data[f"L_{step}"][indi].mean(axis=0, keepdims=True))
+        data[f"S_{step}"] = np.hstack(S)
+        data[f"D_{step}"] = np.hstack(D)
+        data[f"C_{step}"] = np.hstack(C)
+        data[f"I_{step}"] = np.hstack(I)
+        data[f"L_{step}"] = np.vstack(L)
+
+        data_all[f"S"].append(np.hstack(S))
+        data_all[f"D"].append(np.hstack(D))
+        data_all[f"C"].append(np.hstack(C))
+        data_all[f"I"].append(np.hstack(I))
+        data_all[f"L"].append(np.vstack(L))
+
+    data["S_all"] = np.hstack(data_all["S"])
+    data["D_all"] = np.hstack(data_all["D"])
+    data["C_all"] = np.hstack(data_all["C"])
+    data["I_all"] = np.hstack(data_all["I"])
+    data["L_all"] = np.vstack(data_all["L"])
+
     for label_str in ["S", "D", "C", "I"]:
         label_type = {
             "S": "Subject",
@@ -114,6 +143,9 @@ def main():
             # ----------------------------------------
             # Embedding based on Training
             fig, legend_figs, _ = mngs.ml.clustering.umap(
+                # [to_vec(data[f"L_all"])],
+                # [to_vec(data[f"{label_str}_all"])],
+                # axes_titles=["All"],
                 [to_vec(data[f"L_{step}"]) for step in ["tra", "val", "tes"]],
                 [
                     data[f"{label_str}_{step}"]
@@ -209,3 +241,5 @@ if __name__ == "__main__":
     main()
 
     mngs.gen.close(CONFIG)
+
+    # ./scripts/ml/downstream/dementia/visualize.py
